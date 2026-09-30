@@ -292,6 +292,7 @@ function render(keep){
   const draft={};if(keep)app.querySelectorAll('form input,form select').forEach(i=>{if(i.id)draft[i.id]=i.value});
   const sx=window.scrollX,sy=window.scrollY;const ae=document.activeElement;const fid=ae&&ae.id&&app.contains(ae)?ae.id:null;let fsel=null;try{fsel=ae&&ae.selectionStart}catch(e){}
   if(S.session&&!me()){S.session=null;store('ffr.session',null)}
+  if(S.live&&URLW&&S.session&&S.session.wid!==URLW){S.session=null;store('ffr.session',null)}
   const m=me();
   if(m&&m.id+'@'+S.month!==monthKey)subscribeMonth();
   if(!m){app.innerHTML=header()+`<main class="wrap">${loginView()}</main>`;return}
@@ -320,11 +321,34 @@ function render(keep){
 }
 function header(){
   const m=me();
-  return `<header class="top"><div class="wrap"><div class="brand"><b>${m&&m.id!=='owner'?'Hello, '+esc(m.name):'Factory Floor Register'}</b><small>${m?(m.id==='owner'?'Owner':esc(m.role)):'Production register'}</small></div>${m?`<button class="ghost" data-act="logout">Switch user</button>`:''}</div><div class="tape"></div></header>`;
+  return `<header class="top"><div class="wrap"><div class="brand"><b>${m&&m.id!=='owner'?'Hello, '+esc(m.name):'Factory Floor Register'}</b><small>${m?(m.id==='owner'?'Owner':esc(m.role)):'Production register'}</small></div>${m?`<button class="ghost" data-act="logout">${S.live&&URLW?'Lock':S.live?'Log out':'Switch user'}</button>`:''}</div><div class="tape"></div></header>`;
 }
 
 /* login */
+const URLW=(()=>{try{return new URLSearchParams(location.search).get('w')||''}catch(e){return ''}})();
+function workerLink(id){return location.origin+location.pathname+'?w='+encodeURIComponent(id)}
+function personalView(){
+  const w=URLW&&S.cfg&&S.cfg.workers&&S.cfg.workers[URLW];
+  if(!w||w.active===false)return `<div class="empty"><h3>This link is not active</h3>Ask the manager for your new link.</div>`;
+  return `<div class="card list" style="gap:14px;max-width:420px;margin:24px auto 0"><div><h2 style="margin:0">${esc(w.name)}</h2><span class="muted">${esc(w.role)}</span></div>
+    ${w.pin?`<form id="myPin" class="list"><label class="f">Enter your PIN<input id="myPinI" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label><div id="myPinErr" class="err"></div><button class="btn accent big" type="submit">Start</button></form>`
+    :`<button class="btn accent big" data-login="${URLW}">Start</button>`}</div>`;
+}
+function linkSheet(id){
+  const w=W(id);const url=workerLink(id);const ph=String(w.phone||'').replace(/\D/g,'');const to=ph.length===10?'91'+ph:ph;
+  const msg=`Hi ${w.name}, this is your Factory Floor Register link. Open it on your phone${w.pin?' and enter your PIN':''}:\n${url}`;
+  const sh=sheet(w.name+' – personal link',`<div class="list"><p class="small muted" style="margin:0">Only ${esc(w.name)} opens the app from this link. ${w.pin?'They also need their PIN.':'<b>No PIN is set</b> – anyone with the link can log in as them. Set a PIN with Edit.'}</p>
+    <input id="lnk" readonly value="${esc(url)}" style="font-size:.9rem">
+    <div class="row" style="gap:8px"><button class="btn alt" id="lnkCopy" type="button">Copy link</button><a class="btn accent" style="text-decoration:none" target="_blank" rel="noopener" href="https://wa.me/${to}?text=${encodeURIComponent(msg)}">Send on WhatsApp</a></div></div>`,{short:true});
+  $('#lnkCopy',sh).onclick=async()=>{try{await navigator.clipboard.writeText(url);toast('Link copied')}catch(e){const i=$('#lnk',sh);i.select();document.execCommand&&document.execCommand('copy');toast('Link copied')}};
+}
 function loginView(){
+  if(S.live){
+    if(URLW)return personalView();
+    const hasPin=S.cfg&&S.cfg.ownerPin;
+    return `<div class="empty" style="margin-top:24px"><h3>Open your personal link</h3>Each person has their own link to this app. Ask the manager to send yours on WhatsApp.</div>
+      <div class="row" style="justify-content:center;margin-top:16px"><button class="btn ${hasPin?'alt':'accent'}" data-act="loginOwner">${hasPin?'Owner login':'Set up as owner'}</button></div>`;
+  }
   const ws=activeWorkers();
   let h=`<div class="row spread"><h2>Who is working?</h2>${S.owner?`<button class="btn ${S.live?'alt':'accent'} sm" data-act="loginOwner">${S.live&&!(S.cfg&&S.cfg.ownerPin)?'Set up as owner':'Owner'}</button>`:''}</div>`;
   if(!ws.length)return h+`<div class="empty"><h3>No team added yet</h3>${S.owner?'Tap <b>'+(S.live&&!(S.cfg&&S.cfg.ownerPin)?'Set up as owner':'Owner')+'</b> and add your cutting master, stitchers, thread cutters and ironing staff.':'The owner needs to add the team first.'}</div>`;
@@ -1024,7 +1048,7 @@ function teamView(){
   const ws=workers().sort((a,b)=>(a.active===false)-(b.active===false)||ROLES.indexOf(a.role)-ROLES.indexOf(b.role));
   let h=`<div class="row spread"><h2>Team</h2><button class="btn accent" data-act="addWorker">+ Add person</button></div>`;
   if(!ws.length)return h+`<div class="empty"><h3>Add your team</h3>Add each cutting master, stitcher, thread cutter and ironing person with a PIN. They pick their name on the first screen.</div>`;
-  return h+`<div class="tablewrap"><table><thead><tr><th>Name</th><th>Role</th><th>PIN</th><th></th></tr></thead><tbody>${ws.map(w=>`<tr style="${w.active===false?'opacity:.5':''}"><td><b>${esc(w.name)}</b>${w.active===false?' <span class="chip">Inactive</span>':''}</td><td>${esc(w.role)}</td><td>${w.pin?'Set':'—'}</td><td><button class="btn alt sm" data-editw="${w.id}">Edit</button></td></tr>`).join('')}</tbody></table></div>`;
+  return h+`<div class="tablewrap"><table><thead><tr><th>Name</th><th>Role</th><th>PIN</th><th></th></tr></thead><tbody>${ws.map(w=>`<tr style="${w.active===false?'opacity:.5':''}"><td><b>${esc(w.name)}</b>${w.active===false?' <span class="chip">Inactive</span>':''}</td><td>${esc(w.role)}</td><td>${w.pin?'Set':'—'}</td><td style="white-space:nowrap">${S.live?`<button class="btn accent sm" data-wlink="${w.id}">Link</button> `:''}<button class="btn alt sm" data-editw="${w.id}">Edit</button></td></tr>`).join('')}</tbody></table></div>`;
 }
 
 /* ---------- sheets ---------- */
@@ -1091,6 +1115,7 @@ function ownerPinSheet(){
     try{await upsert('config/main',{ownerPin:hashPin('owner',p)},{});closeSheet();toast('Owner PIN saved');startSession({owner:true})}catch(x){writeErr(x)}};
   setTimeout(()=>{const i=$('#oP',sh);i&&i.focus()},60);
 }
+document.addEventListener('submit',e=>{if(e.target&&e.target.id==='myPin'){e.preventDefault();const w=W(URLW);if(hashPin(URLW,$('#myPinI').value.trim())!==w.pin){$('#myPinErr').textContent='That PIN does not match. Ask the manager to reset it.';return}startSession({wid:URLW})}});
 function startSession(s){S.session=s;store('ffr.session',s);S.tab=s.owner?'team':null;pickedLot=null;cutDesign=null;cutCols=[];cutExtra=[];halfSel=null;S.month=ym(new Date());subscribeMonth();render();window.scrollTo(0,0)}
 
 /* ---------- form handling ---------- */
@@ -1206,6 +1231,7 @@ document.addEventListener('click',async ev=>{
       toast('Entry removed');return}
     if(d.act==='addWorker'){workerSheet(null);return}
     if(d.editw){workerSheet(d.editw);return}
+    if(d.wlink){linkSheet(d.wlink);return}
   }catch(err){t.disabled=false;writeErr(err)}
 });
 
