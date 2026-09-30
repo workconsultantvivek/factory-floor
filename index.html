@@ -1,0 +1,1258 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="theme-color" content="#16213a">
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"}</script>
+<title>Factory Floor Register</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+/* Layout: phone-first app shell — navy header with tape strip, one work column (max 640px), fixed bottom tab bar, full-height sheets for pickers and forms */
+:root{
+  --bg:#EEF0F3; --surface:#FFFFFF; --sunk:#E4E7EC; --ink:#17223A; --muted:#5A6377; --line:#D5DAE3;
+  --accent:#E2A417; --accent-ink:#221802; --btn:#17223A; --btn-ink:#FFFFFF; --head:#17223A; --head-ink:#EEF0F3;
+  --ok:#1D7A4C; --ok-bg:#E1F2E8; --warn:#9A6200; --warn-bg:#FBF0D9; --bad:#B42318; --bad-bg:#FBE4E1;
+  --display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:12px;
+  --yel:#F6E3A1; --yel-ink:#5C4300; --grn:#CDEBD9; --grn-ink:#14573A; --gry:#DADDE3; --gry-ink:#6B7280;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0E1420; --surface:#161F30; --sunk:#1D2839; --ink:#E6EBF3; --muted:#98A2B6; --line:#2A3650;
+  --accent:#F0B43A; --accent-ink:#1E1502; --btn:#E6EBF3; --btn-ink:#0E1420; --head:#1B2538; --head-ink:#E6EBF3;
+  --ok:#4CC38A; --ok-bg:#15301F; --warn:#E8AE4E; --warn-bg:#35280F; --bad:#F07A6E; --bad-bg:#3A1A18; --yel:#4A3B0E; --yel-ink:#F6D77A; --grn:#163826; --grn-ink:#8FE0B3; --gry:#262F40; --gry-ink:#8C95A8; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1420; --surface:#161F30; --sunk:#1D2839; --ink:#E6EBF3; --muted:#98A2B6; --line:#2A3650;
+  --accent:#F0B43A; --accent-ink:#1E1502; --btn:#E6EBF3; --btn-ink:#0E1420; --head:#1B2538; --head-ink:#E6EBF3;
+  --ok:#4CC38A; --ok-bg:#15301F; --warn:#E8AE4E; --warn-bg:#35280F; --bad:#F07A6E; --bad-bg:#3A1A18; --yel:#4A3B0E; --yel-ink:#F6D77A; --grn:#163826; --grn-ink:#8FE0B3; --gry:#262F40; --gry-ink:#8C95A8; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html.offline body::before{content:'No connection – changes will not save until the internet is back';position:fixed;left:0;right:0;bottom:0;z-index:99;background:#b42318;color:#fff;font:600 .85rem/1.2 Barlow,system-ui,sans-serif;text-align:center;padding:8px 12px}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:.01em}
+h2{font-size:1.35rem;font-weight:700}
+h3{font-size:1.05rem;font-weight:600}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:640px;margin:0 auto;padding-inline:16px}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--head);color:var(--head-ink)}
+header.top .wrap{display:flex;align-items:center;gap:12px;padding-block:12px}
+.brand{display:flex;flex-direction:column;min-width:0;flex:1}
+.brand b{font-family:var(--display);font-size:1.3rem;font-weight:700;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand small{opacity:.75;font-size:.82rem}
+.tape{height:6px;background:repeating-linear-gradient(90deg,var(--accent) 0 10px,var(--accent-ink) 10px 11px,var(--accent) 11px 20px,var(--accent-ink) 20px 22px)}
+.ghost{background:transparent;border:1px solid color-mix(in srgb,var(--head-ink) 35%,transparent);color:var(--head-ink);border-radius:8px;padding:6px 10px;font-size:.85rem}
+main{padding-block:16px calc(96px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:16px}
+nav.bottom{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav.bottom .wrap{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;padding-inline:8px}
+nav.bottom button{border:0;background:transparent;padding:10px 4px 12px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font-size:.78rem;font-weight:600}
+nav.bottom.many button{font-size:.68rem;padding-inline:0}
+nav.bottom.many .ico{width:36px}
+nav.bottom button svg{width:22px;height:22px}
+nav.bottom button[aria-current=true]{color:var(--ink)}
+nav.bottom button[aria-current=true] .ico{background:var(--accent);color:var(--accent-ink)}
+nav.bottom .ico{position:relative;}
+.badge{position:absolute;top:-6px;right:-2px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--bad);color:#fff;font-size:.7rem;font-style:normal;font-weight:700;display:grid;place-items:center;line-height:1}
+nav.bottom .ico{display:grid;place-items:center;width:44px;height:28px;border-radius:14px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.spread{justify-content:space-between}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.list{display:flex;flex-direction:column;gap:10px}
+.muted{color:var(--muted)}
+.small{font-size:.85rem}
+.ell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lotno{font-family:var(--display);font-weight:700;letter-spacing:.02em}
+.btn{border:1px solid var(--btn);background:var(--btn);color:var(--btn-ink);border-radius:10px;padding:10px 14px;font-weight:600}
+.btn.alt{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+.btn.accent{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.sm{padding:6px 10px;font-size:.85rem;border-radius:8px}
+.btn.big{padding:15px 18px;font-size:1.08rem;width:100%}
+.btn:disabled{opacity:.5;cursor:default}
+.chip{display:inline-block;padding:2px 9px;border-radius:999px;font-size:.78rem;font-weight:600;background:var(--sunk);color:var(--muted);white-space:nowrap}
+.chip.pending{background:var(--warn-bg);color:var(--warn)}
+.chip.approved{background:var(--ok-bg);color:var(--ok)}
+.chip.rejected{background:var(--bad-bg);color:var(--bad)}
+.chip.line{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 12px;min-width:0}
+.stat b{display:block;font-family:var(--display);font-size:1.5rem;font-weight:700;line-height:1.1}
+.stat span{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+label.f,.f{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted);font-weight:500;min-width:0}
+label.f input,label.f select,label.f textarea{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:11px;font-size:1rem;color:var(--ink);width:100%}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sizes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.sizebox{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:8px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.sizebox .top{display:flex;justify-content:space-between;align-items:baseline;gap:4px;font-size:.85rem}
+.sizebox input{border:0;background:transparent;font-size:1.35rem;font-family:var(--display);font-weight:700;width:100%;padding:2px 0;color:var(--ink)}
+.sizebox input:focus{outline:none}
+.sizebox:focus-within{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.sizebox.full{opacity:.45}
+.sizebox.over{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad)}
+.prog{display:grid;grid-template-columns:104px 1fr auto;gap:8px;align-items:center;font-size:.85rem}
+.bar{height:9px;border-radius:5px;background:var(--sunk);overflow:hidden;display:flex}
+.bar i{display:block;height:100%;background:var(--ink)}
+.bar i.p{background:repeating-linear-gradient(45deg,var(--accent) 0 4px,transparent 4px 7px)}
+.picker{display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;border:2px dashed var(--line);background:var(--surface);border-radius:var(--r);padding:14px;min-height:64px;color:var(--ink);width:100%;font-size:1rem}
+.picker.set{border-style:solid;border-color:var(--ink)}
+.picker>span:first-child{min-width:0}
+.lotcard{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:start;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;color:var(--ink)}
+.lotcard.dim{opacity:.55}
+.lotcard .sz{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap}
+.left{font-family:var(--display);font-weight:700;font-size:1.3rem;text-align:right;line-height:1.1}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--surface);align-self:flex-start}
+.seg button{border:0;background:transparent;padding:8px 14px;font-weight:600;color:var(--muted)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--btn);color:var(--btn-ink)}
+.search{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:11px 12px;font-size:1rem;width:100%;color:var(--ink)}
+.entry{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:start}
+.qty{font-family:var(--display);font-size:1.35rem;font-weight:700;text-align:right;line-height:1.1}
+.people{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.person{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:14px 12px;text-align:left;color:var(--ink)}
+.person b{display:block;font-size:1.02rem}
+.empty{text-align:center;padding:26px 16px;border:1px dashed var(--line);border-radius:var(--r);color:var(--muted)}
+.empty h3{color:var(--ink);margin-bottom:6px}
+.sheet-bg{position:fixed;inset:0;background:rgba(10,14,22,.55);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:100%;max-width:640px;height:94%;overflow-y:auto;border-radius:16px 16px 0 0;padding:0 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
+.sheet.short{height:auto;max-height:94%}
+.sheet .shead{position:sticky;top:0;margin-inline:-16px;padding:14px 16px;background:var(--bg);z-index:1;border-bottom:1px solid var(--line)}
+.hint{background:var(--sunk);border-radius:10px;padding:10px 12px;font-size:.85rem}
+.warn{color:var(--warn)}
+.err{color:var(--bad);font-size:.85rem}
+.toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--btn);color:var(--btn-ink);padding:10px 16px;border-radius:10px;z-index:30;font-weight:500;max-width:calc(100% - 32px)}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
+table{border-collapse:collapse;width:100%}
+th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;background:var(--sunk)}
+.crows{display:flex;flex-direction:column;gap:6px}
+.crow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cname{font-weight:600;font-size:.85rem;min-width:64px}
+.chip.zero{opacity:.45}
+.colchips{display:flex;gap:8px;flex-wrap:wrap}
+.colchip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;font-weight:600;color:var(--ink)}
+.colchip.on{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+.cblock{display:flex;flex-direction:column;gap:8px}
+.cblock+.cblock{border-top:1px solid var(--line);padding-top:12px}
+.applyrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.applyrow input{width:76px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 9px;font-size:1rem;color:var(--ink)}
+.qc{display:grid;grid-template-columns:44px 40px 1fr 1fr 44px;gap:6px 8px;align-items:center}
+.qc .qh{font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.qc input{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:8px;font-size:1.05rem;color:var(--ink)}
+.qc .ok{font-family:var(--display);font-size:1.2rem;text-align:right;color:var(--ok)}
+.qc .ok.neg{color:var(--bad)}
+table.split{min-width:0}
+table.split th,table.split td{padding:6px 8px}
+table.split input{width:64px;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:7px;font-size:1rem;color:var(--ink)}
+.chip.pick{cursor:pointer;font-size:.85rem;padding:5px 10px}
+.chip.pick.on{background:var(--btn);color:var(--btn-ink);border-color:var(--btn)}
+.linkish{border:0;background:transparent;padding:0;text-align:left;color:var(--ink);text-decoration:underline dotted;text-underline-offset:3px;cursor:pointer}
+.selcard{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.subbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--sunk);border-radius:10px;padding:10px 12px}
+.task.done{opacity:.5;background:var(--sunk)}
+.task.done > .row > div > b:first-child{text-decoration:line-through;text-decoration-thickness:1px}
+.ph-chip{color:var(--ink)}
+.chip.ph-st{background:var(--yel);color:var(--yel-ink);border-color:transparent}
+.chip.ph-qc{background:var(--grn);color:var(--grn-ink);border-color:transparent}
+.chip.ph-wh{background:var(--gry);color:var(--gry-ink);border-color:transparent}
+.phbar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--surface);border:1px solid var(--line)}
+.phbar i{display:block;height:100%}.phbar i.ph-st{background:#E2B93B}.phbar i.ph-qc{background:#3FA36B}.phbar i.ph-wh{background:#A3A9B5}
+.lotph-stitch{border-left:5px solid #E2B93B}.lotph-qc{border-left:5px solid #3FA36B}.lotph-wh{opacity:.6;background:var(--sunk)}
+.tl{margin:0;padding-left:18px;font-size:.88rem;display:flex;flex-direction:column;gap:2px}
+.tl li::marker{color:var(--muted)}
+.erow{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:7px;font-size:.85rem;flex-wrap:wrap}
+@media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}}}
+</style>
+</head><body>
+
+
+<div id="app"><div class="wrap" style="padding-block:40px"><div class="empty"><h3>Opening the register…</h3>Connecting to the factory's shared records.</div></div></div>
+
+<script>
+(function(){
+/* ---------- constants ---------- */
+const STAGES=[
+  {k:'cutting',n:'Cutting',role:'Cutting master'},
+  {k:'stitching',n:'Stitching',role:'Stitcher'},
+  {k:'thread',n:'Thread cutting',role:'Thread cutter'},
+  {k:'ironing',n:'Ironing',role:'Ironing'}];
+const ROLES=['Cutting master','Stitcher','Thread cutter','Ironing','Lot allocator','Lot receiver','Checker','Warehouse receiver','Manager'];
+const STAGE_BY_ROLE=Object.fromEntries(STAGES.map(s=>[s.role,s.k]));
+const stageName=k=>(STAGES.find(s=>s.k===k)||{n:k}).n;
+const SIZE_ORDER=['XS','S','M','L','XL','XXL','3XL','4XL'];
+const ICON={
+  add:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+  lots:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 12l9 4 9-4M3 17l9 4 9-4"/></svg>',
+  done:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M8 15l3 3 5-6"/></svg>',
+  team:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.5a3.5 3.5 0 010 7M18 14.8c1.9.8 3.1 2.6 3.5 5.2"/></svg>'};
+
+const S={db:null,owner:false,loaded:false,cfg:null,catalog:{},lots:{},tasks:{},work:{},session:null,tab:'add',month:ym(new Date())};
+
+/* ---------- helpers ---------- */
+function pad(n){return String(n).padStart(2,'0')}
+function ym(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)}
+function today(){const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function prevMonth(m){let [y,mo]=m.split('-').map(Number);mo--;if(!mo){mo=12;y--}return y+'-'+pad(mo)}
+function daysIn(m){const [y,mo]=m.split('-').map(Number);return new Date(y,mo,0).getDate()}
+function monthLabel(m){const [y,mo]=m.split('-');return ['January','February','March','April','May','June','July','August','September','October','November','December'][+mo-1]+' '+y}
+function fmtDT(iso){if(!iso)return '';const d=new Date(iso);if(isNaN(d))return fmtDate(String(iso).slice(0,10));const h=d.getHours(),mi=pad(d.getMinutes());return d.getDate()+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]+', '+((h%12)||12)+':'+mi+' '+(h<12?'AM':'PM')}
+/* time between two moments, e.g. "2 h 15 min" or "1 day 3 h" */
+function dur(a,b){const ms=new Date(b)-new Date(a);if(!(ms>=0))return '—';const m=Math.round(ms/60000);if(m<1)return 'under 1 min';if(m<60)return m+' min';const h=Math.floor(m/60),mm=m%60;if(h<24)return h+' h'+(mm?' '+mm+' min':'');const d=Math.floor(h/24),hh=h%24;return d+(d>1?' days':' day')+(hh?' '+hh+' h':'')}
+function fmtDate(d){if(!d)return '';const [,m,dd]=d.split('-');return +dd+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1]}
+function uid(p){return p+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function inr(n){n=+n||0;return '₹'+(Math.abs(n)<100&&n%1?n.toLocaleString('en-IN',{maximumFractionDigits:2}):Math.round(n).toLocaleString('en-IN'))}
+function hashPin(wid,pin){let h=5381;const s=wid+':'+pin;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return (h>>>0).toString(36)}
+function store(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem(k)||'null');localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}}
+function $(sel,root){return (root||document).querySelector(sel)}
+function sortSizes(arr){return arr.slice().sort((a,b)=>(SIZE_ORDER.indexOf(a)+1||99)-(SIZE_ORDER.indexOf(b)+1||99))}
+function toast(msg){document.querySelectorAll('.toast').forEach(t=>t.remove());const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2800)}
+function writeErr(e){console.error(e);if(e&&e.code==='invalid_argument')toast("Couldn't save. This account can only view. Ask the owner to share the page with you as Contributor.");else if(e&&e.code==='quota_exceeded')toast('Storage is full.');else toast("Couldn't save. Check the connection and try again.")}
+
+const cfg=()=>S.cfg||{workers:{}};
+const workers=()=>Object.entries(cfg().workers||{}).map(([id,w])=>({id,...w}));
+const activeWorkers=()=>workers().filter(w=>w.active!==false).sort((a,b)=>ROLES.indexOf(a.role)-ROLES.indexOf(b.role)||a.name.localeCompare(b.name));
+const W=id=>(cfg().workers||{})[id];
+function me(){if(!S.session)return null;if(S.session.owner)return {id:'owner',name:'Owner',role:'Owner'};const w=W(S.session.wid);return w&&w.active!==false?{id:S.session.wid,...w}:null}
+function myStage(){const m=me();return m?STAGE_BY_ROLE[m.role]||null:null}
+
+/* designs: the Uniware list plus any added in the app */
+function allDesigns(){const out={};for(const [doc,cat] of Object.entries(S.catalog).sort((a,b)=>a[0]==='manual'?1:b[0]==='manual'?-1:0)){for(const [code,d] of Object.entries(cat.designs||{})){if(!d||d.removed||out[code])continue;out[code]={...d,code,doc}}}return out}
+function designRates(d){const out={};STAGES.forEach(s=>{const r=d&&d.r&&d.r[s.k];out[s.k]=r!=null&&r!==''?+r:null});return out}
+
+/* ---------- lot progress ----------
+   lot.prog[stage][entryId] = {w, q, sz:{S:10,...}, st:'pending'|'approved'|'rejected'|'withdrawn'}
+   Each entry a worker saves is mirrored on the lot, so "pieces left" is right for everyone. */
+function stageEntries(lot,stage){return Object.entries(((lot.prog||{})[stage])||{}).map(([eid,v])=>({eid,...v})).filter(v=>v&&v.st!=='rejected'&&v.st!=='withdrawn')}
+function stageDone(lot,stage){const out={total:0,approved:0,pending:0,sz:{}};for(const v of stageEntries(lot,stage)){const q=+v.q||0;out.total+=q;if(v.st==='approved')out.approved+=q;else out.pending+=q;for(const [s,n] of Object.entries(v.sz||{}))out.sz[s]=(out.sz[s]||0)+(+n||0);for(const [s,n] of Object.entries(v.rejSz||{}))out.sz[s]=(out.sz[s]||0)+(+n||0)}return out}
+function stageDoneBy(lot,stage,wid){return stageEntries(lot,stage).filter(v=>v.w===wid).reduce((a,v)=>a+(+v.q||0),0)}
+/* a lot holds pieces per colour and size: lot.cells["Green|M"]=30 */
+const CK=(c,sz)=>c+'|'+sz;
+function splitCK(k){const i=k.lastIndexOf('|');return i<0?['',k]:[k.slice(0,i),k.slice(i+1)]}
+function safeId(k){return k.replace(/[^A-Za-z0-9]/g,'_')}
+function lotCells(l){if(l.cells)return l.cells;const o={};for(const [z,q] of Object.entries(l.sizeQty||{}))o[CK(l.colour||'',z)]=q;return o}
+function lotColours(l){if(l.colours)return l.colours;return [l.colour||'']}
+function stageLeft(lot,stage){const d=stageDone(lot,stage);const left={};let total=0;for(const [k,q] of Object.entries(lotCells(lot))){left[k]=Math.max(0,(+q||0)-(d.sz[k]||0));total+=left[k]}return {left,total}}
+/* allocation: lot.recv[stage][rid] = {w, sz:{"Green|M":20}, q, date, by, st:'allocated'|'in'|'returned'}
+   The lot allocator gives pieces to a stitcher (allocated), the stitcher receives them (in),
+   submits finished pieces (prog st:'pending'), and the lot receiver & checker accepts them (st:'approved'). */
+const RECV_STAGES=['stitching'];
+function recvList(lot,stage){return Object.entries(((lot.recv||{})[stage])||{}).map(([rid,v])=>({rid,...v})).filter(v=>v&&v.st!=='returned')}
+function nz(sz){const o={};for(const [k,n] of Object.entries(sz||{}))if(+n>0)o[k]=n;return o}
+function doneCells(list){const o={};for(const v of list){for(const [k,n] of Object.entries(v.sz||{}))o[k]=(o[k]||0)+(+n||0);for(const [k,n] of Object.entries(v.rejSz||{}))o[k]=(o[k]||0)+(+n||0)}return o}
+function sumCells(list){const o={};for(const v of list)for(const [k,n] of Object.entries(v.sz||{}))o[k]=(o[k]||0)+(+n||0);return o}
+function toReceive(lot,stage){const got=sumCells(recvList(lot,stage));const left={};let total=0;for(const [k,q] of Object.entries(lotCells(lot))){left[k]=Math.max(0,(+q||0)-(got[k]||0));total+=left[k]}return {left,total}}
+/* pieces the checker sent back that the stitcher has not received yet */
+function altCells(v){if(v.altRecv)return {};if(v.st==='approved')return nz(v.altSz||{});if(v.st==='rejected'&&v.back==='checker')return nz(v.sz||{});return {}}
+function altWaiting(lot,wid){const o={};let t=0;for(const v of Object.values(((lot.prog||{}).stitching)||{})){if(!v||v.w!==wid)continue;for(const [k,n] of Object.entries(altCells(v))){o[k]=(o[k]||0)+(+n||0);t+=+n||0}}return {cells:o,total:t}}
+function myOpen(lot,stage,wid){const got=sumCells(recvList(lot,stage).filter(v=>v.w===wid));const done=doneCells(stageEntries(lot,stage).filter(v=>v.w===wid));const aw=stage==='stitching'?altWaiting(lot,wid).cells:{};for(const [k,n] of Object.entries(aw))done[k]=(done[k]||0)+n;const left={};let total=0,rec=0,fin=0;for(const k of Object.keys(lotCells(lot))){left[k]=Math.max(0,(got[k]||0)-(done[k]||0));total+=left[k];rec+=got[k]||0;fin+=done[k]||0}return {left,total,received:rec,done:fin}}
+function lotLeft(lot,stage){const m=me();return RECV_STAGES.includes(stage)&&m?myOpen(lot,stage,m.id):stageLeft(lot,stage)}
+function openRows(left){const by={};for(const [k,n] of Object.entries(left))if(n>0){const [c,z]=splitCK(k);(by[c]=by[c]||{})[z]=n}return `<div class="crows">${Object.entries(by).map(([c,zs])=>`<div class="crow">${c?`<span class="cname">${esc(c)}</span>`:''}<span class="row" style="gap:5px">${sortSizes(Object.keys(zs)).map(z=>`<span class="chip line">${esc(z)} <b>${zs[z]}</b></span>`).join('')}</span></div>`).join('')}</div>`}
+function holders(lot,stage){const by={};for(const v of recvList(lot,stage))by[v.w]=(by[v.w]||0)+(+v.q||0);return by}
+function colourTotal(lot,c){let t=0;for(const [k,q] of Object.entries(lotCells(lot)))if(splitCK(k)[0]===c)t+=+q||0;return t}
+function fmtCells(sz){const by={};for(const [k,n] of Object.entries(sz||{})){const [c,z]=splitCK(k);(by[c]=by[c]||[]).push([z,n])}return Object.entries(by).map(([c,a])=>(c?esc(c)+': ':'')+sortSizes(a.map(x=>x[0])).map(z=>esc(z)+' '+a.find(x=>x[0]===z)[1]).join(', ')).join(' · ')}
+function lotsSorted(){return Object.entries(S.lots).map(([id,l])=>({id,...l})).filter(l=>!l.deleted).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(b.createdAt||'').localeCompare(String(a.createdAt||'')))}
+function lotLabel(l){const c=lotColours(l).filter(Boolean);return esc(l.design)+(c.length===1?'_'+esc(c[0]):c.length>1?' · '+c.length+' colours':'')}
+function cellRows(l,left){const cells=lotCells(l);return `<div class="crows">${lotColours(l).map(c=>{const zs=sortSizes(Object.keys(cells).filter(k=>splitCK(k)[0]===c&&+cells[k]>0).map(k=>splitCK(k)[1]));if(!zs.length)return '';return `<div class="crow">${c?`<span class="cname">${esc(c)}</span>`:''}<span class="row" style="gap:5px">${zs.map(z=>{const k=CK(c,z);return `<span class="chip line ${left&&!left[k]?'zero':''}">${esc(z)} <b>${left?left[k]+'/':''}${cells[k]}</b></span>`}).join('')}</span></div>`}).join('')}</div>`}
+/* when the pieces in this entry were allocated to the stitcher */
+function allocFor(lot,e,wid){const rs=recvList(lot,'stitching').filter(v=>v.w===wid);if(e.rid){const r=rs.find(v=>v.rid===e.rid);if(r)return r.at||r.date}
+  const keys=Object.keys(nz(e.sz));const hit=rs.filter(v=>keys.some(k=>(v.sz||{})[k])).sort((a,b)=>String(a.at||a.date).localeCompare(String(b.at||b.date)));return hit.length?(hit[0].at||hit[0].date):null}
+function myEntries(wid,month){const d=S.work[wid+'_'+month];if(!d)return [];return Object.entries(d.entries||{}).map(([eid,e])=>({eid,docId:wid+'_'+month,...e})).filter(e=>e.status!=='withdrawn')}
+
+/* ---------- writes ---------- */
+async function upsert(path,body,init){const ref=S.db.doc(path);const snap=await ref.get();if(snap.exists)await ref.update(body);else await ref.set(Object.assign({},init||{},body))}
+
+/* ---------- subscriptions ---------- */
+let monthSubs=[],monthKey='';
+function subscribeMonth(){
+  monthSubs.forEach(u=>u());monthSubs=[];S.work={};
+  const m=me();monthKey=m&&S.db?m.id+'@'+S.month:'';if(!m||m.id==='owner'||!S.db)return;
+  for(const mo of [S.month,ym(new Date())].filter((x,i,a)=>a.indexOf(x)===i)){
+    const key=m.id+'_'+mo;
+    monthSubs.push(S.db.doc('work/'+key).onSnapshot(s=>{if(s.exists)S.work[key]=s.data();else delete S.work[key];schedule()},e=>console.warn(e)));
+  }
+}
+function subscribeAll(){
+  const err=e=>console.warn(e);
+  S.db.doc('config/main').onSnapshot(s=>{S.cfg=s.exists?s.data():null;S.loaded=true;schedule()},err);
+  S.db.collection('catalog').onSnapshot(q=>{const c={};q.docs.forEach(d=>c[d.id]=d.data());S.catalog=c;schedule()},err);
+  S.db.collection('tasks').onSnapshot(q=>{const t={};q.docs.forEach(d=>t[d.id]=d.data());S.tasks=t;schedule()},err);
+  S.db.collection('lots').onSnapshot(q=>{const l={};q.docs.forEach(d=>l[d.id]=d.data());S.lots=l;schedule()},err);
+  subscribeMonth();
+}
+let raf=0;function schedule(){if(raf)return;raf=requestAnimationFrame(()=>{raf=0;render(true)})}
+
+/* ---------- render ---------- */
+let lotQ='',lotFilter='open',halfSel=null,pickedLot=null,cutDesign=null,cutCols=[],cutExtra=[];
+function render(keep){
+  const app=$('#app');
+  if(!S.db){app.innerHTML=`<div class="wrap" style="padding-block:40px"><div class="empty"><h3>Shared records aren't available here</h3>Open this page from Claude, signed in, so entries are saved for everyone.</div></div>`;return}
+  if(!S.loaded)return;
+  /* keep what the worker is typing when other people's updates arrive */
+  const draft={};if(keep)app.querySelectorAll('form input,form select').forEach(i=>{if(i.id)draft[i.id]=i.value});
+  const sx=window.scrollX,sy=window.scrollY;const ae=document.activeElement;const fid=ae&&ae.id&&app.contains(ae)?ae.id:null;let fsel=null;try{fsel=ae&&ae.selectionStart}catch(e){}
+  if(S.session&&!me()){S.session=null;store('ffr.session',null)}
+  const m=me();
+  if(m&&m.id+'@'+S.month!==monthKey)subscribeMonth();
+  if(!m){app.innerHTML=header()+`<main class="wrap">${loginView()}</main>`;return}
+  const nAlloc=()=>lotsSorted().filter(l=>!l.closed&&toReceive(l,'stitching').total>0).length;const nRcv=()=>submissions('pending').length;const nInbox=()=>submissions('received').length;const nWh=()=>whPending().length;const nHo=()=>lotsSorted().filter(l=>withChecker(l).total>0).length;const nTh=()=>activeWorkers().filter(w=>w.role==='Thread cutter').reduce((a,w)=>a+lotsSorted().filter(l=>threadPool(l,w.id).total>0).length,0);
+  const nTask=()=>tasksFor().filter(t=>t.st!=='done').length;
+  const boss=[['alloc','Allocate',ICON.add,nAlloc()],['rinbox','Receive',ICON.add,nRcv()],['inbox','Check',ICON.done,nInbox()],['handover','Hand over',ICON.lots,nHo()],['mthread','To ironing',ICON.lots,nTh()],['pending','Pending',ICON.team],['otasks','Tasks',ICON.done,nTask()],['lots','All lots',ICON.lots,0,true],['stock','Stock',ICON.lots,0,true]];
+  const tabs=m.id==='owner'?boss.concat([['team','Team',ICON.team,0,true]])
+    :m.role==='Cutting master'?[['add','Add cut lot',ICON.add],['lots','All lots',ICON.lots],['mtasks','Tasks',ICON.done,tasksFor(m.id).filter(t=>t.st!=='done').length]]
+    :m.role==='Lot allocator'?[['alloc','Allocate',ICON.add,nAlloc()],['allocd','Allocated',ICON.team],['lots','All lots',ICON.lots]]
+    :m.role==='Lot receiver'?[['rinbox','Receive work',ICON.add,nRcv()],['rhist','Received',ICON.done],['lots','All lots',ICON.lots]]
+    :m.role==='Warehouse receiver'?[['wh','Receive stock',ICON.add,nWh()],['stock','Stock',ICON.lots],['lots','All lots',ICON.done]]
+    :m.role==='Checker'?[['inbox','Check work',ICON.done,nInbox()],['handover','Hand over',ICON.lots,lotsSorted().filter(l=>withChecker(l).total>0).length],['checked','Checked',ICON.team]]
+    :m.role==='Thread cutter'?[['tnew','New lots',ICON.lots,lotsSorted().filter(l=>threadPool(l,m.id).total>0).length],['tdone','Completed',ICON.done]]
+    :m.role==='Ironing'?[['inew','New lots',ICON.lots,flowItems('ironing').filter(v=>v.w===m.id&&v.st==='given').length],['idone','Completed',ICON.done]]
+    :m.role==='Manager'?boss
+    :RECV_STAGES.includes(myStage())?[['add','New lots',ICON.lots,myLots(m.id).reduce((n,l)=>n+allocOpen(l,m.id).filter(a=>a.total>0).length,0)],['alter','Alter / Rejected',ICON.add,myLots(m.id).reduce((a,l)=>a+altWaiting(l,m.id).total,0)],['done','Completed',ICON.done]]
+    :myStage()?[['add','Add entry',ICON.add],['lots','Cut lots',ICON.lots],['done','Completed',ICON.done]]
+    :[['lots','Cut lots',ICON.lots]];
+  if(!tabs.find(t=>t[0]===S.tab))S.tab=tabs[0][0];
+  const body=({add:addView,lots:lotsView,done:doneView,team:teamView,alter:alterView,alloc:allocView,allocd:allocdView,inbox:inboxView,checked:checkedView,rinbox:rinboxView,rhist:rhistView,wh:whInboxView,stock:stockView,handover:handoverView,pending:pendingView,otasks:bossTasksView,mtasks:masterTasksView,mthread:mgrThreadView,tnew:threadNewView,tdone:threadDoneView,inew:()=>flowNewView('ironing'),idone:()=>flowDoneView('ironing')})[S.tab]();
+  app.innerHTML=header()+`<main class="wrap">${body}</main>`+(tabs.length>1?`<nav class="bottom ${tabs.filter(t=>!t[4]).length>5?'many':''}"><div class="wrap">${tabs.filter(t=>!t[4]).map(t=>`<button data-tab="${t[0]}" aria-current="${S.tab===t[0]}"><span class="ico">${t[2]}${t[3]?`<i class="badge">${t[3]}</i>`:''}</span>${t[1]}</button>`).join('')}</div></nav>`:'');
+  for(const [id,v] of Object.entries(draft)){const el=document.getElementById(id);if(el&&el.closest('form')&&!el.disabled)el.value=v}
+  const tot=keep&&($('[data-size]')||$('[data-csize]'));if(tot)tot.dispatchEvent(new Event('input',{bubbles:true}));
+  window.scrollTo(sx,sy);
+  if(fid){const el=document.getElementById(fid);if(el){el.focus();try{if(fsel!=null)el.setSelectionRange(fsel,fsel)}catch(e){}}}
+}
+function header(){
+  const m=me();
+  return `<header class="top"><div class="wrap"><div class="brand"><b>${m&&m.id!=='owner'?'Hello, '+esc(m.name):'Factory Floor Register'}</b><small>${m?(m.id==='owner'?'Owner':esc(m.role)):'Production register'}</small></div>${m?`<button class="ghost" data-act="logout">Switch user</button>`:''}</div><div class="tape"></div></header>`;
+}
+
+/* login */
+function loginView(){
+  const ws=activeWorkers();
+  let h=`<div class="row spread"><h2>Who is working?</h2>${S.owner?`<button class="btn ${S.live?'alt':'accent'} sm" data-act="loginOwner">${S.live&&!(S.cfg&&S.cfg.ownerPin)?'Set up as owner':'Owner'}</button>`:''}</div>`;
+  if(!ws.length)return h+`<div class="empty"><h3>No team added yet</h3>${S.owner?'Tap <b>'+(S.live&&!(S.cfg&&S.cfg.ownerPin)?'Set up as owner':'Owner')+'</b> and add your cutting master, stitchers, thread cutters and ironing staff.':'The owner needs to add the team first.'}</div>`;
+  for(const role of ROLES){const g=ws.filter(w=>w.role===role);if(!g.length)continue;
+    h+=`<section class="list" style="gap:8px"><h3 class="muted">${esc(role)}</h3><div class="people">${g.map(w=>`<button class="person" data-login="${w.id}"><b>${esc(w.name)}</b><span class="small muted">${w.pin?'Enter PIN':'Tap to start'}</span></button>`).join('')}</div></section>`}
+  return h+`<p class="small muted">The PIN stops work being logged under someone else's name by mistake. It is not a password.</p>`;
+}
+
+/* ---- ADD: worker entry ---- */
+function openLotsFor(st){return lotsSorted().filter(l=>!l.closed&&lotLeft(l,st).total>0)}
+function addView(){
+  const m=me();
+  if(m.role==='Cutting master')return cutView();
+  const st=myStage();const lot=pickedLot&&S.lots[pickedLot]?{id:pickedLot,...S.lots[pickedLot]}:null;
+  const todays=myEntries(m.id,ym(new Date())).filter(e=>e.date===today());
+  const rs=RECV_STAGES.includes(st);
+  if(rs&&!lot)return stitchNewView(todays);
+  let h=rs?`<div class="row spread"><h2>Ready to submit</h2><button class="btn alt sm" data-act="backMine">‹ New lots</button></div>`:`<div><h2>Add ${stageName(st).toLowerCase()} entry</h2><p class="small muted" style="margin:4px 0 0">Pick a lot the cutting master cut, then enter the pieces you finished.</p></div>`;
+  h+=`<button type="button" class="picker ${lot?'set':''}" data-act="pickLot">${lot?`<span><span class="lotno" style="font-size:1.25rem">${esc(lot.lotNo)}</span> <span class="muted">${lotLabel(lot)}</span><span class="small muted ell" style="display:block">${lot.designName?esc(lot.designName)+' · ':''}${rs?(()=>{const o=myOpen(lot,st,m.id);return `given to you ${o.received} · submitted ${o.done}`})():lot.total+' pcs · cut '+fmtDate(lot.date)}</span></span><span class="small">Change</span>`:`<span><b>Select lot</b><span class="small muted" style="display:block">${openLotsFor(st).length} lots have pieces left for ${stageName(st).toLowerCase()}</span></span><span class="small">▾</span>`}</button>`;
+  if(lot){
+    const {left,total}=lotLeft(lot,st);const i=STAGES.findIndex(s=>s.k===st);
+    const prev=i>1?stageDone(lot,STAGES[i-1].k):null;
+    h+=`<form id="entryForm" class="list" novalidate>
+      <div class="card list" style="gap:10px">
+        <div class="row spread"><b>${rs?'Pieces completed':'Pieces done per colour and size'}</b><span class="small muted">${total} left ${rs?'to finish':'of '+lot.total}</span></div>
+        ${lotColours(lot).map(c=>{const cells=lotCells(lot);const zs=sortSizes(Object.keys(cells).filter(k=>splitCK(k)[0]===c&&+cells[k]>0&&(!rs||left[k]>0)).map(k=>splitCK(k)[1]));if(!zs.length)return '';const cl=zs.reduce((a,z)=>a+left[CK(c,z)],0);
+          return `<div class="cblock"><div class="row spread"><b>${esc(c||'Pieces')}</b><span class="row" style="gap:8px"><span class="small muted">${cl} left</span>${cl?`<button type="button" class="btn alt sm" data-fillc="${esc(c)}">All left</button>`:''}</span></div><div class="sizes">${zs.map(z=>{const k=CK(c,z);const id='eq_'+safeId(k);return `<label class="sizebox ${left[k]?'':'full'}" for="${id}"><span class="top"><b>${esc(z)}</b><span class="muted small">${left[k]} left</span></span><input type="number" inputmode="numeric" min="0" max="${left[k]}" id="${id}" data-size="${esc(k)}" data-left="${left[k]}" placeholder="0" ${left[k]?'':'disabled'}></label>`}).join('')}</div></div>`}).join('')}
+        <div class="row spread"><span class="muted small">${prev?`${stageName(STAGES[i-1].k)} entered so far: ${prev.total} pcs`:''}</span><b id="eTotal" style="font-family:var(--display);font-size:1.3rem">0 pcs</b></div>
+      </div>
+      ${rs?`<label class="f">Date<input type="date" id="eDate" value="${today()}" max="${today()}"></label><input type="hidden" id="eRej" value="0">`:`<div class="grid2"><label class="f">Date<input type="date" id="eDate" value="${today()}" max="${today()}"></label><label class="f">Alter / reject pcs<input type="number" inputmode="numeric" min="0" id="eRej" placeholder="0"></label></div>`}
+      <label class="f">Note (optional)<input id="eNote" placeholder="e.g. collar pending on 5 pcs"></label>
+      ${lot.rates&&lot.rates[st]!=null?`<div class="hint">Rate for this lot: <b>${inr(lot.rates[st])}</b> per piece · <b id="eAmt">₹0</b> for this entry</div>`:''}
+      <div id="eErr" class="err"></div>
+      <button class="btn accent big" type="submit">${rs?'Submit to lot receiver':'Send for approval'}</button>
+    </form>`;
+  }
+  if(todays.length&&!rs)h+=`<section class="list"><h3>Today's entries</h3>${todays.sort((a,b)=>String(b.at).localeCompare(String(a.at))).map(entryCard).join('')}</section>`;
+  return h;
+}
+function entryCard(e){
+  const lot=S.lots[e.lotId]||{lotNo:'(lot removed)'};const amt=e.rate!=null?e.qty*e.rate:null;
+  return `<div class="card entry">
+    <div style="min-width:0"><div class="row" style="gap:6px"><span class="lotno">${esc(lot.lotNo)}</span><span class="muted small ell">${lot.design?lotLabel(lot):''}</span></div>
+    <div class="small muted" style="margin-top:3px">${fmtDate(e.date)} · ${stageName(e.stage)}${e.rej?` · ${e.rej} alter`:''}</div>
+    ${e.sz?`<div class="small" style="margin-top:6px">${fmtCells(e.sz)}</div>`:''}
+    ${e.note?`<div class="small" style="margin-top:4px">${esc(e.note)}</div>`:''}</div>
+    <div><div class="qty">${e.qty} <span class="small muted">pcs</span></div>${amt!=null?`<div class="small" style="text-align:right">${inr(amt)}</div>`:''}<div style="text-align:right;margin-top:4px"><span class="chip ${e.status==='received'?'pending':e.status}">${e.status==='pending'?'Pending · with receiver':e.status==='received'?'With checker':e.status==='approved'?'Checked':'Sent back'}</span></div>${e.short?`<div class="small warn" style="text-align:right;margin-top:4px">${e.short} short at receiving</div>`:''}${e.alter?`<div class="small warn" style="text-align:right;margin-top:4px">${e.alter} alter</div>`:''}${e.reject?`<div class="small" style="text-align:right;color:var(--bad)">${e.reject} rejected</div>`:''}${e.checkNote?`<div class="small" style="text-align:right">${esc(e.checkNote)}</div>`:''}
+    ${e.status==='pending'?`<div style="text-align:right;margin-top:6px"><button class="btn alt sm" data-withdraw="${e.docId}|${e.eid}">Undo</button></div>`:''}</div>
+  </div>`;
+}
+
+/* ---- STITCHER: New lots (everything allocated to me that is not finished) ---- */
+function myLots(wid){return lotsSorted().filter(l=>recvList(l,'stitching').some(v=>v.w===wid))}
+function subState(l,wid){const e=stageEntries(l,'stitching').filter(v=>v.w===wid);const s=st=>e.filter(v=>v.st===st).reduce((a,v)=>a+(+v.q||0),0);const c=st=>fmtCells(nz(doneCells(e.filter(v=>v.st===st).map(v=>({sz:v.sz})))));return {pending:s('pending'),received:s('received'),ok:s('approved'),pendingC:c('pending'),receivedC:c('received'),okC:c('approved')}}
+/* per-allocation view: pieces already submitted are matched to allocations oldest first,
+   so a new allocation shows clean while leftover alter/short pieces stay on the allocation they came from */
+function allocOpen(lot,wid){
+  const st='stitching';const allocs=recvList(lot,st).filter(v=>v.w===wid).sort((a,b)=>String(a.at||a.date).localeCompare(String(b.at||b.date)));
+  const done=doneCells(stageEntries(lot,st).filter(v=>v.w===wid));const aw=altWaiting(lot,wid).cells;
+  const used={};for(const [k,n] of Object.entries(done))used[k]=n;for(const [k,n] of Object.entries(aw))used[k]=(used[k]||0)+n;
+  return allocs.map(a=>{const left={};let total=0,touched=0;for(const [k,q] of Object.entries(a.sz||{})){const take=Math.min(+q||0,used[k]||0);used[k]=(used[k]||0)-take;left[k]=(+q||0)-take;total+=left[k];touched+=take}
+    return {...a,left,total,touched}});
+}
+function stitchNewView(todays){
+  const m=me();const cards=[];
+  for(const l of myLots(m.id))for(const a of allocOpen(l,m.id))if(a.total>0)cards.push({lot:l,a});
+  const tot=cards.reduce((s,c)=>s+c.a.total,0);
+  let h=`<div class="row spread"><h2>New lots</h2><span class="small muted">${tot} pcs in hand</span></div>`;
+  if(!cards.length)h+=`<div class="empty"><h3>No lot in hand</h3>Lots the lot allocator gives you appear here.</div>`;
+  h+=cards.map(({lot:l,a})=>{const by=W(a.by);const isAlt=a.touched>0;
+    return `<div class="card list" style="gap:8px">
+    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> <span class="muted">${esc(l.design)}</span><div class="small muted ell">${isAlt?'':'given '+fmtDT(a.at||a.date)+(by?' by '+esc(by.name):'')+' · '}${l.designName?esc(l.designName):''}</div></div>
+    <div><div class="left">${a.total}</div><div class="small muted" style="text-align:right;white-space:nowrap">to make</div></div></div>
+    ${isAlt?`<div class="small"><span class="chip pending">Alter / short pieces</span> sent back to you from this lot</div>`:''}
+    ${openRows(a.left)}
+    ${l.rates&&l.rates.stitching!=null?`<div class="small muted">Stitching rate ${inr(l.rates.stitching)}/pc</div>`:''}
+    <button class="btn accent" data-submitalloc="${l.id}|${a.rid}" style="align-self:flex-start">Completed – ready to submit ${a.total} pcs</button>
+  </div>`}).join('');
+  return h;
+}
+/* hand over what is still in hand for one allocation card; the lot receiver counts it */
+async function submitAlloc(lid,rid){
+  const m=me();const st='stitching';const lot=S.lots[lid];if(!lot)return 0;const a=allocOpen(lot,m.id).find(x=>x.rid===rid);if(!a||!a.total)return 0;
+  const sz={};for(const [k,n] of Object.entries(a.left))if(n>0)sz[k]=n;
+  const date=today();const eid=uid('e');const month=date.slice(0,7);const rate=lot.rates&&lot.rates[st]!=null?+lot.rates[st]:null;const now=new Date().toISOString();
+  await upsert('work/'+m.id+'_'+month,{entries:{[eid]:{date,lotId:lid,stage:st,qty:a.total,sz,rej:0,note:a.touched?'alter/short pieces':'',status:'pending',rate,at:now,by:m.name,rid}}},{workerId:m.id,month});
+  await S.db.doc('lots/'+lid).update({prog:{[st]:{[eid]:{w:m.id,q:a.total,sz,st:'pending',date,at:now,rid}}}});
+  return a.total;
+}
+
+/* stitcher hands over everything still in hand for a lot; the lot receiver counts it */
+async function submitAll(lid){
+  const m=me();const st='stitching';const lot=S.lots[lid];if(!lot)return 0;const o=myOpen(lot,st,m.id);if(!o.total)return 0;
+  const sz={};for(const [k,n] of Object.entries(o.left))if(n>0)sz[k]=n;
+  const date=today();const eid=uid('e');const month=date.slice(0,7);const rate=lot.rates&&lot.rates[st]!=null?+lot.rates[st]:null;
+  await upsert('work/'+m.id+'_'+month,{entries:{[eid]:{date,lotId:lid,stage:st,qty:o.total,sz,rej:0,note:'',status:'pending',rate,at:new Date().toISOString(),by:m.name}}},{workerId:m.id,month});
+  await S.db.doc('lots/'+lid).update({prog:{[st]:{[eid]:{w:m.id,q:o.total,sz,st:'pending',date,at:new Date().toISOString()}}}});
+  return o.total;
+}
+/* alter pieces the checker sent back and the stitcher has not resubmitted yet */
+function myAlter(l,wid){const alt=Object.values(((l.prog||{}).stitching)||{}).filter(v=>v&&v.w===wid&&v.altRecv&&!v.altDone).reduce((a,v)=>a+(v.st==='rejected'?(+v.q||0):(+v.alt||0)),0);const open=myOpen(l,'stitching',wid).total;return Math.min(alt,open)}
+/* an alter/short entry is cleared once its pieces are back, resubmitted and passed:
+   nothing waiting to be received, nothing left in hand for those sizes, nothing with the receiver or checker */
+function alterResolved(l,v,wid){
+  if(Object.keys(altCells(v)).length)return false;
+  const keys=new Set([...Object.keys(nz(v.sz)),...Object.keys(nz(v.altSz)),...Object.keys(nz(v.rejSz))]);
+  const open=myOpen(l,'stitching',wid).left;if([...keys].some(k=>(open[k]||0)>0))return false;
+  const busy=Object.values(((l.prog||{}).stitching)||{}).some(e=>e&&e.w===wid&&(e.st==='pending'||e.st==='received')&&Object.keys(nz(e.sz)).some(k=>keys.has(k)));
+  return !busy;
+}
+function alterView(){
+  const m=me();const list=[];
+  for(const l of lotsSorted())for(const [eid,v] of Object.entries(((l.prog||{}).stitching)||{}))if(v&&v.w===m.id&&((v.st==='approved'&&((+v.alt||0)+(+v.rej||0)>0))||v.st==='rejected'||(+v.short||0)>0)&&!alterResolved(l,v,m.id))list.push({lot:l,eid,...v});
+  list.sort((a,b)=>String(b.at2||b.rat||'').localeCompare(String(a.at2||a.rat||'')));
+  let h=`<div><h2>Alter / Rejected</h2><p class="small muted" style="margin:4px 0 0">Pieces the lot receiver found short, and pieces the checker marked alter or reject. Tap Receive when the alter pieces come back to you. They then show in New lots to submit again.</p></div>`;
+  if(!list.length)return h+`<div class="empty"><h3>Nothing sent back</h3>When the checker marks pieces alter or reject, they show here.</div>`;
+  return h+list.map(s=>{const l=s.lot;const open=myOpen(l,'stitching',m.id).total;const ck=W(s.by2);
+    const allBack=s.st==='rejected';
+    return `<div class="card list" style="gap:8px">
+      <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.15rem">${esc(l.lotNo)}</span> <span class="muted">${lotLabel(l)}</span><div class="small muted">submitted ${fmtDT(s.at||s.date)}${s.at2?' · checked '+fmtDT(s.at2):''}${ck?' by '+esc(ck.name):''}</div></div>
+      ${s.st==='approved'?`<div style="text-align:right"><div class="left">${s.q}</div><div class="small muted">passed</div></div>`:''}</div>
+      ${allBack?`<div class="small"><span class="chip rejected">${s.back==='checker'?'All alter':'Not received by lot receiver'}</span> ${s.q} pcs ${s.back==='checker'?'to redo':'still with you'}</div>`:''}
+      ${+s.short?`<div class="small"><span class="chip pending">Short ${s.short}</span> not handed over at receiving</div>`:''}
+      ${+s.alt&&!allBack?`<div class="list" style="gap:4px"><span class="small"><span class="chip pending">Alter ${s.alt}</span> fix and submit again</span>${s.altSz?`<div class="small muted">${fmtCells(nz(s.altSz))}</div>`:''}</div>`:''}
+      ${+s.rej?`<div class="list" style="gap:4px"><span class="small"><span class="chip rejected">Rejected ${s.rej}</span> not paid</span>${s.rejSz?`<div class="small muted">${fmtCells(nz(s.rejSz))}</div>`:''}</div>`:''}
+      ${s.chkNote||s.rNote?`<div class="small">Note: ${esc(s.chkNote||s.rNote)}</div>`:''}
+      ${(()=>{const ac=altCells(s);const n=Object.values(ac).reduce((a,b)=>a+(+b||0),0);if(n)return `<button class="btn accent" data-recvalt="${l.id}|${s.eid}" style="align-self:flex-start">Receive ${n} alter pcs</button>`;if(s.altRecv)return `<div class="small"><span class="chip approved">Received ${fmtDT(s.altRat)}</span> Fix them and submit from <b>New lots</b>.</div>`;return ''})()}
+    </div>`}).join('');
+}
+
+/* ---- LOT ALLOCATOR: give lots to stitchers ---- */
+let allocQ='';
+function allocView(){
+  const pend=lotsSorted().filter(l=>!l.closed&&toReceive(l,'stitching').total>0);
+  let h=`<div><h2>Allocate lots</h2><p class="small muted" style="margin:4px 0 0">Lots cut by the master that are not yet given to a stitcher.</p></div>
+  <div class="row small" style="gap:6px"><span class="chip line">Not allocated</span><span class="chip line ph-st">With stitcher</span><span class="chip line ph-qc">Checking → ironing</span><span class="chip line ph-wh">In warehouse</span></div>`;
+  if(!pend.length)return h+`<div class="empty"><h3>Nothing to allocate</h3>New lots show here as soon as the cutting master adds them.</div>`;
+  return h+`<input class="search" type="search" id="allocQ" placeholder="Search lot no., design or colour" value="${esc(allocQ)}" autocomplete="off"><div class="list" id="allocList">${allocListHtml()}</div>`;
+}
+let aSel={lid:null,keys:new Set()};
+function allocListHtml(){
+  const q=allocQ.trim().toLowerCase();
+  let ls=lotsSorted().filter(l=>!l.closed&&toReceive(l,'stitching').total>0);
+  if(q)ls=ls.filter(l=>[l.lotNo,l.design,l.colour,l.designName].some(x=>String(x||'').toLowerCase().includes(q)));
+  if(!ls.length)return `<div class="empty">No lot matches.</div>`;
+  return ls.map(l=>{const tr=toReceive(l,'stitching');const cutter=W(l.cutBy);const hd=holders(l,'stitching');const cells=lotCells(l);const mine=aSel.lid===l.id;const ph=lotPhases(l);
+    const selN=mine?[...aSel.keys].reduce((a,k)=>a+(tr.left[k]||0),0):0;
+    const rows=lotColours(l).map(c=>{const zs=sortSizes(Object.keys(cells).filter(k=>splitCK(k)[0]===c&&+cells[k]>0).map(k=>splitCK(k)[1]));if(!zs.length)return '';const any=zs.some(z=>tr.left[CK(c,z)]>0);
+      return `<div class="crow">${c?`<button type="button" class="cname linkish" data-acol="${l.id}|${esc(c)}" ${any?'':'disabled'}>${esc(c)}</button>`:''}<span class="row" style="gap:5px">${zs.map(z=>{const k=CK(c,z);const n=tr.left[k];const on=mine&&aSel.keys.has(k);
+        const pc=ph.cells[k];const mixed=pc.st+pc.qc+pc.wh>0;const st=mixed?phaseStyle(pc,+cells[k]):'';const tip=[pc.st?'stitcher '+pc.st:'',pc.qc?'checking→ironing '+pc.qc:'',pc.wh?'warehouse '+pc.wh:'',pc.na?'not allocated '+pc.na:''].filter(Boolean).join(', ');
+        return n?`<button type="button" class="chip line pick ${on?'on':''}" data-asel="${l.id}|${esc(k)}" aria-pressed="${on}" ${on?'':`style="${st}"`} title="${esc(tip)}">${on?'✓ ':''}${esc(z)} <b>${n}/${cells[k]}</b></button>`:`<span class="chip line ph-chip" style="${st}" title="${esc(tip)}">${esc(z)} <b>${cells[k]}</b></span>`}).join('')}</span></div>`}).join('');
+    const t=ph.tot;
+    return `<div class="card list ${mine&&selN?'selcard':''} ${ph.tot.st?'lotph-stitch':ph.tot.qc?'lotph-qc':''}" style="gap:8px">
+      <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> <span class="muted">${lotLabel(l)}</span><div class="small muted ell">${l.designName?esc(l.designName)+' · ':''}cut ${fmtDate(l.date)}${cutter?' by '+esc(cutter.name):''}</div></div>
+      <div><div class="left">${tr.total}</div><div class="small muted" style="text-align:right;white-space:nowrap">of ${l.total} to give</div></div></div>
+      <div class="crows">${rows}</div>
+      ${t.st||t.qc||t.wh?`<div class="row small" style="gap:6px"><span class="chip line">Not allocated ${t.na}</span>${t.st?`<span class="chip line ph-st">With stitcher ${t.st}</span>`:''}${t.qc?`<span class="chip line ph-qc">Checking → ironing ${t.qc}</span>`:''}${t.wh?`<span class="chip line ph-wh">Warehouse ${t.wh}</span>`:''}</div>`:''}
+      ${Object.keys(hd).length?`<div class="small muted">Already given: ${Object.entries(hd).map(([w,q])=>esc((W(w)||{name:'?'}).name)+' '+q).join(' · ')}</div>`:''}
+      ${mine&&selN?`<div class="subbar"><span><b>Sub-lot ${selN} pcs</b><span class="small muted" style="display:block">${esc(fmtCellsPlain([...aSel.keys]))}</span></span><span class="row" style="gap:8px"><button type="button" class="btn accent" data-awhole="${l.id}">Allocate whole</button><button type="button" class="btn" data-asplit="${l.id}">Split</button><button type="button" class="btn alt sm" data-aclear="1">Clear</button></span></div>`:`<div class="small muted">Tap sizes (or a colour name) to make a sub-lot.</div>`}
+    </div>`}).join('');
+}
+function allocSheet(lid,preset,presetMode){
+  const l={id:lid,...S.lots[lid]};const tr=toReceive(l,'stitching');
+  const sts=activeWorkers().filter(w=>w.role==='Stitcher');
+  if(!sts.length){toast('Add stitchers in Team first.');return}
+  const load=wid=>lotsSorted().reduce((a,x)=>a+myOpen(x,'stitching',wid).total,0);
+  const all=Object.keys(tr.left).filter(k=>tr.left[k]>0).sort((a,b)=>{const [ca,za]=splitCK(a),[cb,zb]=splitCK(b);return lotColours(l).indexOf(ca)-lotColours(l).indexOf(cb)||(SIZE_ORDER.indexOf(za)+1||99)-(SIZE_ORDER.indexOf(zb)+1||99)});
+  const cols=[...new Set(all.map(k=>splitCK(k)[0]))];
+  const sel=new Set(preset||[]);let mode=presetMode||'',picked=[],wholeTo='';
+  const sh=sheet('Allocate from '+l.lotNo,`<div class="list">
+    <div class="row spread"><span class="muted">${lotLabel(l)}</span><b>${tr.total} pcs not given</b></div>
+    <div class="card list" style="gap:10px" ${preset?'hidden':''}><b>1. Select colour and size for the sub-lot</b><div id="aSel"></div><div class="row spread"><span class="small muted" id="aSelSum">Nothing selected</span><button type="button" class="btn alt sm" data-clear="1">Clear</button></div></div>
+    ${preset?`<div class="card list" style="gap:6px"><b>Sub-lot · ${[...preset].reduce((a,k)=>a+(tr.left[k]||0),0)} pcs</b>${openRows(Object.fromEntries([...preset].map(k=>[k,tr.left[k]])))}</div>`:''}
+    <div id="aStep2"></div>
+    <div id="rErr" class="err"></div>
+    <button class="btn accent big" type="button" id="aGo" hidden>Allocate</button></div>`);
+  const selTotal=()=>[...sel].reduce((a,k)=>a+tr.left[k],0);
+  const drawSel=()=>{
+    $('#aSel',sh).innerHTML=cols.map(c=>{const ks=all.filter(k=>splitCK(k)[0]===c);const allOn=ks.every(k=>sel.has(k));
+      return `<div class="cblock"><div class="row spread"><b>${esc(c||'Pieces')}</b><button type="button" class="btn alt sm" data-selcol="${esc(c)}">${allOn?'Clear '+esc(c):'All '+esc(c)}</button></div><div class="colchips">${ks.map(k=>`<button type="button" class="colchip ${sel.has(k)?'on':''}" data-selk="${esc(k)}">${sel.has(k)?'✓ ':''}${esc(splitCK(k)[1])} · ${tr.left[k]}</button>`).join('')}</div></div>`}).join('');
+    const n=selTotal();$('#aSelSum',sh).textContent=n?`Sub-lot: ${n} pcs · ${fmtCellsPlain([...sel])}`:'Nothing selected';
+    drawStep2();
+  };
+  const stOpt=()=>sts.map(w=>`<option value="${w.id}" ${wholeTo===w.id?'selected':''}>${esc(w.name)} · ${load(w.id)} in hand</option>`).join('');
+  const keys=()=>all.filter(k=>sel.has(k));
+  const drawStep2=()=>{
+    const box=$('#aStep2',sh);const go=$('#aGo',sh);
+    if(!sel.size){box.innerHTML='';go.hidden=true;$('#rErr',sh).textContent='';return}
+    let h=`<div class="card list" style="gap:10px"><b>${preset?'Give this sub-lot':'2. How do you want to give this sub-lot?'}</b><div class="seg"><button type="button" data-mode="whole" class="${mode==='whole'?'on':''}">Allocate whole</button><button type="button" data-mode="split" class="${mode==='split'?'on':''}">Split</button></div>`;
+    if(mode==='whole')h+=`<label class="f">Give all ${selTotal()} pcs to<select id="aW"><option value="">Select stitcher</option>${stOpt()}</select></label>`;
+    if(mode==='split'){h+=`<div class="small muted">Stitchers sharing this sub-lot</div><div class="colchips">${sts.map(w=>`<button type="button" class="colchip ${picked.includes(w.id)?'on':''}" data-pickst="${w.id}">${picked.includes(w.id)?'✓ ':''}${esc(w.name)} <span class="small" style="opacity:.7">${load(w.id)}</span></button>`).join('')}</div>`;
+      if(picked.length){const cs=[...new Set(keys().map(k=>splitCK(k)[0]))];
+        h+=`<div class="row"><button type="button" class="btn sm" data-even="1">Split equally</button><span class="small muted">or type pieces below</span></div>`+cs.map(c=>`<div class="list" style="gap:6px"><div class="row spread"><b>${esc(c||'Pieces')}</b><label class="small row" style="gap:6px">Whole colour to <select data-colto="${esc(c)}" style="border:1px solid var(--line);border-radius:8px;padding:5px;background:var(--surface)"><option value="">—</option>${picked.map(id=>`<option value="${id}">${esc(W(id).name)}</option>`).join('')}</select></label></div>
+        <div class="tablewrap"><table class="split"><thead><tr><th>Size</th><th>Left</th>${picked.map(id=>`<th>${esc(W(id).name)}</th>`).join('')}</tr></thead><tbody>${keys().filter(k=>splitCK(k)[0]===c).map(k=>`<tr><td><b>${esc(splitCK(k)[1])}</b></td><td class="left-${safeId(k)}">${tr.left[k]}</td>${picked.map(id=>`<td><input type="number" inputmode="numeric" min="0" data-cell="${esc(k)}" data-who="${id}" placeholder="0"></td>`).join('')}</tr>`).join('')}</tbody></table></div></div>`).join('')+`<div id="splitSum"></div>`}}
+    h+=`</div>`;
+    const keep={};sh.querySelectorAll('[data-cell]').forEach(i=>{if(i.value)keep[i.dataset.cell+'#'+i.dataset.who]=i.value});
+    box.innerHTML=h;
+    sh.querySelectorAll('[data-cell]').forEach(i=>{const v=keep[i.dataset.cell+'#'+i.dataset.who];if(v)i.value=v});
+    go.hidden=!mode;upd();
+  };
+  const readSplit=()=>{const per={};const used={};let bad='';sh.querySelectorAll('[data-cell]').forEach(i=>{const v=Math.round(Math.max(0,+i.value||0));if(!v)return;const k=i.dataset.cell;(per[i.dataset.who]=per[i.dataset.who]||{})[k]=v;used[k]=(used[k]||0)+v});
+    for(const k of keys()){const u=used[k]||0;const cell=sh.querySelector('.left-'+safeId(k));if(cell){cell.textContent=tr.left[k]-u;cell.style.color=u>tr.left[k]?'var(--bad)':''}if(u>tr.left[k]){const [c,z]=splitCK(k);bad=`${c} ${z}: only ${tr.left[k]} pcs in the sub-lot.`}}return {per,bad}};
+  const upd=()=>{const go=$('#aGo',sh);$('#rErr',sh).textContent='';
+    if(mode==='whole'){go.textContent=`Allocate sub-lot · ${selTotal()} pcs`;return}
+    if(mode!=='split')return;
+    if(!picked.length){go.textContent='Allocate';return}
+    const {per,bad}=readSplit();let tot=0;const sum=$('#splitSum',sh);
+    const lines=picked.map(id=>{const q=Object.values(per[id]||{}).reduce((a,b)=>a+b,0);tot+=q;return `<div class="row spread small"><b>${esc(W(id).name)}</b><span>${q} pcs</span></div>`}).join('');
+    if(sum)sum.innerHTML=lines+`<div class="row spread small" style="border-top:1px solid var(--line);padding-top:6px;margin-top:4px"><span class="muted">Not given from sub-lot</span><span>${selTotal()-tot} pcs</span></div>`;
+    go.textContent=`Allocate ${tot} pcs to ${picked.length} stitchers`;$('#rErr',sh).textContent=bad};
+  sh.addEventListener('input',e=>{if(e.target.dataset.cell!=null)upd()});
+  sh.addEventListener('change',e=>{if(e.target.id==='aW'){wholeTo=e.target.value;return}const c=e.target.dataset.colto;if(c==null)return;const who=e.target.value;if(!who)return;
+    sh.querySelectorAll('[data-cell]').forEach(i=>{if(splitCK(i.dataset.cell)[0]===c)i.value=i.dataset.who===who?tr.left[i.dataset.cell]:''});e.target.value='';upd()});
+  sh.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;
+    if(b.dataset.selk!=null){const k=b.dataset.selk;sel.has(k)?sel.delete(k):sel.add(k);drawSel();return}
+    if(b.dataset.selcol!=null){const ks=all.filter(k=>splitCK(k)[0]===b.dataset.selcol);const on=ks.every(k=>sel.has(k));ks.forEach(k=>on?sel.delete(k):sel.add(k));drawSel();return}
+    if(b.dataset.clear){sel.clear();drawSel();return}
+    if(b.dataset.mode){mode=b.dataset.mode;drawStep2();return}
+    if(b.dataset.pickst){const id=b.dataset.pickst;picked=picked.includes(id)?picked.filter(x=>x!==id):picked.concat(id);drawStep2();return}
+    if(b.dataset.even){const n=picked.length;keys().forEach(k=>{const q=tr.left[k];const base=Math.floor(q/n);let extra=q-base*n;picked.forEach(id=>{const i=sh.querySelector(`[data-cell="${CSS.escape(k)}"][data-who="${id}"]`);if(i){i.value=base+(extra>0?1:0);if(extra>0)extra--}})});upd();return}
+    if(b.id==='aGo'){
+      const err=x=>{$('#rErr',sh).textContent=x};const m=me();const cur={id:lid,...S.lots[lid]};const now=toReceive(cur,'stitching');const date=today();const at=new Date().toISOString();
+      const give={};
+      if(mode==='whole'){const wid=$('#aW',sh).value;if(!wid)return err('Select the stitcher.');const sz={};for(const k of keys()){if((now.left[k]||0)<tr.left[k]){const [c,z]=splitCK(k);return err(`${c} ${z}: someone just allocated some of these pieces. Close and open again.`)}sz[k]=tr.left[k]}give[wid]=sz}
+      else{if(!picked.length)return err('Tap the stitchers who will share this sub-lot.');const {per,bad}=readSplit();if(bad)return err(bad);
+        const used={};for(const sz of Object.values(per))for(const [k,n] of Object.entries(sz))used[k]=(used[k]||0)+n;
+        for(const [k,u] of Object.entries(used))if(u>(now.left[k]||0)){const [c,z]=splitCK(k);return err(`${c} ${z}: only ${now.left[k]||0} pcs left. Someone may have just allocated some.`)}
+        Object.assign(give,per);if(!Object.keys(give).length)return err('Enter pieces for each stitcher, or tap Split equally.')}
+      const patch={};const names=[];for(const [wid,sz] of Object.entries(give)){const q=Object.values(sz).reduce((a,b)=>a+b,0);if(!q)continue;patch[uid('r')]={w:wid,sz,q,date,by:m.id,at,st:'allocated'};names.push(W(wid).name+' '+q)}
+      b.disabled=true;
+      try{await S.db.doc('lots/'+lid).update({recv:{stitching:patch}});aSel={lid:null,keys:new Set()};closeSheet();toast(cur.lotNo+' sub-lot allocated: '+names.join(', '));const el=$('#allocList');if(el)el.innerHTML=allocListHtml()}catch(x){b.disabled=false;writeErr(x)}}
+  });
+  drawSel();
+}
+function fmtCellsPlain(ks){const by={};ks.forEach(k=>{const [c,z]=splitCK(k);(by[c]=by[c]||[]).push(z)});return Object.entries(by).map(([c,zs])=>(c?c+' ':'')+sortSizes(zs).join(', ')).join(' · ')}
+function allocdView(){
+  const rows=[];for(const l of lotsSorted())for(const v of recvList(l,'stitching'))rows.push({lot:l,...v});
+  let h=`<div><h2>Allocated</h2><p class="small muted" style="margin:4px 0 0">What each stitcher has in hand.</p></div>`;
+  if(!rows.length)return h+`<div class="empty"><h3>Nothing allocated yet</h3>Give a lot to a stitcher from <b>Allocate</b>.</div>`;
+  const by={};rows.forEach(r=>(by[r.w]=by[r.w]||[]).push(r));
+  return h+Object.entries(by).map(([wid,rs])=>{const w=W(wid)||{name:'?'};
+    const inHand=lotsSorted().reduce((a,l)=>a+myOpen(l,'stitching',wid).total,0);const waiting=0;
+    return `<section class="card list" style="gap:8px"><div class="row spread"><h3>${esc(w.name)}</h3><span class="small muted">${inHand} to finish${waiting?' · '+waiting+' not received':''}</span></div>
+    ${rs.sort((a,b)=>String(b.at).localeCompare(String(a.at))).slice(0,12).map(r=>{const o=myOpen(r.lot,'stitching',wid);return `<div class="erow"><span style="min-width:0"><b class="lotno">${esc(r.lot.lotNo)}</b> <span class="muted">${lotLabel(r.lot)}</span><span class="small muted" style="display:block">${fmtDT(r.at||r.date)} · ${fmtCells(r.sz)}</span></span><span class="row" style="gap:6px"><b>${r.q}</b>${o.total?'<span class="chip line">In work</span>':'<span class="chip approved">Submitted</span>'}${!stageEntries(r.lot,'stitching').some(v=>v.w===wid)?`<button class="btn alt sm" data-cancelalloc="${r.lot.id}|${r.rid}">Cancel</button>`:''}</span></div>`}).join('')}</section>`}).join('');
+}
+
+/* ---- LOT RECEIVER, then CHECKER ----
+   prog st: 'pending' (stitcher submitted) -> 'received' (lot receiver counted it) -> 'approved' (checker passed) | 'rejected' */
+function submissions(status){const out=[];for(const l of lotsSorted())for(const [eid,v] of Object.entries(((l.prog||{}).stitching)||{}))if(v&&(Array.isArray(status)?status.includes(v.st):v.st===status))out.push({lot:l,eid,...v});return out}
+function subCard(s,btns,extra){const w=W(s.w)||{name:'?'};return `<div class="card list" style="gap:8px">
+    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><b>${esc(w.name)}</b> <span class="small muted">${extra}</span><div><span class="lotno" style="font-size:1.1rem">${esc(s.lot.lotNo)}</span> <span class="muted small">${lotLabel(s.lot)}</span></div></div>
+    <div><div class="left">${s.q}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
+    ${openRows(s.sz)}
+    ${s.note?`<div class="small">Stitcher note: ${esc(s.note)}</div>`:''}
+    ${s.rNote?`<div class="small">Receiver note: ${esc(s.rNote)}</div>`:''}
+    <div class="row">${btns}</div></div>`}
+function rinboxView(){
+  const list=submissions('pending').sort((a,b)=>String(a.at||a.date).localeCompare(String(b.at||b.date)));
+  let h=`<div class="row spread"><h2>Receive work</h2><span class="small muted">${list.length} waiting</span></div>`;
+  if(!list.length)return h+`<div class="empty"><h3>Nothing to receive</h3>When a stitcher submits finished pieces, they show here. Count them and receive them for the checker.</div>`;
+  return h+list.map(s=>subCard(s,`<button class="btn accent" data-rcv="${s.lot.id}|${s.eid}">Count &amp; receive</button><button class="btn alt sm" data-rejectsub="${s.lot.id}|${s.eid}">Not received</button>`,'submitted '+fmtDT(s.at||s.date))).join('');
+}
+function rhistView(){
+  const list=submissions(['received','approved','rejected']).filter(s=>s.rat).sort((a,b)=>String(b.rat).localeCompare(String(a.rat))).slice(0,40);
+  let h=`<div><h2>Received</h2><p class="small muted" style="margin:4px 0 0">Work you received and where it is now.</p></div>`;
+  if(!list.length)return h+`<div class="empty">Nothing received yet.</div>`;
+  return h+`<div class="list">${list.map(s=>`<div class="card"><div class="row spread"><span><b>${esc((W(s.w)||{name:'?'}).name)}</b> · <span class="lotno">${esc(s.lot.lotNo)}</span> <span class="small muted">${fmtDate(String(s.rat).slice(0,10))}</span></span><span class="row" style="gap:6px"><b>${s.rq!=null?s.rq:s.q}</b><span class="chip ${s.st==='received'?'pending':s.st}">${s.st==='received'?'With checker':s.st==='approved'?'Checked':'Sent back'}</span></span></div>${s.short?`<div class="small warn">${s.short} pcs short when received</div>`:''}<div class="small muted">${fmtCells(s.sz)}</div></div>`).join('')}</div>`;
+}
+function inboxView(){
+  const list=submissions('received').sort((a,b)=>String(a.rat).localeCompare(String(b.rat)));
+  let h=`<div class="row spread"><h2>Check work</h2><span class="small muted">${list.length} waiting</span></div>`;
+  if(!list.length)return h+`<div class="empty"><h3>Nothing to check</h3>Work shows here after the lot receiver receives it from the stitcher.</div>`;
+  return h+list.map(s=>subCard(s,`<button class="btn accent" data-check="${s.lot.id}|${s.eid}">Check</button><button class="btn alt sm" data-rejectsub="${s.lot.id}|${s.eid}">All alter</button>`,'received '+fmtDT(s.rat)+(W(s.rby)?' by '+esc(W(s.rby).name):''))).join('');
+}
+function checkedView(){
+  const list=submissions(['approved','rejected']).filter(s=>s.at2&&s.rat).sort((a,b)=>String(b.at2).localeCompare(String(a.at2))).slice(0,40);
+  let h=`<div><h2>Checked</h2><p class="small muted" style="margin:4px 0 0">Your latest accepted and sent-back work.</p></div>`;
+  if(!list.length)return h+`<div class="empty">Nothing checked yet.</div>`;
+  return h+`<div class="list">${list.map(s=>`<div class="card"><div class="row spread"><span><b>${esc((W(s.w)||{name:'?'}).name)}</b> · <span class="lotno">${esc(s.lot.lotNo)}</span> <span class="small muted">${fmtDT(s.at2)}</span></span><span class="row" style="gap:6px"><b>${s.q}</b><span class="chip ${s.st}">${s.st==='approved'?'Checked':'All sent back'}</span></span></div>${+s.alt?`<div class="small warn">${s.alt} alter</div>`:''}${+s.rej?`<div class="small" style="color:var(--bad)">${s.rej} rejected</div>`:''}<div class="small muted">${fmtCells(s.sz)}${s.by2?' · by '+esc((W(s.by2)||{name:s.by2==='owner'?'Owner':'?'}).name):''}</div>${s.st==='approved'?(canEditCheck(s.lot,s)?`<button class="btn alt sm" data-editchk="${s.lot.id}|${s.eid}" style="margin-top:8px">Edit check</button>`:`<div class="small muted" style="margin-top:6px">${s.altRecv?'Alter already taken back by the stitcher':'Already handed over'} · can't edit</div>`):''}</div>`).join('')}</div>`;
+}
+/* checker can correct a passed check while the stitcher has not taken the alter back
+   and the passed pieces are still with the checker */
+function canEditCheck(l,v){if(v.altRecv||v.wh)return false;const wc=withChecker(l);return Object.entries(v.sz||{}).every(([k,n])=>(wc.left[k]||0)>=(+n||0))}
+/* one sheet for both steps: mode 'receive' (count what was handed over) or 'check' (mark alter / reject) */
+function checkSheet(lid,eid,mode){
+  const l=S.lots[lid];const s0=((l.prog||{}).stitching||{})[eid];if(!s0)return;const w=W(s0.w)||{name:'?'};const rcv=mode==='receive';const edit=mode==='edit';
+  /* in edit mode the base is what was received: passed + alter + reject */
+  const s=edit?{...s0,sz:Object.fromEntries(Object.keys({...s0.sz,...(s0.altSz||{}),...(s0.rejSz||{})}).map(k=>[k,(+(s0.sz||{})[k]||0)+(+(s0.altSz||{})[k]||0)+(+(s0.rejSz||{})[k]||0)])),q:(+s0.q||0)+(+s0.alt||0)+(+s0.rej||0)}:s0;
+  const keys=Object.keys(s.sz||{}).filter(k=>+s.sz[k]>0).sort((a,b)=>{const [ca,za]=splitCK(a),[cb,zb]=splitCK(b);return ca.localeCompare(cb)||(SIZE_ORDER.indexOf(za)+1||99)-(SIZE_ORDER.indexOf(zb)+1||99)});
+  const by={};keys.forEach(k=>{const [c]=splitCK(k);(by[c]=by[c]||[]).push(k)});
+  const body=rcv
+    ?Object.entries(by).map(([c,ks])=>`<div class="cblock"><b>${esc(c||'Pieces')}</b><div class="sizes">${ks.map(k=>{const id='kq_'+safeId(k);return `<label class="sizebox" for="${id}"><span class="top"><b>${esc(splitCK(k)[1])}</b><span class="muted small">of ${s.sz[k]}</span></span><input type="number" inputmode="numeric" min="0" max="${s.sz[k]}" id="${id}" data-ksize="${esc(k)}" data-left="${s.sz[k]}" value="${s.sz[k]}"></label>`}).join('')}</div></div>`).join('')
+    :Object.entries(by).map(([c,ks])=>`<div class="cblock"><b>${esc(c||'Pieces')}</b><div class="qc"><span class="qh">Size</span><span class="qh">Pcs</span><span class="qh">Alter</span><span class="qh">Reject</span><span class="qh">OK</span>${ks.map(k=>{const id=safeId(k);return `<b>${esc(splitCK(k)[1])}</b><span>${s.sz[k]}</span><input type="number" inputmode="numeric" min="0" max="${s.sz[k]}" id="ka_${id}" data-alt="${esc(k)}" placeholder="0" aria-label="Alter ${esc(splitCK(k)[1])}"><input type="number" inputmode="numeric" min="0" max="${s.sz[k]}" id="kr_${id}" data-rej="${esc(k)}" placeholder="0" aria-label="Reject ${esc(splitCK(k)[1])}"><b class="ok" id="ko_${id}">${s.sz[k]}</b>`}).join('')}</div></div>`).join('');
+  const sh=sheet((rcv?'Receive ':edit?'Edit check ':'Check ')+l.lotNo,`<form id="checkForm" class="list" novalidate>
+    <div class="hint">${rcv?`${esc(w.name)} submitted <b>${s.q} pcs</b> on ${fmtDate(s.date)}. Collect the lot and count it. If any size is short, lower it. Short pieces go back to ${esc(w.name)}.`:`Received <b>${s.q} pcs</b> from ${esc(w.name)}. Mark pieces that need <b>alter</b> (they go back to ${esc(w.name)} to fix) and pieces that are <b>rejected</b> (not paid). The rest pass.`}</div>
+    <div class="card list" style="gap:12px">${body}
+      <div class="row spread"><span class="small" id="kAlt"></span><b id="kTotal" style="font-family:var(--display);font-size:1.3rem">${s.q} pcs ${rcv?'received':'OK'}</b></div></div>
+    <label class="f">Note for ${esc(w.name)} (optional)<input id="kNote" placeholder="${rcv?'e.g. 2 pcs M missing':'e.g. collar uneven on alter pieces'}"></label>
+    <div id="kErr" class="err"></div>
+    <button class="btn accent big" type="submit">${rcv?'Receive and send to checker':'Save check'}</button></form>`);
+  const read=()=>{let ok=0,alt=0,rej=0,bad='';const okSz={},altSz={},rejSz={};
+    if(rcv){sh.querySelectorAll('[data-ksize]').forEach(i=>{const v=Math.round(Math.max(0,+i.value||0));const over=v>+i.dataset.left;i.closest('.sizebox').classList.toggle('over',over);if(over)bad='A size is more than what was submitted.';okSz[i.dataset.ksize]=v;ok+=v})}
+    else keys.forEach(k=>{const id=safeId(k);const a=Math.round(Math.max(0,+$('#ka_'+id,sh).value||0)),r=Math.round(Math.max(0,+$('#kr_'+id,sh).value||0));const o=s.sz[k]-a-r;
+      $('#ko_'+id,sh).textContent=o;$('#ko_'+id,sh).classList.toggle('neg',o<0);if(o<0)bad=`${splitCK(k)[0]} ${splitCK(k)[1]}: alter + reject is more than ${s.sz[k]}.`;
+      okSz[k]=Math.max(0,o);altSz[k]=a;rejSz[k]=r;ok+=Math.max(0,o);alt+=a;rej+=r});
+    return {ok,alt,rej,okSz,altSz,rejSz,bad}};
+  const upd=()=>{const r=read();$('#kTotal',sh).textContent=r.ok+(rcv?' pcs received':' pcs OK');
+    $('#kAlt',sh).innerHTML=rcv?(s.q-r.ok>0?`<span class="warn">${s.q-r.ok} pcs short</span>`:''):[r.alt?`<span class="warn">${r.alt} alter</span>`:'',r.rej?`<span style="color:var(--bad)">${r.rej} rejected</span>`:''].filter(Boolean).join(' · ');$('#kErr',sh).textContent=r.bad};
+  if(edit){keys.forEach(k=>{const id=safeId(k);const a=+(s0.altSz||{})[k]||0,r=+(s0.rejSz||{})[k]||0;if(a)$('#ka_'+id,sh).value=a;if(r)$('#kr_'+id,sh).value=r});const n=$('#kNote',sh);if(n)n.value=s0.chkNote||'';upd()}
+  sh.addEventListener('input',e=>{const d=e.target.dataset;if(d.ksize!=null||d.alt!=null||d.rej!=null)upd()});
+  $('#checkForm',sh).addEventListener('submit',async e=>{e.preventDefault();e.stopPropagation();
+    const r=read();if(r.bad)return $('#kErr',sh).textContent=r.bad;
+    if(edit){const cur=S.lots[lid].prog.stitching[eid];if(!canEditCheck(S.lots[lid],cur))return $('#kErr',sh).textContent='This check can no longer be changed: the pieces were handed over or the alter was taken back.'}
+    const btn=e.target.querySelector('[type=submit]');btn.disabled=true;const note=$('#kNote',sh).value.trim();
+    try{
+      if(rcv){await decide(lid,eid,r.ok?'received':'rejected',r.okSz,r.ok,note);toast(r.ok?r.ok+' pcs received and sent to the checker'+(s.q-r.ok?' · '+(s.q-r.ok)+' short':''):'Sent back to '+w.name)}
+      else{await decide(lid,eid,'approved',r.okSz,r.ok,note,{altSz:r.altSz,rejSz:r.rejSz,alt:r.alt,rej:r.rej});toast((edit?'Check updated · ':'')+`${r.ok} passed`+(r.alt?` · ${r.alt} alter`:'')+(r.rej?` · ${r.rej} rejected`:''))}
+      closeSheet()}
+    catch(x){btn.disabled=false;writeErr(x)}});
+}
+async function decide(lid,eid,status,sz,q,note,qc){
+  const l=S.lots[lid];const s=l.prog.stitching[eid];const m=me();const now=new Date().toISOString();const diff=Math.max(0,(+s.q||0)-(q||0));
+  const fullSz={};Object.keys(s.sz||{}).forEach(k=>fullSz[k]=sz?(sz[k]||0):s.sz[k]);
+  let lotPatch,entPatch;
+  if(status==='received'){
+    lotPatch={st:'received',q,sz:fullSz,rq:q,short:diff,rby:m.id,rat:now,rNote:note||''};
+    entPatch={status:'received',qty:q,sz:fullSz,submitted:s.q,short:diff,receivedBy:m.name,receivedAt:now,receiveNote:note||''};
+  }else if(status==='approved'){
+    lotPatch={st:'approved',q,sz:fullSz,altSz:qc.altSz,rejSz:qc.rejSz,alt:qc.alt,rej:qc.rej,by2:m.id,at2:now,chkNote:note||''};
+    entPatch={status:'approved',qty:q,sz:fullSz,alter:qc.alt,reject:qc.rej,altSz:qc.altSz,rejSz:qc.rejSz,decidedBy:m.name,decidedAt:now,checkNote:note||''};
+  }else{
+    lotPatch={st:'rejected',by2:m.id,at2:now,alt:s.q,chkNote:note||'',back:s.st==='received'?'checker':'receiver'};if(s.st!=='received'){lotPatch.rby=m.id;lotPatch.rat=now}
+    entPatch={status:'rejected',decidedBy:m.name,decidedAt:now,alter:s.q,checkNote:note||''};
+  }
+  await S.db.doc('lots/'+lid).update({prog:{stitching:{[eid]:lotPatch}}});
+  try{await S.db.doc('work/'+s.w+'_'+String(s.date).slice(0,7)).update({entries:{[eid]:entPatch}})}catch(x){console.warn('work doc',x)}
+}
+
+/* ---- AFTER CHECKING: checker -> thread cutter -> ironing -> warehouse ----
+   lot.flow[fid] = {stage:'thread'|'ironing', w, sz, q, by, at, st:'given'|'done', doneAt, wh:{...}} */
+const FLOW_NEXT={thread:'ironing',ironing:'warehouse'};
+function flowItems(stage){const out=[];for(const l of lotsSorted())for(const [fid,v] of Object.entries(l.flow||{}))if(v&&v.st!=='cancelled'&&(!stage||v.stage===stage))out.push({lot:l,fid,...v});return out}
+/* passed stitching pieces still with the checker (not handed to a thread cutter yet) */
+function passedCells(l){const o={};for(const v of Object.values(((l.prog||{}).stitching)||{})){if(!v||v.st!=='approved'||v.wh)continue;for(const [k,n] of Object.entries(v.sz||{}))o[k]=(o[k]||0)+(+n||0)}return o}
+function handedCells(l){const o={};for(const v of Object.values(l.flow||{})){if(!v||v.stage!=='thread'||v.st==='cancelled')continue;for(const [k,n] of Object.entries(v.sz||{}))o[k]=(o[k]||0)+(+n||0)}return o}
+function withChecker(l){const p=passedCells(l),h=handedCells(l);const left={};let total=0;for(const [k,n] of Object.entries(p)){const x=Math.max(0,n-(h[k]||0));if(x){left[k]=x;total+=x}}return {left,total}}
+let hoSel={lid:null,keys:new Set()};
+/* thread cutter: pieces received from the checker minus pieces already handed to ironing */
+function threadPool(l,wid){const g={},o={};for(const v of Object.values(l.flow||{})){if(!v||v.st==='cancelled')continue;
+  if(v.stage==='thread'&&v.w===wid)for(const [k,n] of Object.entries(v.sz||{}))g[k]=(g[k]||0)+(+n||0);
+  if(v.stage==='ironing'&&v.fromW===wid)for(const [k,n] of Object.entries(v.sz||{}))o[k]=(o[k]||0)+(+n||0)}
+  const left={};let total=0;for(const [k,n] of Object.entries(g)){const x=Math.max(0,n-(o[k]||0));if(x){left[k]=x;total+=x}}return {left,total}}
+let tSel={lid:null,wid:null,keys:new Set()};
+function threadNewView(){
+  const m=me();const ls=lotsSorted().filter(l=>threadPool(l,m.id).total>0);const tot=ls.reduce((a,l)=>a+threadPool(l,m.id).total,0);
+  let h=`<div class="row spread"><h2>New lots</h2><span class="small muted">${tot} pcs in hand</span></div>`;
+  if(!ls.length)return h+`<div class="empty"><h3>No lot in hand</h3>Lots the checker hands over to you appear here.</div>`;
+  return h+`<p class="small muted" style="margin:0">Tap the sizes (or a colour) you have finished, then hand them over to ironing.</p><div class="list" id="tList">${threadListHtml()}</div>`;
+}
+/* manager: hand over to ironing on behalf of any thread cutter */
+function mgrThreadView(){
+  const tcs=activeWorkers().filter(w=>w.role==='Thread cutter');
+  const tot=tcs.reduce((a,w)=>a+lotsSorted().reduce((b,l)=>b+threadPool(l,w.id).total,0),0);
+  let h=`<div class="row spread"><h2>Thread cutter → ironing</h2><span class="small muted">${tot} pcs with thread cutters</span></div><p class="small muted" style="margin:0">Hand over finished pieces to ironing for any thread cutter. Tap sizes (or a colour) to choose.</p>`;
+  if(!tot)return h+`<div class="empty"><h3>Nothing with thread cutters</h3>Pieces handed over by the checker show here.</div>`;
+  return h+`<div class="list" id="tList">${mgrThreadListHtml()}</div>`;
+}
+function mgrThreadListHtml(){return activeWorkers().filter(w=>w.role==='Thread cutter').map(w=>threadListHtml(w.id)).join('')||`<div class="empty">Nothing with thread cutters.</div>`}
+function threadListHtml(forWid){
+  const m=forWid?{id:forWid}:me();return lotsSorted().filter(l=>threadPool(l,m.id).total>0).map(l=>{const pl=threadPool(l,m.id);const mine=tSel.lid===l.id&&tSel.wid===m.id;const n=mine?[...tSel.keys].reduce((a,k)=>a+(pl.left[k]||0),0):0;
+    const from=Object.values(l.flow||{}).filter(v=>v&&v.stage==='thread'&&v.w===m.id).map(v=>W(v.by)).filter(Boolean).map(w=>w.name).filter((x,i,a)=>a.indexOf(x)===i).join(', ');
+    const by={};Object.keys(pl.left).forEach(k=>{const [c]=splitCK(k);(by[c]=by[c]||[]).push(k)});
+    return `<div class="card list ${mine&&n?'selcard':''}" style="gap:8px">
+      <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> <span class="muted">${esc(l.design)}</span><div class="small muted ell">${forWid?'with <b>'+esc((W(m.id)||{}).name||'?')+'</b> · ':''}${from?'from '+esc(from):''}</div></div><div><div class="left">${pl.total}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
+      <div class="crows">${Object.entries(by).map(([c,ks])=>`<div class="crow"><button type="button" class="cname linkish" data-tcol="${l.id}|${esc(c)}" data-twid="${m.id}">${esc(c)}</button><span class="row" style="gap:5px">${sortSizes(ks.map(k=>splitCK(k)[1])).map(z=>{const k=CK(c,z);const on=mine&&tSel.keys.has(k);return `<button type="button" class="chip line pick ${on?'on':''}" data-tsel="${l.id}|${esc(k)}" data-twid="${m.id}">${on?'✓ ':''}${esc(z)} <b>${pl.left[k]}</b></button>`}).join('')}</span></div>`).join('')}</div>
+      ${mine&&n?`<div class="subbar"><span><b>${n} pcs selected</b></span><span class="row" style="gap:8px"><button type="button" class="btn accent" data-tgive="${l.id}" data-twid="${m.id}">Hand over to ironing</button><button type="button" class="btn alt sm" data-tclear="1">Clear</button></span></div>`:''}
+    </div>`}).join('')||`<div class="empty">No lot in hand.</div>`;
+}
+function handoverView(){
+  const ls=lotsSorted().filter(l=>withChecker(l).total>0);
+  let h=`<div class="row spread"><h2>Hand over</h2><span class="small muted">${ls.reduce((a,l)=>a+withChecker(l).total,0)} passed pcs with you</span></div><p class="small muted" style="margin:0">Passed pieces go to a thread cutter. Tap sizes (or a colour) to choose what to give.</p>`;
+  if(!ls.length)return h+`<div class="empty"><h3>Nothing to hand over</h3>Pieces you pass in Check work show here.</div>`;
+  return h+`<div class="list" id="hoList">${handoverListHtml()}</div>`;
+}
+function handoverListHtml(){
+  return lotsSorted().filter(l=>withChecker(l).total>0).map(l=>{const wc=withChecker(l);const mine=hoSel.lid===l.id;const n=mine?[...hoSel.keys].reduce((a,k)=>a+(wc.left[k]||0),0):0;
+    const by={};Object.keys(wc.left).forEach(k=>{const [c]=splitCK(k);(by[c]=by[c]||[]).push(k)});
+    return `<div class="card list ${mine&&n?'selcard':''}" style="gap:8px">
+      <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> <span class="muted">${esc(l.design)}</span><div class="small muted ell">${esc(l.designName||'')}</div></div><div><div class="left">${wc.total}</div><div class="small muted" style="text-align:right">passed</div></div></div>
+      <div class="crows">${Object.entries(by).map(([c,ks])=>`<div class="crow"><button type="button" class="cname linkish" data-hocol="${l.id}|${esc(c)}">${esc(c)}</button><span class="row" style="gap:5px">${sortSizes(ks.map(k=>splitCK(k)[1])).map(z=>{const k=CK(c,z);const on=mine&&hoSel.keys.has(k);return `<button type="button" class="chip line pick ${on?'on':''}" data-hosel="${l.id}|${esc(k)}">${on?'✓ ':''}${esc(z)} <b>${wc.left[k]}</b></button>`}).join('')}</span></div>`).join('')}</div>
+      ${mine&&n?`<div class="subbar"><span><b>${n} pcs selected</b></span><span class="row" style="gap:8px"><button type="button" class="btn accent" data-hogive="${l.id}">Give to thread cutter</button><button type="button" class="btn alt sm" data-hoclear="1">Clear</button></span></div>`:''}
+    </div>`}).join('')||`<div class="empty">Nothing to hand over.</div>`;
+}
+function giveSheet(lid,cells,stage,fromFid,onBehalf){const fw=onBehalf||me().id;
+  const l=S.lots[lid];const role=stage==='thread'?'Thread cutter':'Ironing';const people=activeWorkers().filter(w=>w.role===role);
+  if(!people.length){toast('Add a '+role.toLowerCase()+' in Team first.');return}
+  const q=Object.values(cells).reduce((a,b)=>a+b,0);const hand=wid=>flowItems(stage).filter(v=>v.w===wid&&v.st==='given').reduce((a,v)=>a+(+v.q||0),0);
+  const sh=sheet('Give '+l.lotNo+' to '+(stage==='thread'?'thread cutter':'ironing'),`<div class="list">
+    <div class="card list" style="gap:6px"><b>${q} pcs · ${esc(l.design)}</b>${openRows(cells)}</div>
+    <label class="f">${role}<select id="gW"><option value="">Select</option>${people.map(w=>`<option value="${w.id}">${esc(w.name)} · ${hand(w.id)} in hand</option>`).join('')}</select></label>
+    <div id="gErr" class="err"></div><button type="button" class="btn accent big" id="gGo">Hand over ${q} pcs</button></div>`,{short:true});
+  $('#gGo',sh).onclick=async()=>{const wid=$('#gW',sh).value;if(!wid)return $('#gErr',sh).textContent='Select who gets it.';
+    if(stage==='thread'){const wc=withChecker(S.lots[lid]);for(const [k,n] of Object.entries(cells))if(n>(wc.left[k]||0))return $('#gErr',sh).textContent='Some of these pieces were just handed over. Close and try again.'}
+    let pool=null;if(stage==='ironing'&&!fromFid){pool=threadPool(S.lots[lid],fw);for(const [k,n] of Object.entries(cells))if(n>(pool.left[k]||0))return $('#gErr',sh).textContent='Some of these pieces were already handed over. Close and try again.'}
+    const fid=uid('f');const now=new Date().toISOString();const patch={[fid]:{stage,w:wid,sz:cells,q,by:me().id,at:now,st:'given',from:fromFid||null,fromW:stage==='ironing'?fw:null}};
+    if(pool&&pool.total-q<=0)for(const [id,v] of Object.entries(S.lots[lid].flow||{}))if(v&&v.stage==='thread'&&v.w===fw&&v.st==='given')patch[id]={st:'done',doneAt:now};
+    if(fromFid)patch[fromFid]={st:'done',doneAt:now,next:fid};
+    $('#gGo',sh).disabled=true;
+    try{await S.db.doc('lots/'+lid).update({flow:patch});closeSheet();hoSel={lid:null,keys:new Set()};tSel={lid:null,wid:null,keys:new Set()};toast(q+' pcs of '+l.lotNo+' handed to '+W(wid).name)}catch(x){$('#gGo',sh).disabled=false;writeErr(x)}};
+}
+/* thread cutter / ironing panels */
+function flowNewView(stage){
+  const m=me();const items=flowItems(stage).filter(v=>v.w===m.id&&v.st==='given');
+  const tot=items.reduce((a,v)=>a+(+v.q||0),0);
+  let h=`<div class="row spread"><h2>New lots</h2><span class="small muted">${tot} pcs in hand</span></div>`;
+  if(!items.length)return h+`<div class="empty"><h3>No lot in hand</h3>${stage==='thread'?'Lots the checker hands over to you appear here.':'Lots the thread cutter hands over to you appear here.'}</div>`;
+  return h+items.map(v=>{const from=W(v.fromW||v.by);return `<div class="card list" style="gap:8px">
+    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(v.lot.lotNo)}</span> <span class="muted">${esc(v.lot.design)}</span><div class="small muted ell">from ${from?esc(from.name):'?'} · ${fmtDate(String(v.at).slice(0,10))}</div></div><div><div class="left">${v.q}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
+    ${openRows(v.sz)}
+    <button class="btn accent" data-flowdone="${v.lot.id}|${v.fid}" style="align-self:flex-start">${stage==='thread'?'Done – hand over to ironing':'Done – send to warehouse'}</button></div>`}).join('');
+}
+function threadDoneView(){
+  const m=me();const items=flowItems('ironing').filter(v=>v.fromW===m.id).sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+  const cur=ym(new Date());const monthPcs=items.filter(v=>String(v.at).slice(0,7)===cur).reduce((a,v)=>a+(+v.q||0),0);
+  let h=`<div class="row spread"><h2>Completed</h2><span class="small muted">${monthPcs} pcs this month</span></div>`;
+  if(!items.length)return h+`<div class="empty">Nothing handed over to ironing yet.</div>`;
+  return h+items.slice(0,40).map(v=>`<div class="card"><div class="row spread"><span><span class="lotno">${esc(v.lot.lotNo)}</span> <span class="muted">${esc(v.lot.design)}</span> <span class="small muted">${fmtDate(String(v.at).slice(0,10))} → ${esc((W(v.w)||{name:'?'}).name)}</span></span><b>${v.q}</b></div><div class="small muted">${fmtCells(v.sz)}</div></div>`).join('');
+}
+function flowDoneView(stage){
+  const m=me();const items=flowItems(stage).filter(v=>v.w===m.id&&v.st==='done').sort((a,b)=>String(b.doneAt).localeCompare(String(a.doneAt)));
+  const cur=ym(new Date());const monthPcs=items.filter(v=>String(v.doneAt).slice(0,7)===cur).reduce((a,v)=>a+(+v.q||0),0);
+  const pend=items.filter(v=>!v.wh).reduce((a,v)=>a+(+v.q||0),0);
+  let h=`<div class="row spread"><h2>Completed</h2><span class="small muted">${monthPcs} pcs this month</span></div>${pend?`<p class="small muted" style="margin:0">${pend} pcs are waiting for the warehouse to count.</p>`:''}`;
+  if(!items.length)return h+`<div class="empty">Nothing sent to the warehouse yet.</div>`;
+  return h+items.slice(0,40).map(v=>{const wh=v.wh;const full=wh&&+wh.q>=+v.q;
+    let status;
+    if(!wh)status=`<span class="chip pending">Pending</span>`;
+    else if(full)status=`<span class="chip approved">Completed</span>`;
+    else status=`<span class="chip pending">Received ${wh.q}</span> <span class="chip rejected">Not received ${Math.max(0,v.q-wh.q)}</span>`;
+    const missing=wh&&!full?(()=>{const o={};for(const [k,n] of Object.entries(v.sz||{})){const d=(+n||0)-(+(wh.sz||{})[k]||0);if(d>0)o[k]=d}return o})():null;
+    return `<div class="card list" style="gap:6px"><div class="row spread" style="align-items:flex-start"><span><span class="lotno">${esc(v.lot.lotNo)}</span> <span class="muted">${esc(v.lot.design)}</span> <span class="small muted">sent ${fmtDate(String(v.doneAt).slice(0,10))}</span></span><b>${v.q} pcs</b></div>
+      <div class="row" style="gap:6px">${status}</div>
+      <div class="small muted">${fmtCells(nz(v.sz))}</div>
+      ${missing&&Object.keys(missing).length?`<div class="small" style="color:var(--bad)">Not received: ${fmtCells(missing)}</div>`:''}
+      ${wh?`<div class="small muted">Counted ${fmtDate(String(wh.at).slice(0,10))}${W(wh.by)?' by '+esc(W(wh.by).name):''}${wh.note?' · '+esc(wh.note):''}</div>`:''}</div>`}).join('');
+}
+
+/* ---- WAREHOUSE RECEIVER: takes ironed pieces into stock ---- */
+function whPending(){return flowItems('ironing').filter(v=>v.st==='done'&&!v.wh)}
+function whInboxView(){
+  const list=whPending().sort((a,b)=>String(a.doneAt).localeCompare(String(b.doneAt)));
+  let h=`<div class="row spread"><h2>Receive in warehouse</h2><span class="small muted">${list.reduce((a,s)=>a+(+s.q||0),0)} pcs waiting</span></div>`;
+  if(!list.length)return h+`<div class="empty"><h3>Nothing to receive</h3>Pieces show here after ironing is done.</div>`;
+  return h+list.map(s=>{const w=W(s.w)||{name:'?'};return `<div class="card list" style="gap:8px">
+    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.15rem">${esc(s.lot.lotNo)}</span> <span class="muted">${esc(s.lot.design)}</span><div class="small muted">ironed by ${esc(w.name)} · ${fmtDate(String(s.doneAt).slice(0,10))}</div></div>
+    <div><div class="left">${s.q}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
+    ${openRows(nz(s.sz))}
+    <button class="btn accent" data-whrcv="${s.lot.id}|${s.fid}" style="align-self:flex-start">Count &amp; receive</button></div>`}).join('');
+}
+function whSheet(lid,fid){
+  const l=S.lots[lid];const s=l.flow[fid];const keys=Object.keys(nz(s.sz)).sort((a,b)=>{const [ca,za]=splitCK(a),[cb,zb]=splitCK(b);return ca.localeCompare(cb)||(SIZE_ORDER.indexOf(za)+1||99)-(SIZE_ORDER.indexOf(zb)+1||99)});
+  const by={};keys.forEach(k=>{const [c]=splitCK(k);(by[c]=by[c]||[]).push(k)});
+  const sh=sheet('Stock in '+l.lotNo,`<form id="whForm" class="list" novalidate>
+    <div class="hint"><b>${s.q} pcs</b> from ironing. Count what reaches the warehouse. If a size is short, lower it.</div>
+    <div class="card list" style="gap:12px">${Object.entries(by).map(([c,ks])=>`<div class="cblock"><b>${esc(c||'Pieces')}</b><div class="sizes">${ks.map(k=>{const id='wq_'+safeId(k);return `<label class="sizebox" for="${id}"><span class="top"><b>${esc(splitCK(k)[1])}</b><span class="muted small">of ${s.sz[k]}</span></span><input type="number" inputmode="numeric" min="0" max="${s.sz[k]}" id="${id}" data-wsize="${esc(k)}" data-left="${s.sz[k]}" value="${s.sz[k]}"></label>`}).join('')}</div></div>`).join('')}
+      <div class="row spread"><span class="small warn" id="wShort"></span><b id="wTotal" style="font-family:var(--display);font-size:1.3rem">${s.q} pcs</b></div></div>
+    <label class="f">Note (optional)<input id="wNote" placeholder="e.g. 1 pc S missing"></label>
+    <div id="wErr" class="err"></div>
+    <button class="btn accent big" type="submit">Receive in warehouse</button></form>`);
+  const read=()=>{let t=0,bad='';const sz={};sh.querySelectorAll('[data-wsize]').forEach(i=>{const v=Math.round(Math.max(0,+i.value||0));const over=v>+i.dataset.left;i.closest('.sizebox').classList.toggle('over',over);if(over)bad='A size is more than what came from ironing.';sz[i.dataset.wsize]=v;t+=v});return {t,sz,bad}};
+  sh.addEventListener('input',e=>{if(e.target.dataset.wsize!=null){const r=read();$('#wTotal',sh).textContent=r.t+' pcs';$('#wShort',sh).textContent=s.q-r.t>0?(s.q-r.t)+' pcs short':'';$('#wErr',sh).textContent=r.bad}});
+  $('#whForm',sh).addEventListener('submit',async e=>{e.preventDefault();e.stopPropagation();const r=read();if(r.bad)return $('#wErr',sh).textContent=r.bad;
+    const btn=e.target.querySelector('[type=submit]');btn.disabled=true;
+    try{await S.db.doc('lots/'+lid).update({flow:{[fid]:{wh:{q:r.t,sz:r.sz,short:Math.max(0,s.q-r.t),by:me().id,at:new Date().toISOString(),note:$('#wNote',sh).value.trim()}}}});
+      closeSheet();toast(r.t+' pcs received in warehouse'+(s.q-r.t?' · '+(s.q-r.t)+' short':''))}
+    catch(x){btn.disabled=false;writeErr(x)}});
+}
+function whRecords(){const out=[];for(const l of lotsSorted()){for(const v of Object.values(((l.prog||{}).stitching)||{}))if(v&&v.wh)out.push({lot:l,wh:v.wh});for(const v of Object.values(l.flow||{}))if(v&&v.wh)out.push({lot:l,wh:v.wh})}return out}
+let stockQ='';
+function stockAgg(){const agg={};let total=0;for(const r of whRecords())for(const [k,n] of Object.entries(r.wh.sz||{})){if(!+n)continue;const [c,z]=splitCK(k);const d=agg[r.lot.design]=agg[r.lot.design]||{};const cc=d[c]=d[c]||{};cc[z]=(cc[z]||0)+(+n);total+=+n}return {agg,total}}
+function stockView(){
+  const {agg,total}=stockAgg();const recent=whRecords().sort((a,b)=>String(b.wh.at).localeCompare(String(a.wh.at)));
+  let h=`<div class="row spread"><h2>Warehouse stock</h2><span class="small muted">${total} pcs received</span></div>`;
+  if(!total)return h+`<div class="empty"><h3>No stock received yet</h3>Pieces appear here once they are received in the warehouse.</div>`;
+  h+=`<input class="search" type="search" id="stockQ" placeholder="Search design or colour" value="${esc(stockQ)}" autocomplete="off"><div class="list" id="stockList">${stockListHtml(agg)}</div>`;
+  h+=`<section class="list"><h3>Latest received</h3>${recent.slice(0,15).map(r=>`<div class="card"><div class="row spread"><span><span class="lotno">${esc(r.lot.lotNo)}</span> <span class="muted">${esc(r.lot.design)}</span> <span class="small muted">${fmtDate(String(r.wh.at).slice(0,10))}${W(r.wh.by)?' · '+esc(W(r.wh.by).name):''}</span></span><b>${r.wh.q}</b></div><div class="small muted">${fmtCells(nz(r.wh.sz))}</div>${r.wh.short?`<div class="small warn">${r.wh.short} short</div>`:''}</div>`).join('')}</section>`;
+  return h;
+}
+function stockListHtml(agg){
+  if(!agg)agg=stockAgg().agg;const q=stockQ.trim().toLowerCase();
+  const rows=Object.entries(agg).sort((a,b)=>a[0].localeCompare(b[0])).filter(([d,cs])=>!q||d.toLowerCase().includes(q)||Object.keys(cs).some(c=>c.toLowerCase().includes(q)));
+  if(!rows.length)return `<div class="empty">No stock matches.</div>`;
+  return rows.map(([d,cs])=>{const t=Object.values(cs).reduce((a,zs)=>a+Object.values(zs).reduce((x,y)=>x+y,0),0);
+    return `<div class="card list" style="gap:8px"><div class="row spread"><b class="lotno" style="font-size:1.15rem">${esc(d)}</b><b>${t} pcs</b></div><div class="crows">${Object.entries(cs).map(([c,zs])=>`<div class="crow"><span class="cname">${esc(c)}</span><span class="row" style="gap:5px">${sortSizes(Object.keys(zs)).map(z=>`<span class="chip line">${esc(z)} <b>${zs[z]}</b></span>`).join('')}</span></div>`).join('')}</div></div>`}).join('');
+}
+
+/* ---- MANAGER / OWNER: who has which pending task ---- */
+function pendingByPerson(){
+  const rows=[];const lots=lotsSorted();
+  const lotPcs=(pairs)=>pairs.filter(x=>x.q>0);
+  const shared=(label,pairs,unit)=>({label,pairs:lotPcs(pairs),unit});
+  // queues shared by everyone in a role
+  const alloc=lots.map(l=>({lot:l,q:toReceive(l,'stitching').total}));
+  const rcv=submissions('pending').map(s=>({lot:s.lot,q:+s.q||0,who:s.w}));
+  const chk=submissions('received').map(s=>({lot:s.lot,q:+s.q||0,who:s.w}));
+  const hand=lots.map(l=>({lot:l,q:withChecker(l).total}));
+  const wh=whPending().map(v=>({lot:v.lot,q:+v.q||0,who:v.w}));
+  for(const w of activeWorkers()){
+    const tasks=[];
+    if(w.role==='Stitcher'){
+      const inHand=[],altW=[];for(const l of lots){const o=myOpen(l,'stitching',w.id).total;if(o)inHand.push({lot:l,q:o});const a=altWaiting(l,w.id).total;if(a)altW.push({lot:l,q:a})}
+      const sub=submissions(['pending','received']).filter(s=>s.w===w.id).map(s=>({lot:s.lot,q:+s.q||0}));
+      tasks.push(shared('To stitch',inHand),shared('Alter not received back',altW),shared('Submitted, not checked yet',sub));
+    }
+    if(w.role==='Lot allocator'||w.role==='Manager')tasks.push(shared('To allocate',alloc));
+    if(w.role==='Lot receiver'||w.role==='Manager')tasks.push(shared('To receive from stitchers',rcv));
+    if(w.role==='Checker'||w.role==='Manager'){tasks.push(shared('To check',chk));tasks.push(shared('Passed, not handed to thread cutter',hand))}
+    if(w.role==='Thread cutter')tasks.push(shared('Thread cutting in hand',lots.map(l=>({lot:l,q:threadPool(l,w.id).total}))));
+    if(w.role==='Ironing')tasks.push(shared('Ironing in hand',flowItems('ironing').filter(v=>v.w===w.id&&v.st==='given').map(v=>({lot:v.lot,q:+v.q||0})))),tasks.push(shared('Sent, warehouse not counted',wh.filter(x=>x.who===w.id)));
+    if(w.role==='Warehouse receiver')tasks.push(shared('To receive in warehouse',wh));
+    const live=tasks.filter(t=>t.pairs.length);
+    rows.push({w,tasks:live,total:live.reduce((a,t)=>a+t.pairs.reduce((b,x)=>b+x.q,0),0)});
+  }
+  return rows;
+}
+let pendRole='all';
+function pendingView(){
+  const rows=pendingByPerson();const roles=['all',...ROLES.filter(r=>rows.some(x=>x.w.role===r))];
+  const shown=rows.filter(r=>pendRole==='all'||r.w.role===pendRole);
+  const busy=shown.filter(r=>r.total>0).sort((a,b)=>b.total-a.total),free=shown.filter(r=>!r.total);
+  let h=`<div class="row spread"><h2>Pending work</h2><span class="row" style="gap:6px"><button class="btn alt sm" data-tab="lots">All lots</button><button class="btn alt sm" data-tab="stock">Stock</button>${me().id==='owner'?'<button class="btn alt sm" data-tab="team">Team</button>':''}</span></div>
+  <div class="small muted">${busy.length} people with work</div>`;
+  h+=`<div class="colchips">${roles.map(r=>`<button type="button" class="colchip ${pendRole===r?'on':''}" data-prole="${esc(r)}">${r==='all'?'Everyone':esc(r)}</button>`).join('')}</div>`;
+  if(!busy.length)h+=`<div class="empty"><h3>Nothing pending</h3>No one ${pendRole==='all'?'':'in this role '}has work waiting.</div>`;
+  h+=busy.map(r=>`<div class="card list" style="gap:8px"><div class="row spread"><span><b style="font-size:1.05rem">${esc(r.w.name)}</b> <span class="small muted">${esc(r.w.role)}</span></span><b class="lotno" style="font-size:1.2rem">${r.total} pcs</b></div>
+    ${r.tasks.map(t=>{const sum=t.pairs.reduce((a,x)=>a+x.q,0);const byLot={};t.pairs.forEach(x=>byLot[x.lot.lotNo+' '+x.lot.design]=(byLot[x.lot.lotNo+' '+x.lot.design]||0)+x.q);
+      return `<div class="list" style="gap:4px;border-top:1px solid var(--line);padding-top:6px"><div class="row spread small"><span class="chip ${/alter|not/i.test(t.label)?'pending':'line'}">${esc(t.label)}</span><b>${sum} pcs</b></div><div class="small muted">${Object.entries(byLot).map(([k,q])=>`<span style="white-space:nowrap">${esc(k)} · <b>${q}</b></span>`).join(' &nbsp;|&nbsp; ')}</div></div>`}).join('')}
+  </div>`).join('');
+  if(free.length)h+=`<p class="small muted" style="margin:0">Nothing pending: ${free.map(r=>esc(r.w.name)).join(', ')}</p>`;
+  return h;
+}
+
+/* ---- TASKS: owner / manager assign work to the cutting master ----
+   tasks/<id> = {to, text, qty, design, due, by, at, st:'open'|'done', doneAt} */
+function tasksFor(wid){return Object.entries(S.tasks).map(([id,t])=>({id,...t})).filter(t=>t&&!t.deleted&&(!wid||t.to===wid)).sort((a,b)=>(a.st==='done')-(b.st==='done')||String(a.due||'9').localeCompare(String(b.due||'9'))||String(b.at).localeCompare(String(a.at)))}
+function taskCard(t,o){const by=t.by==='owner'?{name:'Owner'}:W(t.by);const to=W(t.to);const done=t.st==='done';const late=!done&&t.due&&t.due<today();
+  return `<div class="card list task ${done?'done':''}" style="gap:6px">
+    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><b style="font-size:1.02rem">${esc(t.text)}</b>${t.design||t.qty?`<div class="small">${t.design?'<span class="lotno">'+esc(t.design)+'</span>':''}${t.design&&t.qty?' · ':''}${t.qty?esc(t.qty)+' pcs':''}</div>`:''}</div>
+    ${done?'<span class="chip approved">Done</span>':late?'<span class="chip rejected">Late</span>':'<span class="chip pending">Pending</span>'}</div>
+    <div class="small muted">${o&&o.showTo&&to?'For <b>'+esc(to.name)+'</b> · ':''}${t.due?'Due '+fmtDate(t.due)+' · ':''}given ${fmtDate(String(t.at).slice(0,10))}${by?' by '+esc(by.name):''}${done?' · completed '+fmtDate(String(t.doneAt).slice(0,10)):''}</div>
+    ${!done&&o&&o.canDone?`<button class="btn accent" data-taskdone="${t.id}" style="align-self:flex-start">Mark complete</button>`:''}
+    ${o&&o.canDelete?`<button class="btn alt sm" data-taskdel="${t.id}" style="align-self:flex-start">${done?'Remove':'Cancel task'}</button>`:''}
+  </div>`}
+function bossTasksView(){
+  const ts=tasksFor();const openT=ts.filter(t=>t.st!=='done'),doneT=ts.filter(t=>t.st==='done');
+  let h=`<div class="row spread"><h2>Tasks for cutting master</h2><button class="btn accent sm" data-act="newtask">+ Assign task</button></div>`;
+  if(!ts.length)return h+`<div class="empty"><h3>No tasks yet</h3>Tap <b>Assign task</b> to give the cutting master work, e.g. which design and colours to cut.</div>`;
+  h+=`<section class="list"><div class="row spread"><h3>Pending</h3><span class="small muted">${openT.length}</span></div>${openT.map(t=>taskCard(t,{showTo:true,canDelete:true})).join('')||'<div class="small muted">No pending task.</div>'}</section>`;
+  if(doneT.length)h+=`<section class="list"><div class="row spread"><h3 class="muted">Completed</h3><span class="small muted">${doneT.length}</span></div>${doneT.slice(0,20).map(t=>taskCard(t,{showTo:true,canDelete:true})).join('')}</section>`;
+  return h;
+}
+function masterTasksView(){
+  const m=me();const ts=tasksFor(m.id);const open=ts.filter(t=>t.st!=='done');
+  let h=`<div class="row spread"><h2>Tasks</h2><span class="small muted">${open.length} pending</span></div>`;
+  if(!ts.length)return h+`<div class="empty"><h3>No tasks</h3>Tasks from the owner or manager show here.</div>`;
+  return h+ts.slice(0,50).map(t=>taskCard(t,{canDone:true})).join('');
+}
+function taskSheet(){
+  const masters=activeWorkers().filter(w=>w.role==='Cutting master');
+  if(!masters.length){toast('Add a cutting master in Team first.');return}
+  const D=allDesigns();
+  const sh=sheet('Assign task',`<form id="taskForm" class="list" novalidate>
+    <label class="f">To<select id="tTo">${masters.map(w=>`<option value="${w.id}">${esc(w.name)} · Cutting master</option>`).join('')}</select></label>
+    <label class="f">Task<input id="tText" placeholder="e.g. Cut 16Button in Green and Orange"></label>
+    <div class="grid2"><label class="f">Design (optional)<input id="tDesign" list="tDl" autocomplete="off" placeholder="e.g. 16Button"><datalist id="tDl">${Object.keys(D).sort().map(k=>`<option value="${esc(k)}">`).join('')}</datalist></label><label class="f">Pieces (optional)<input id="tQty" type="number" inputmode="numeric" min="0"></label></div>
+    <label class="f">Due date (optional)<input id="tDue" type="date" min="${today()}"></label>
+    <div id="tErr" class="err"></div>
+    <button class="btn accent big" type="submit">Assign task</button></form>`,{short:true});
+  $('#taskForm',sh).onsubmit=async e=>{e.preventDefault();e.stopPropagation();const text=$('#tText',sh).value.trim();if(!text)return $('#tErr',sh).textContent='Write the task.';
+    const body={to:$('#tTo',sh).value,text,design:$('#tDesign',sh).value.trim(),qty:$('#tQty',sh).value?+$('#tQty',sh).value:null,due:$('#tDue',sh).value||'',by:me().id,at:new Date().toISOString(),st:'open'};
+    try{await S.db.doc('tasks/'+uid('t')).set(body);closeSheet();toast('Task given to '+W(body.to).name)}catch(x){writeErr(x)}};
+}
+
+/* ---- ADD: cutting master adds a cut lot ---- */
+/* lot number = LN + DDMMYY + HH of when the lot is created; a second lot in the same hour gets -2, -3 ... */
+function nextLotNo(){const d=new Date();const base='LN'+pad(d.getDate())+pad(d.getMonth()+1)+String(d.getFullYear()).slice(2)+pad(d.getHours());
+  const used=new Set(Object.values(S.lots).filter(l=>!l.deleted).map(l=>String(l.lotNo).toUpperCase()));if(!used.has(base))return base;let i=2;while(used.has(base+'-'+i))i++;return base+'-'+i}
+function cutView(){
+  const D=allDesigns();const d=cutDesign&&D[cutDesign];const m=me();
+  const todays=lotsSorted().filter(l=>l.cutBy===m.id&&l.date===today());
+  let h=`<div><h2>Add cut lot</h2><p class="small muted" style="margin:4px 0 0">When a lot comes off the cutting table, pick the design and enter the pieces cut per size.</p></div>`;
+  h+=`<button type="button" class="picker ${d?'set':''}" data-act="pickDesign">${d?`<span><span class="lotno" style="font-size:1.25rem">${esc(d.code)}</span><span class="small muted ell" style="display:block">${esc(d.n||'')}</span></span><span class="small">Change</span>`:`<span><b>Select design</b><span class="small muted" style="display:block">${Object.keys(D).length} designs from Uniware</span></span><span class="small">▾</span>`}</button>`;
+  if(d){
+    const cols=(d.c||[]).concat(cutExtra.filter(c=>!(d.c||[]).includes(c)));const sizes=d.s&&d.s.length?sortSizes(d.s):SIZE_ORDER.slice(0,7);const r=designRates(d);
+    h+=`<form id="cutForm" class="list" novalidate>
+      <div class="card list" style="gap:10px"><div class="row spread"><b>Colours cut</b><span class="small muted">Tick every colour in this lot</span></div>
+      <div class="colchips">${cols.map(c=>`<button type="button" class="colchip ${cutCols.includes(c)?'on':''}" data-col="${esc(c)}" aria-pressed="${cutCols.includes(c)}">${cutCols.includes(c)?'✓ ':''}${esc(c)}</button>`).join('')}${cols.length>1?`<button type="button" class="colchip" data-act="allCols">${cols.every(c=>cutCols.includes(c))?'Clear all':'All colours'}</button>`:''}</div>
+      <div class="row" style="flex-wrap:nowrap"><input class="search" id="cColNew" placeholder="Other colour, e.g. Maroon" style="flex:1"><button type="button" class="btn alt" data-act="addCol">Add</button></div></div>
+      ${cutCols.length?`<div class="card list" style="gap:12px"><div class="row spread"><b>Pieces cut per colour and size</b><b id="cTotal" style="font-family:var(--display);font-size:1.3rem">0 pcs</b></div>
+      ${cutCols.map((c,ci)=>`<div class="cblock"><div class="row spread"><b>${esc(c)}</b><span class="small muted" id="ct_${safeId(c)}">0 pcs</span></div>
+      <div class="applyrow"><input type="number" inputmode="numeric" min="0" id="ca_${safeId(c)}" placeholder="Qty" aria-label="Same quantity for every size of ${esc(c)}"><button type="button" class="btn sm" data-applyc="${esc(c)}">Apply to all sizes</button>${cutCols.length>1?`<button type="button" class="btn alt sm" data-copyc="${esc(c)}">Copy to other colours</button>`:''}</div><div class="sizes">${sizes.map(z=>{const k=CK(c,z);const id='cq_'+safeId(k);return `<label class="sizebox" for="${id}"><span class="top"><b>${esc(z)}</b></span><input type="number" inputmode="numeric" min="0" id="${id}" data-csize="${esc(k)}" placeholder="0"></label>`}).join('')}</div></div>`).join('')}</div>`:`<div class="empty small">Tick the colours that were cut to enter pieces per size.</div>`}
+      <div class="grid2"><label class="f">Lot no. (automatic)<input id="cNo" value="${esc(nextLotNo())}" readonly style="background:var(--sunk)"></label><label class="f">Cutting date<input type="date" id="cDate" value="${today()}" max="${today()}"></label></div>
+      <div class="hint">Piece rates: ${STAGES.map(s=>`${s.n} <b>${r[s.k]!=null?inr(r[s.k]):'—'}</b>`).join(' · ')}${STAGES.some(s=>r[s.k]==null)?'<br><span class="warn">Some rates are not set for this design yet.</span>':''}</div>
+      <div id="cErr" class="err"></div>
+      <button class="btn accent big" type="submit">Add cut lot</button>
+    </form>`;
+  }
+  if(todays.length)h+=`<section class="list"><h3>Cut today</h3>${todays.map(l=>lotCard(l,{})).join('')}</section>`;
+  return h;
+}
+
+/* ---- LOTS: every lot the cutting master cut ---- */
+function lotsView(){
+  const st=myStage();const all=lotsSorted();const mine=st&&st!=='cutting';
+  let h=`<div class="row spread"><h2>${mine?'Lots cut by master':'All cut lots'}</h2><span class="small muted">${all.length} lots</span></div>
+`;
+  if(!all.length)return h+`<div class="empty"><h3>No lots cut yet</h3>Lots appear here as soon as the cutting master adds them.</div>`;
+  h+=`<input class="search" type="search" id="lotQ" placeholder="Search lot no., design or colour" value="${esc(lotQ)}" autocomplete="off">`;
+  if(mine)h+=`<div class="seg">${[['open','Pieces left for me'],['all','All lots']].map(([k,n])=>`<button data-lotfilter="${k}" class="${lotFilter===k?'on':''}">${n}</button>`).join('')}</div>`;
+  return h+`<div class="list" id="lotList">${lotListHtml()}</div>`;
+}
+function lotListHtml(){
+  const st=myStage();const mine=st&&st!=='cutting';const q=lotQ.trim().toLowerCase();
+  let ls=lotsSorted();
+  if(mine&&lotFilter==='open')ls=ls.filter(l=>!l.closed&&lotLeft(l,st).total>0);
+  if(q)ls=ls.filter(l=>[l.lotNo,l.design,l.colour,l.designName].some(x=>String(x||'').toLowerCase().includes(q)));
+  if(!ls.length)return `<div class="empty">${q?'No lot matches.':'No lots with pieces left for you. Tap <b>All lots</b> to see finished ones.'}</div>`;
+  return ls.map(l=>lotCard(l,{progress:true,tap:mine})).join('');
+}
+/* where each colour/size of a lot is right now */
+function lotPhases(l){
+  const cells=lotCells(l);const add=(o,sz,sign)=>{for(const [k,n] of Object.entries(sz||{}))o[k]=(o[k]||0)+sign*(+n||0)};
+  const na=toReceive(l,'stitching').left;const st={},qc={},wh={},rej={};
+  for(const w of Object.keys(holders(l,'stitching'))){add(st,myOpen(l,'stitching',w).left,1);add(st,altWaiting(l,w).cells,1)}
+  for(const v of Object.values(((l.prog||{}).stitching)||{})){if(!v)continue;if(v.st==='pending'||v.st==='received')add(qc,v.sz,1);if(v.st==='approved'){add(qc,v.sz,1);add(rej,v.rejSz,1);if(v.wh)add(wh,v.wh.sz,1)}}
+  for(const v of Object.values(l.flow||{}))if(v&&v.wh)add(wh,v.wh.sz,1);
+  add(qc,wh,-1);
+  const out={};const tot={na:0,st:0,qc:0,wh:0,rej:0};
+  for(const k of Object.keys(cells)){const c={na:na[k]||0,st:Math.max(0,st[k]||0),qc:Math.max(0,qc[k]||0),wh:wh[k]||0,rej:rej[k]||0};out[k]=c;for(const x in tot)tot[x]+=c[x]}
+  const state=tot.st?'stitch':tot.qc?'qc':tot.na?'new':'wh';
+  return {cells:out,tot,state};
+}
+/* chip background split by share: yellow = with stitcher, green = checking to ironing, grey = warehouse, white = not allocated */
+function phaseStyle(c,total){const segs=[['var(--yel)',c.st],['var(--grn)',c.qc],['var(--gry)',c.wh],['var(--surface)',c.na]].filter(x=>x[1]>0);const t=Math.max(1,total||segs.reduce((a,x)=>a+x[1],0));
+  if(segs.length<=1)return segs.length?`background:${segs[0][0]};border-color:transparent`:'';let at=0;const stops=segs.map(([col,n])=>{const from=at/t*100;at+=n;const to=at/t*100;return `${col} ${from.toFixed(1)}% ${to.toFixed(1)}%`});
+  return `background:linear-gradient(90deg,${stops.join(',')});border-color:var(--line)`}
+function phaseClass(c){if(c.st)return 'ph-st';if(c.qc)return 'ph-qc';if(c.na)return '';if(c.wh)return 'ph-wh';return 'ph-wh'}
+function lotCard(l,o){
+  const cutter=W(l.cutBy);
+  return `<div class="card list" style="gap:8px">
+    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> <span class="muted">${lotLabel(l)}</span><div class="small muted ell">${l.designName?esc(l.designName)+' · ':''}cut ${fmtDate(l.date)}${cutter?' by '+esc(cutter.name):''}</div></div>
+    <div><div class="left">${l.total}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
+    ${cellRows(l,null)}
+  </div>`;
+}
+
+/* ---- COMPLETED: this month, 1–15 and 16–end ---- */
+function doneView(){
+  const m=me();const cur=ym(new Date());const dim=daysIn(S.month);
+  const half=halfSel||(S.month===cur&&new Date().getDate()>15?2:1);
+  const inHalf=d=>{const day=+String(d).slice(8);return half===1?day<=15:day>=16};
+  const range=half===1?'1 – 15':'16 – '+dim;
+  let h=`<div class="row spread"><h2>Completed</h2><div class="row" style="gap:6px"><button class="btn alt sm" data-month="-1" aria-label="Previous month">‹</button><b>${monthLabel(S.month)}</b><button class="btn alt sm" data-month="1" aria-label="Next month" ${S.month>=cur?'disabled':''}>›</button></div></div>`;
+  h+=`<div class="seg">${[[1,'1 – 15'],[2,'16 – '+dim]].map(([k,n])=>`<button data-half="${k}" class="${half===k?'on':''}">${n}</button>`).join('')}</div>`;
+  if(m.role==='Cutting master'){
+    const lots=lotsSorted().filter(l=>l.cutBy===m.id&&String(l.date).slice(0,7)===S.month&&inHalf(l.date));
+    const pcs=lots.reduce((a,l)=>a+(+l.total||0),0);const amt=lots.reduce((a,l)=>a+(l.rates&&l.rates.cutting!=null?l.total*l.rates.cutting:0),0);
+    h+=`<div class="stats"><div class="stat"><span>Lots cut</span><b>${lots.length}</b></div><div class="stat"><span>Pieces</span><b>${pcs}</b></div><div class="stat"><span>Amount</span><b>${inr(amt)}</b></div></div>`;
+    return h+(lots.length?`<div class="list">${lots.map(l=>lotCard(l,{})).join('')}</div>`:`<div class="empty">No lots cut on ${range} ${monthLabel(S.month)}.</div>`);
+  }
+  const list=myEntries(m.id,S.month).filter(e=>e.status!=='rejected'&&inHalf(e.date)).sort((a,b)=>b.date.localeCompare(a.date)||String(b.at).localeCompare(String(a.at)));
+  const sum=arr=>arr.reduce((a,e)=>({pcs:a.pcs+(+e.qty||0),amt:a.amt+(e.rate!=null&&e.status==='approved'?e.qty*e.rate:0),appr:a.appr+(e.status==='approved'?+e.qty:0)}),{pcs:0,amt:0,appr:0});
+  const t=sum(list);
+  h+=`<div class="stats"><div class="stat"><span>Pieces</span><b>${t.pcs}</b></div><div class="stat"><span>Passed</span><b>${t.appr}</b></div><div class="stat"><span>Earned</span><b>${inr(t.amt)}</b></div></div>${t.pcs>t.appr?`<p class="small muted" style="margin:0">${t.pcs-t.appr} pcs are still with the lot receiver or checker. Amount is added once they pass.</p>`:''}`;
+  if(!list.length)return h+`<div class="empty">No entries on ${range} ${monthLabel(S.month)}.</div>`;
+  const groups={};
+  for(const e of list){const tot=Object.values(nz(e.sz)).reduce((x,y)=>x+y,0)||1;
+    for(const [k,n] of Object.entries(nz(e.sz))){const g=groups[e.lotId+'#'+k]||(groups[e.lotId+'#'+k]={lotId:e.lotId,k,subs:[]});g.subs.push({e,n,share:n/tot})}}
+  const gl=Object.values(groups).map(g=>{g.subs.sort((x,y)=>String(x.e.at||x.e.date).localeCompare(String(y.e.at||y.e.date)));g.last=g.subs[g.subs.length-1].e.at||g.subs[g.subs.length-1].e.date;return g}).sort((x,y)=>String(y.last).localeCompare(String(x.last)));
+  const stChip=e=>`<span class="chip ${e.status==='received'?'pending':e.status}">${e.status==='pending'?'Pending':e.status==='received'?'With checker':'Passed'}</span>`;
+  h+=`<div class="list">${gl.map(g=>{const lot=S.lots[g.lotId]||{lotNo:'(lot removed)',design:''};const [c,z]=splitCK(g.k);
+    const als=g.subs.map(x=>allocFor(lot,x.e,m.id)).filter(Boolean).sort();const al=als[0]||null;
+    const pcs=g.subs.reduce((a,x)=>a+x.n,0);let amt=null;
+    g.subs.forEach(x=>{const e=x.e;if(e.rate!=null&&e.status==='approved')amt=(amt||0)+Math.round(e.qty*e.rate*x.share)});
+    const first=g.subs[0].e.at||g.subs[0].e.date;const lastE=g.subs[g.subs.length-1].e;
+    const alt=g.subs.reduce((a,x)=>a+(+((x.e.altSz||{})[g.k]||0)),0),rej=g.subs.reduce((a,x)=>a+(+((x.e.rejSz||{})[g.k]||0)),0);
+    return `<div class="card list" style="gap:8px">
+      <div class="row spread" style="flex-wrap:nowrap;gap:8px"><b class="lotno" style="font-size:.9rem;min-width:0;overflow-wrap:break-word;letter-spacing:-.01em">${esc(lot.lotNo)}/${esc(lot.design||'')}/${esc(c)}/${esc(z)}</b><b style="white-space:nowrap;flex:none">× ${pcs}</b></div>
+      <ul class="tl"><li>Allocated: <b>${al?fmtDT(al):'—'}</b></li><li>Submitted: <b>${fmtDT(first)}</b></li><li>Time taken: <b>${al?dur(al,first):'—'}</b></li></ul>
+      <div class="row spread"><span class="row" style="gap:6px">${stChip(lastE)}${alt?`<span class="small warn">${alt} alter</span>`:''}${rej?`<span class="small" style="color:var(--bad)">${rej} rej</span>`:''}</span><span class="row" style="gap:6px">${amt!=null?`<b>${inr(amt)}</b>`:''}${lastE.status==='pending'?`<button class="btn alt sm" data-withdraw="${lastE.docId}|${lastE.eid}">Undo</button>`:''}</span></div>
+    </div>`}).join('')}</div>`;
+  return h;
+}
+
+/* ---- TEAM (owner) ---- */
+function teamView(){
+  const ws=workers().sort((a,b)=>(a.active===false)-(b.active===false)||ROLES.indexOf(a.role)-ROLES.indexOf(b.role));
+  let h=`<div class="row spread"><h2>Team</h2><button class="btn accent" data-act="addWorker">+ Add person</button></div>`;
+  if(!ws.length)return h+`<div class="empty"><h3>Add your team</h3>Add each cutting master, stitcher, thread cutter and ironing person with a PIN. They pick their name on the first screen.</div>`;
+  return h+`<div class="tablewrap"><table><thead><tr><th>Name</th><th>Role</th><th>PIN</th><th></th></tr></thead><tbody>${ws.map(w=>`<tr style="${w.active===false?'opacity:.5':''}"><td><b>${esc(w.name)}</b>${w.active===false?' <span class="chip">Inactive</span>':''}</td><td>${esc(w.role)}</td><td>${w.pin?'Set':'—'}</td><td><button class="btn alt sm" data-editw="${w.id}">Edit</button></td></tr>`).join('')}</tbody></table></div>`;
+}
+
+/* ---------- sheets ---------- */
+function sheet(title,html,opts){
+  closeSheet();opts=opts||{};
+  const bg=document.createElement('div');bg.className='sheet-bg';bg.id='sheetBg';
+  bg.innerHTML=`<div class="sheet ${opts.short?'short':''}" role="dialog" aria-label="${esc(title)}"><div class="shead row spread"><h2>${esc(title)}</h2><button type="button" class="btn alt sm" data-close>Close</button></div>${html}</div>`;
+  document.body.appendChild(bg);
+  bg.addEventListener('click',e=>{if(e.target===bg||e.target.closest('[data-close]'))closeSheet()});
+  return bg.querySelector('.sheet');
+}
+function closeSheet(){const b=$('#sheetBg');if(b)b.remove()}
+function lotPicker(){
+  const st=myStage();
+  const sh=sheet('Select lot',`<input class="search" type="search" id="lpQ" placeholder="Search lot no., design or colour" autocomplete="off"><div class="seg"><button type="button" data-lpf="open" class="on">Pieces left</button><button type="button" data-lpf="all">All lots</button></div><div class="list" id="lpList"></div>`);
+  let f='open';
+  const draw=()=>{const q=$('#lpQ',sh).value.trim().toLowerCase();let ls=lotsSorted();if(f==='open')ls=ls.filter(l=>!l.closed&&lotLeft(l,st).total>0);if(q)ls=ls.filter(l=>[l.lotNo,l.design,l.colour,l.designName].some(x=>String(x||'').toLowerCase().includes(q)));
+    $('#lpList',sh).innerHTML=ls.length?ls.map(l=>{const lf=lotLeft(l,st);return `<button type="button" class="lotcard ${lf.total?'':'dim'}" data-pick="${l.id}" ${lf.total?'':'disabled'}><span style="min-width:0"><span class="lotno" style="font-size:1.15rem">${esc(l.lotNo)}</span> <span class="muted">${lotLabel(l)}</span><span class="small muted ell" style="display:block">cut ${fmtDate(l.date)}${W(l.cutBy)?' by '+esc(W(l.cutBy).name):''} · ${l.total} pcs</span></span><span><span class="left" style="display:block">${lf.total}</span><span class="small muted">left</span></span><span class="sz">${cellRows(l,lf.left)}</span></button>`}).join(''):`<div class="empty">${q?'No lot matches.':RECV_STAGES.includes(st)?'No received lot has pieces left. Receive a lot first.':'No lots with pieces left for '+stageName(st).toLowerCase()+' right now.'}</div>`};
+  $('#lpQ',sh).oninput=draw;
+  sh.addEventListener('click',e=>{const fb=e.target.closest('[data-lpf]');if(fb){f=fb.dataset.lpf;sh.querySelectorAll('[data-lpf]').forEach(b=>b.classList.toggle('on',b===fb));draw();return}
+    const p=e.target.closest('[data-pick]');if(p&&!p.disabled){pickedLot=p.dataset.pick;closeSheet();S.tab='add';render();window.scrollTo(0,0)}});
+  draw();
+}
+function designPicker(){
+  const D=allDesigns();const codes=Object.keys(D).sort((a,b)=>a.toLowerCase().localeCompare(b.toLowerCase()));
+  const sh=sheet('Select design',`<input class="search" type="search" id="dpQ" placeholder="Search ${codes.length} designs by code or name" autocomplete="off"><div class="list" id="dpList" style="gap:6px"></div>`);
+  const draw=()=>{const q=$('#dpQ',sh).value.trim().toLowerCase();const hits=codes.filter(k=>!q||k.toLowerCase().includes(q)||String(D[k].n||'').toLowerCase().includes(q));
+    $('#dpList',sh).innerHTML=hits.length?hits.map(k=>{const d=D[k];return `<button type="button" class="lotcard" data-pickd="${esc(k)}"><span style="min-width:0"><b class="lotno" style="font-size:1.1rem">${esc(k)}</b><span class="small muted ell" style="display:block">${esc(d.n||'')}</span></span><span class="small muted" style="text-align:right;white-space:nowrap">${(d.s||[]).length} sizes<br>${(d.c||[]).length} colours</span></button>`}).join(''):`<div class="empty">No design matches. Ask the manager to add it.</div>`};
+  $('#dpQ',sh).oninput=draw;
+  sh.addEventListener('click',e=>{const p=e.target.closest('[data-pickd]');if(p){if(cutDesign!==p.dataset.pickd){cutCols=[];cutExtra=[]}cutDesign=p.dataset.pickd;closeSheet();render();window.scrollTo(0,0)}});
+  draw();
+}
+function pinSheet(wid){
+  const w=W(wid);
+  if(!w.pin){startSession({wid});return}
+  const sh=sheet(w.name,`<form id="pinForm" class="list"><label class="f">Enter your PIN<input id="pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label><div id="pinErr" class="err"></div><button class="btn accent big" type="submit">Start</button></form>`,{short:true});
+  $('#pinForm',sh).onsubmit=e=>{e.preventDefault();e.stopPropagation();if(hashPin(wid,$('#pin',sh).value.trim())!==w.pin){$('#pinErr',sh).textContent='That PIN does not match. Ask the manager to reset it.';return}closeSheet();startSession({wid})};
+  setTimeout(()=>{const i=$('#pin',sh);i&&i.focus()},60);
+}
+function workerSheet(id){
+  const w=id?W(id):null;
+  const sh=sheet(w?'Edit '+w.name:'Add person',`<form id="wForm" class="list" novalidate>
+    <label class="f">Name<input id="pN" value="${esc(w?w.name:'')}"></label>
+    <div class="grid2"><label class="f">Role<select id="pR">${ROLES.map(r=>`<option ${w&&w.role===r?'selected':''}>${r}</option>`).join('')}</select></label><label class="f">Phone<input id="pP" inputmode="tel" value="${esc(w?w.phone||'':'')}"></label></div>
+    <label class="f">${w&&w.pin?'New PIN (leave blank to keep)':'PIN (4 digits)'}<input id="pI" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+    ${w?`<label class="row small"><input type="checkbox" id="pA" ${w.active===false?'':'checked'}> Active (untick when someone leaves)</label>`:''}
+    <div id="wErr" class="err"></div>
+    <button class="btn accent big" type="submit">${w?'Save':'Add person'}</button></form>`,{short:true});
+  $('#wForm',sh).onsubmit=async e=>{e.preventDefault();e.stopPropagation();const err=x=>{$('#wErr',sh).textContent=x};
+    const name=$('#pN',sh).value.trim();if(!name)return err('Enter a name.');
+    const pin=$('#pI',sh).value.trim();if(pin&&!/^\d{4,6}$/.test(pin))return err('PIN should be 4 to 6 digits.');
+    const wid=id||uid('w');const body={name,role:$('#pR',sh).value,phone:$('#pP',sh).value.trim(),active:w?$('#pA',sh).checked:true};if(pin)body.pin=hashPin(wid,pin);
+    try{await upsert('config/main',{workers:{[wid]:body}},{});closeSheet();toast(w?'Saved':name+' added')}catch(x){writeErr(x)}};
+}
+function ownerPinSheet(){
+  const cur=S.cfg&&S.cfg.ownerPin;
+  const sh=sheet(cur?'Owner':'Set owner PIN',`<form id="oForm" class="list">${cur?'':'<p class="small muted" style="margin:0">First time on this server. Choose a 4–6 digit PIN only you know. You will need it to add the team and change settings.</p>'}
+    <label class="f">${cur?'Owner PIN':'New owner PIN'}<input id="oP" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+    ${cur?'':'<label class="f">Enter it again<input id="oP2" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>'}
+    <div id="oErr" class="err"></div><button class="btn accent big" type="submit">${cur?'Open owner setup':'Save PIN'}</button></form>`,{short:true});
+  $('#oForm',sh).onsubmit=async e=>{e.preventDefault();e.stopPropagation();const err=x=>{$('#oErr',sh).textContent=x};const p=$('#oP',sh).value.trim();
+    if(cur){if(hashPin('owner',p)!==cur)return err('That PIN does not match.');closeSheet();startSession({owner:true});return}
+    if(!/^\d{4,6}$/.test(p))return err('PIN should be 4 to 6 digits.');if(p!==$('#oP2',sh).value.trim())return err('The two PINs are different.');
+    try{await upsert('config/main',{ownerPin:hashPin('owner',p)},{});closeSheet();toast('Owner PIN saved');startSession({owner:true})}catch(x){writeErr(x)}};
+  setTimeout(()=>{const i=$('#oP',sh);i&&i.focus()},60);
+}
+function startSession(s){S.session=s;store('ffr.session',s);S.tab=s.owner?'team':null;pickedLot=null;cutDesign=null;cutCols=[];cutExtra=[];halfSel=null;S.month=ym(new Date());subscribeMonth();render();window.scrollTo(0,0)}
+
+/* ---------- form handling ---------- */
+function fire(sel){const i=$(sel);if(i)i.dispatchEvent(new Event('input',{bubbles:true}))}
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.id==='stockQ'){stockQ=t.value;const el=$('#stockList');if(el)el.innerHTML=stockListHtml();return}
+  if(t.id==='allocQ'){allocQ=t.value;const el=$('#allocList');if(el)el.innerHTML=allocListHtml();return}
+  if(t.id==='lotQ'){lotQ=t.value;const el=$('#lotList');if(el)el.innerHTML=lotListHtml();return}
+  if(t.dataset&&t.dataset.size!=null){let tot=0,bad='';document.querySelectorAll('[data-size]').forEach(i=>{const v=Math.max(0,+i.value||0);tot+=v;const over=v>+i.dataset.left;i.closest('.sizebox').classList.toggle('over',over);if(over){const [c,z]=splitCK(i.dataset.size);bad=(c?c+' ':'')+z+': only '+i.dataset.left+' pcs left for you.'}});
+    $('#eTotal').textContent=tot+' pcs';const lot=S.lots[pickedLot];const r=lot&&lot.rates&&lot.rates[myStage()];const a=$('#eAmt');if(a&&r!=null)a.textContent=inr(tot*r);$('#eErr').textContent=bad;return}
+  if(t.dataset&&t.dataset.csize!=null){let tot=0;const per={};document.querySelectorAll('[data-csize]').forEach(i=>{const v=Math.max(0,+i.value||0);tot+=v;const c=splitCK(i.dataset.csize)[0];per[c]=(per[c]||0)+v});$('#cTotal').textContent=tot+' pcs';for(const [c,v] of Object.entries(per)){const el=document.getElementById('ct_'+safeId(c));if(el)el.textContent=v+' pcs'}return}
+});
+document.addEventListener('keydown',e=>{if(e.target.id==='cColNew'&&e.key==='Enter'){e.preventDefault();const b=document.querySelector('[data-act=addCol]');if(b)b.click()}});
+document.addEventListener('submit',async e=>{
+  const f=e.target;
+  if(f.id==='entryForm'){e.preventDefault();
+    const err=x=>{$('#eErr').textContent=x};const m=me();const st=myStage();const lot=S.lots[pickedLot];if(!lot)return err('Pick a lot.');
+    const {left}=lotLeft(lot,st);const sz={};let q=0;
+    for(const i of f.querySelectorAll('[data-size]')){const v=Math.round(Math.max(0,+i.value||0));if(!v)continue;if(v>left[i.dataset.size]){const [c,z]=splitCK(i.dataset.size);return err(`${c?c+' ':''}${z}: only ${left[i.dataset.size]} pcs left for you.`)};sz[i.dataset.size]=v;q+=v}
+    if(!q)return err('Enter the pieces you finished for at least one size.');
+    const date=$('#eDate').value||today();const rej=Math.max(0,Math.round(+$('#eRej').value||0));
+    const eid=uid('e');const month=date.slice(0,7);const rate=lot.rates&&lot.rates[st]!=null?+lot.rates[st]:null;
+    const entry={date,lotId:pickedLot,stage:st,qty:q,sz,rej,note:$('#eNote').value.trim(),status:'pending',rate,at:new Date().toISOString(),by:m.name};
+    const btn=f.querySelector('[type=submit]');btn.disabled=true;
+    try{
+      await upsert('work/'+m.id+'_'+month,{entries:{[eid]:entry}},{workerId:m.id,month});
+      await S.db.doc('lots/'+pickedLot).update({prog:{[st]:{[eid]:{w:m.id,q,sz,st:'pending',date}}}});
+      toast(q+' pcs sent to the lot receiver');pickedLot=null;f.reset();render();window.scrollTo(0,0);
+    }catch(x){btn.disabled=false;writeErr(x)}
+    return}
+  if(f.id==='cutForm'){e.preventDefault();
+    const err=x=>{$('#cErr').textContent=x};const m=me();const d=allDesigns()[cutDesign];if(!d)return err('Pick the design.');
+    if(!cutCols.length)return err('Tick the colours that were cut.');
+    const cells={},sizeQty={};let total=0;f.querySelectorAll('[data-csize]').forEach(i=>{const v=Math.round(Math.max(0,+i.value||0));if(v){cells[i.dataset.csize]=v;const z=splitCK(i.dataset.csize)[1];sizeQty[z]=(sizeQty[z]||0)+v;total+=v}});
+    if(!total)return err('Enter the pieces cut for at least one colour and size.');
+    const colours=cutCols.filter(c=>Object.keys(cells).some(k=>splitCK(k)[0]===c));const empty=cutCols.filter(c=>!colours.includes(c));
+    if(empty.length&&!f.dataset.okEmpty){f.dataset.okEmpty='1';return err(`No pieces entered for ${empty.join(', ')}. Tap Add cut lot again to save without ${empty.length>1?'them':'it'}.`)}
+    const lotNo=nextLotNo();
+    if(Object.values(S.lots).some(x=>!x.deleted&&String(x.lotNo).toLowerCase()===lotNo.toLowerCase()))return err('Lot '+lotNo+' already exists.');
+    const date=$('#cDate').value||today();const lid=uid('l'),eid=uid('e');
+    const btn=f.querySelector('[type=submit]');btn.disabled=true;
+    try{
+      await S.db.doc('lots/'+lid).set({lotNo,design:d.code,designName:d.n||'',colours,colour:colours.join(', '),cells,sizeQty,total,date,rates:designRates(d),cutBy:m.id,createdAt:new Date().toISOString(),prog:{cutting:{[eid]:{w:m.id,q:total,sz:cells,st:'pending',date}}}});
+      toast('Lot '+lotNo+' added: '+total+' pcs in '+colours.length+(colours.length>1?' colours':' colour'));cutDesign=null;cutCols=[];cutExtra=[];f.reset();render();window.scrollTo(0,0);
+    }catch(x){btn.disabled=false;writeErr(x)}
+    return}
+});
+document.addEventListener('click',async ev=>{
+  const t=ev.target.closest('button');if(!t||t.closest('.sheet'))return;const d=t.dataset;
+  try{
+    if(d.tab){S.tab=d.tab;render();window.scrollTo(0,0);return}
+    if(d.login){pinSheet(d.login);return}
+    if(d.act==='loginOwner'){if(S.live)ownerPinSheet();else startSession({owner:true});return}
+    if(d.act==='logout'){S.session=null;store('ffr.session',null);monthSubs.forEach(u=>u());monthSubs=[];S.work={};render();return}
+    if(d.act==='pickLot'){lotPicker();return}
+    if(d.act==='pickDesign'){designPicker();return}
+    if(d.col!=null){const c=d.col;cutCols=cutCols.includes(c)?cutCols.filter(x=>x!==c):cutCols.concat(c);render(true);return}
+    if(d.applyc!=null){const c=d.applyc;const v=Math.max(0,Math.round(+($('#ca_'+safeId(c))||{}).value||0));if(!v){toast('Type the quantity first, then tap Apply.');return}
+      document.querySelectorAll('[data-csize]').forEach(i=>{if(splitCK(i.dataset.csize)[0]===c)i.value=v});fire('[data-csize]');toast(v+' pcs put in every size of '+c);return}
+    if(d.copyc!=null){const c=d.copyc;const src={};document.querySelectorAll('[data-csize]').forEach(i=>{const [cc,z]=splitCK(i.dataset.csize);if(cc===c)src[z]=i.value});
+      if(!Object.values(src).some(v=>+v>0)){toast('Enter '+c+' quantities first.');return}
+      document.querySelectorAll('[data-csize]').forEach(i=>{const [cc,z]=splitCK(i.dataset.csize);if(cc!==c&&z in src)i.value=src[z]});fire('[data-csize]');toast(c+' sizes copied to the other colours');return}
+    if(d.fillc!=null){const c=d.fillc;document.querySelectorAll('[data-size]').forEach(i=>{if(splitCK(i.dataset.size)[0]===c&&!i.disabled)i.value=i.dataset.left});fire('[data-size]');return}
+    if(d.act==='allCols'){const dd=allDesigns()[cutDesign];const cols=((dd&&dd.c)||[]).concat(cutExtra);cutCols=cols.every(c=>cutCols.includes(c))?[]:cols.slice();render(true);return}
+    if(d.act==='addCol'){const i=$('#cColNew');const c=(i.value||'').trim().replace(/\|/g,'');if(!c)return;const dd=allDesigns()[cutDesign];const ex=((dd&&dd.c)||[]).concat(cutExtra).find(x=>x.toLowerCase()===c.toLowerCase());if(!ex)cutExtra.push(c);const name=ex||c;if(!cutCols.includes(name))cutCols.push(name);i.value='';render(true);return}
+    if(d.recvalt){const [lid,eid]=d.recvalt.split('|');t.disabled=true;await S.db.doc('lots/'+lid).update({prog:{stitching:{[eid]:{altRecv:true,altRat:new Date().toISOString()}}}});toast('Alter pieces received. Submit them from New lots after fixing.');return}
+    if(d.submitalloc){const [lid,rid]=d.submitalloc.split('|');const l=S.lots[lid];const a=l&&allocOpen(l,me().id).find(x=>x.rid===rid);const n=a?a.total:0;
+      if(!t.dataset.sure){t.dataset.sure='1';t.textContent=`Tap again to hand over ${n} pcs of ${l.lotNo}`;t.classList.remove('accent');t.classList.add('bad');return}
+      t.disabled=true;const q=await submitAlloc(lid,rid);toast(q+' pcs submitted · the lot receiver will count them');halfSel=null;S.month=ym(new Date());S.tab='done';render();window.scrollTo(0,0);return}
+    if(d.submitlot){const l=S.lots[d.submitlot];const n=l?myOpen(l,'stitching',me().id).total:0;
+      if(!t.dataset.sure){t.dataset.sure='1';t.textContent=`Tap again to hand over ${n} pcs of ${l.lotNo}`;t.classList.remove('accent');t.classList.add('bad');return}
+      t.disabled=true;const q=await submitAll(d.submitlot);toast(q+' pcs submitted · the lot receiver will count them');halfSel=null;S.month=ym(new Date());S.tab='done';render();window.scrollTo(0,0);return}
+    if(d.asel!=null||d.acol!=null){const [lid,x]=(d.asel||d.acol).split(/\|(.*)/s);if(aSel.lid!==lid)aSel={lid,keys:new Set()};const l=S.lots[lid];const tr=toReceive(l,'stitching');
+      if(d.asel!=null){aSel.keys.has(x)?aSel.keys.delete(x):aSel.keys.add(x)}
+      else{const ks=Object.keys(tr.left).filter(k=>splitCK(k)[0]===x&&tr.left[k]>0);const on=ks.every(k=>aSel.keys.has(k));ks.forEach(k=>on?aSel.keys.delete(k):aSel.keys.add(k))}
+      const el=$('#allocList');if(el)el.innerHTML=allocListHtml();return}
+    if(d.aclear){aSel={lid:null,keys:new Set()};const el=$('#allocList');if(el)el.innerHTML=allocListHtml();return}
+    if(d.awhole||d.asplit){const lid=d.awhole||d.asplit;const tr=toReceive(S.lots[lid],'stitching');const ks=[...aSel.keys].filter(k=>tr.left[k]>0);if(!ks.length)return;allocSheet(lid,ks,d.awhole?'whole':'split');return}
+    if(d.alloc){allocSheet(d.alloc);return}
+    if(d.check){const [l,e]=d.check.split('|');checkSheet(l,e,'check');return}
+    if(d.hosel!=null||d.hocol!=null){const [lid,x]=(d.hosel||d.hocol).split(/\|(.*)/s);if(hoSel.lid!==lid)hoSel={lid,keys:new Set()};const wc=withChecker(S.lots[lid]);
+      if(d.hosel!=null){hoSel.keys.has(x)?hoSel.keys.delete(x):hoSel.keys.add(x)}else{const ks=Object.keys(wc.left).filter(k=>splitCK(k)[0]===x);const on=ks.every(k=>hoSel.keys.has(k));ks.forEach(k=>on?hoSel.keys.delete(k):hoSel.keys.add(k))}
+      const el=$('#hoList');if(el)el.innerHTML=handoverListHtml();return}
+    if(d.hoclear){hoSel={lid:null,keys:new Set()};const el=$('#hoList');if(el)el.innerHTML=handoverListHtml();return}
+    if(d.hogive){const wc=withChecker(S.lots[d.hogive]);const cells={};[...hoSel.keys].forEach(k=>{if(wc.left[k])cells[k]=wc.left[k]});if(!Object.keys(cells).length)return;giveSheet(d.hogive,cells,'thread');return}
+    if(d.tsel!=null||d.tcol!=null){const [lid,x]=(d.tsel||d.tcol).split(/\|(.*)/s);const tw=d.twid||me().id;if(tSel.lid!==lid||tSel.wid!==tw)tSel={lid,wid:tw,keys:new Set()};const pl=threadPool(S.lots[lid],tw);
+      if(d.tsel!=null){tSel.keys.has(x)?tSel.keys.delete(x):tSel.keys.add(x)}else{const ks=Object.keys(pl.left).filter(k=>splitCK(k)[0]===x);const on=ks.every(k=>tSel.keys.has(k));ks.forEach(k=>on?tSel.keys.delete(k):tSel.keys.add(k))}
+      const el=$('#tList');if(el)el.innerHTML=me().role==='Thread cutter'?threadListHtml():mgrThreadListHtml();return}
+    if(d.tclear){tSel={lid:null,wid:null,keys:new Set()};const el=$('#tList');if(el)el.innerHTML=me().role==='Thread cutter'?threadListHtml():mgrThreadListHtml();return}
+    if(d.tgive){const tw=d.twid||me().id;const pl=threadPool(S.lots[d.tgive],tw);const cells={};[...tSel.keys].forEach(k=>{if(pl.left[k])cells[k]=pl.left[k]});if(!Object.keys(cells).length)return;giveSheet(d.tgive,cells,'ironing',null,tw);return}
+    if(d.flowdone){const [lid,fid]=d.flowdone.split('|');const v=S.lots[lid].flow[fid];
+      if(v.stage==='thread'){giveSheet(lid,v.sz,'ironing',fid);return}
+      if(!t.dataset.sure){t.dataset.sure='1';t.textContent='Tap again to send '+v.q+' pcs to warehouse';t.classList.remove('accent');t.classList.add('bad');return}
+      t.disabled=true;await S.db.doc('lots/'+lid).update({flow:{[fid]:{st:'done',doneAt:new Date().toISOString()}}});toast(v.q+' pcs sent to the warehouse');return}
+    if(d.act==='newtask'){taskSheet();return}
+    if(d.taskdone){if(!t.dataset.sure){t.dataset.sure='1';t.textContent='Tap again to mark complete';return}t.disabled=true;await S.db.doc('tasks/'+d.taskdone).update({st:'done',doneAt:new Date().toISOString(),doneBy:me().id});toast('Task completed');return}
+    if(d.taskdel){if(!t.dataset.sure){t.dataset.sure='1';t.textContent='Tap again to confirm';return}t.disabled=true;await S.db.doc('tasks/'+d.taskdel).update({deleted:true});toast('Task removed');return}
+    if(d.prole!=null){pendRole=d.prole;render();return}
+    if(d.editchk){const [l,e]=d.editchk.split('|');checkSheet(l,e,'edit');return}
+    if(d.whrcv){const [l,e]=d.whrcv.split('|');whSheet(l,e);return}
+    if(d.rcv){const [l,e]=d.rcv.split('|');checkSheet(l,e,'receive');return}
+    if(d.rejectsub){if(!t.dataset.sure){t.dataset.sure='1';t.textContent='Tap again to confirm';return}const [l,e]=d.rejectsub.split('|');t.disabled=true;await decide(l,e,'rejected');toast('Sent back to the stitcher');return}
+    if(d.cancelalloc){if(!t.dataset.sure){t.dataset.sure='1';t.textContent='Tap again';return}const [l,r]=d.cancelalloc.split('|');t.disabled=true;await S.db.doc('lots/'+l).update({recv:{stitching:{[r]:{st:'returned'}}}});toast('Allocation cancelled');return}
+    if(d.act==='backMine'){pickedLot=null;render();window.scrollTo(0,0);return}
+    if(d.uselot){pickedLot=d.uselot;S.tab='add';render();window.scrollTo(0,0);return}
+    if(d.lotfilter){lotFilter=d.lotfilter;render();return}
+    if(d.half){halfSel=+d.half;render();return}
+    if(d.month){let [y,mo]=S.month.split('-').map(Number);mo+=+d.month;if(mo<1){mo=12;y--}if(mo>12){mo=1;y++}S.month=y+'-'+pad(mo);halfSel=null;subscribeMonth();render();return}
+    if(d.withdraw){const [doc,eid]=d.withdraw.split('|');const e=((S.work[doc]||{}).entries||{})[eid];t.disabled=true;
+      await S.db.doc('work/'+doc).update({entries:{[eid]:{status:'withdrawn'}}});
+      if(e&&S.lots[e.lotId])await S.db.doc('lots/'+e.lotId).update({prog:{[e.stage]:{[eid]:{st:'withdrawn',q:0}}}});
+      toast('Entry removed');return}
+    if(d.act==='addWorker'){workerSheet(null);return}
+    if(d.editw){workerSheet(d.editw);return}
+  }catch(err){t.disabled=false;writeErr(err)}
+});
+
+
+/* ---------- own-server data layer (used when window.FFR_API is set) ---------- */
+function serverDb(cfg){
+  const cache={},subs=new Set();let since=0,busy=false,ready=false,want=false;const pend={};
+  const clone=v=>v===undefined?undefined:JSON.parse(JSON.stringify(v));
+  function mergeInto(a,b){for(const k in b){const v=b[k];if(v&&typeof v==='object'&&!Array.isArray(v)&&a[k]&&typeof a[k]==='object'&&!Array.isArray(a[k]))mergeInto(a[k],v);else a[k]=clone(v)}return a}
+  async function call(body){
+    let r;try{r=await fetch(cfg.url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({k:cfg.k},body)),cache:'no-store'})}catch(e){throw new Error('No connection to the server. Check the internet and try again.')}
+    const t=await r.text();if(!r.ok||!t)throw new Error('The server did not accept this ('+r.status+'). Try again.');return JSON.parse(t)}
+  function snap(p){const d=cache[p];return {id:p.split('/').pop(),exists:d!==undefined,data:()=>clone(d)}}
+  function fire(changed){subs.forEach(f=>{try{f(changed)}catch(e){console.warn(e)}})}
+  function net(ok){document.documentElement.classList.toggle('offline',!ok)}
+  async function sync(){if(busy)return;busy=true;try{const r=await call({op:'sync',since});const ch=new Set();
+      for(const x of (r.docs||[])){if(+x.v>since)since=+x.v;if(pend[x.p])continue;const s=JSON.stringify(x.d);if(JSON.stringify(cache[x.p])!==s){cache[x.p]=x.d;ch.add(x.p)}}
+      if(!ready){ready=true;fire(null)}else if(ch.size)fire(ch);net(true)}catch(e){net(false)}finally{busy=false;if(want){want=false;setTimeout(sync,0)}}}
+  async function write(op,p,d){pend[p]=(pend[p]||0)+1;const before=clone(cache[p]);
+    if(op==='set')cache[p]=clone(d);else cache[p]=mergeInto(cache[p]?clone(cache[p]):{},d);fire(new Set([p]));
+    try{await call({op,path:p,data:d})}catch(e){if(before===undefined)delete cache[p];else cache[p]=before;fire(new Set([p]));throw e}finally{if(!--pend[p])delete pend[p]}
+    if(busy)want=true;else sync()}
+  let timer=null;function loop(){clearTimeout(timer);timer=setTimeout(async()=>{if(!document.hidden)await sync();loop()},4000)}
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)sync()});window.addEventListener('online',()=>sync());
+  sync().then(loop);
+  function doc(p){return {
+    get:async()=>{const r=await call({op:'get',path:p});if(r.doc!=null)cache[p]=r.doc;return {id:p.split('/').pop(),exists:r.doc!=null,data:()=>clone(r.doc==null?undefined:r.doc)}},
+    set:d=>write('set',p,d),update:d=>write('update',p,d),
+    onSnapshot:(next)=>{const f=ch=>{if(!ready)return;if(ch===null||ch.has(p))next(snap(p))};subs.add(f);if(ready)setTimeout(()=>next(snap(p)),0);return()=>subs.delete(f)}}}
+  function collection(c){return {onSnapshot:(next)=>{const pre=c+'/';const emit=()=>next({docs:Object.keys(cache).filter(k=>k.startsWith(pre)&&k.indexOf('/',pre.length)<0).map(snap)});
+    const f=ch=>{if(!ready)return;if(ch===null||[...ch].some(k=>k.startsWith(pre)))emit()};subs.add(f);if(ready)setTimeout(emit,0);return()=>subs.delete(f)}}}
+  return {doc,collection};
+}
+/* ---------- boot ---------- */
+S.session=store('ffr.session');
+(async()=>{
+  if(window.FFR_API){S.live=true;S.db=serverDb(window.FFR_API);S.owner=true}
+  else{
+  const db=(window.claude&&window.claude.use)?await window.claude.use('db').catch(()=>null):null;
+  if(!db){S.loaded=true;render();return}
+  S.db=db;
+  try{const u=await window.claude.use('user');S.owner=u?!!(await u.isOwner()):false}catch(e){S.owner=false}
+  if(S.session&&S.session.owner&&!S.owner)S.session=null;
+  }
+  subscribeAll();
+  setTimeout(()=>{if(!S.loaded){S.loaded=true;render()}},6000);
+})();
+})();
+</script>
+
+</body></html>
