@@ -321,7 +321,7 @@ function render(keep){
 }
 function header(){
   const m=me();
-  return `<header class="top"><div class="wrap"><div class="brand"><b>${m&&m.id!=='owner'?'Hello, '+esc(m.name):'Factory Floor Register'}</b><small>${m?(m.id==='owner'?'Owner':esc(m.role)+(S.session&&S.session.via==='owner'?' · opened by owner':'')):'Production register'}</small></div>${m?(S.session&&S.session.via==='owner'?`<button class="ghost" data-act="backOwner">Back to owner</button>`:`<button class="ghost" data-act="logout">${S.live&&URLW?'Lock':S.live?'Log out':'Switch user'}</button>`):''}</div><div class="tape"></div></header>`;
+  return `<header class="top"><div class="wrap"><div class="brand"><b>${m&&m.id!=='owner'?'Hello, '+esc(m.name):'Factory Floor Register'}</b><small>${m?(m.id==='owner'?'Owner':esc(m.role)+(S.session&&S.session.via==='owner'?' · opened by owner':'')):'Production register'}</small></div>${m?(S.session&&S.session.via==='owner'?`<button class="ghost" data-act="backOwner">Back to owner</button>`:`<span class="row" style="gap:6px;flex-wrap:nowrap">${S.live&&URLW&&m.id!=='owner'?'<button class="ghost" data-act="chgPin">PIN</button>':''}<button class="ghost" data-act="logout">${S.live&&URLW?'Lock':S.live?'Log out':'Switch user'}</button></span>`):''}</div><div class="tape"></div></header>`;
 }
 
 /* login */
@@ -332,20 +332,32 @@ function personalView(){
   if(!w||w.active===false)return `<div class="empty"><h3>This link is not active</h3>Ask the manager for your new link.</div>`;
   return `<div class="card list" style="gap:14px;max-width:420px;margin:24px auto 0"><div><h2 style="margin:0">${esc(w.name)}</h2><span class="muted">${esc(w.role)}</span></div>
     ${w.pin?`<form id="myPin" class="list"><label class="f">Enter your PIN<input id="myPinI" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label><div id="myPinErr" class="err"></div><button class="btn accent big" type="submit">Start</button></form>`
-    :`<button class="btn accent big" data-login="${URLW}">Start</button>`}</div>`;
+    :`<form id="newPin" class="list"><p class="small muted" style="margin:0">First time here. Choose a 4–6 digit PIN only you know. You will use it every time you open the app.</p><label class="f">New PIN<input id="np1" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label><label class="f">Enter it again<input id="np2" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label><div id="npErr" class="err"></div><button class="btn accent big" type="submit">Save PIN and start</button></form>`}
+    ${w.pin?`<p class="small muted" style="margin:0">Forgot your PIN? Ask the owner to reset it.</p>`:''}</div>`;
+}
+function chgPinSheet(){
+  const m=me();const w=W(m.id);
+  const sh=sheet('Change your PIN',`<form id="cpForm" class="list">${w.pin?'<label class="f">Current PIN<input id="cp0" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>':''}
+    <label class="f">New PIN<input id="cp1" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label><label class="f">Enter it again<input id="cp2" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+    <div id="cpErr" class="err"></div><button class="btn accent big" type="submit">Save new PIN</button></form>`,{short:true});
+  $('#cpForm',sh).onsubmit=async e=>{e.preventDefault();e.stopPropagation();const er=x=>{$('#cpErr',sh).textContent=x};
+    if(w.pin&&hashPin(m.id,$('#cp0',sh).value.trim())!==w.pin)return er('Current PIN is wrong.');
+    const a=$('#cp1',sh).value.trim();if(!/^\d{4,6}$/.test(a))return er('PIN should be 4 to 6 digits.');if(a!==$('#cp2',sh).value.trim())return er('The two new PINs are different.');
+    try{await S.db.doc('config/main').update({workers:{[m.id]:{pin:hashPin(m.id,a)}}});closeSheet();toast('PIN changed')}catch(x){writeErr(x)}};
+  setTimeout(()=>{const i=$(w.pin?'#cp0':'#cp1',sh);i&&i.focus()},60);
 }
 function linksView(){
   const ws=activeWorkers().filter(w=>w.id!==me().id);
   let h=`<div class="row spread"><h2>Team links</h2><button class="btn alt sm" data-tab="pending">Back</button></div><p class="small muted" style="margin:0">Send each person their own link. Only the owner can add people or change PINs.</p>`;
   if(!ws.length)return h+`<div class="empty">No team added yet. The owner adds people from Team.</div>`;
   for(const role of ROLES){const g=ws.filter(w=>w.role===role);if(!g.length)continue;
-    h+=`<section class="list" style="gap:8px"><h3 class="muted" style="margin:6px 0 0">${esc(role)}</h3>${g.map(w=>`<div class="card row spread" style="padding:10px 14px"><span><b>${esc(w.name)}</b>${w.pin?'':' <span class="small warn">no PIN</span>'}</span><button class="btn accent sm" data-wlink="${w.id}">Link</button></div>`).join('')}</section>`}
+    h+=`<section class="list" style="gap:8px"><h3 class="muted" style="margin:6px 0 0">${esc(role)}</h3>${g.map(w=>`<div class="card row spread" style="padding:10px 14px"><span><b>${esc(w.name)}</b>${w.pin?'':' <span class="small muted">PIN not set yet</span>'}</span><button class="btn accent sm" data-wlink="${w.id}">Link</button></div>`).join('')}</section>`}
   return h;
 }
 function linkSheet(id){
   const w=W(id);const url=workerLink(id);const ph=String(w.phone||'').replace(/\D/g,'');const to=ph.length===10?'91'+ph:ph;
   const msg=`Hi ${w.name}, this is your Factory Floor Register link. Open it on your phone${w.pin?' and enter your PIN':''}:\n${url}`;
-  const sh=sheet(w.name+' – personal link',`<div class="list"><p class="small muted" style="margin:0">Only ${esc(w.name)} opens the app from this link. ${w.pin?'They also need their PIN.':'<b>No PIN is set</b> – anyone with the link can log in as them. Set a PIN with Edit.'}</p>
+  const sh=sheet(w.name+' – personal link',`<div class="list"><p class="small muted" style="margin:0">Only ${esc(w.name)} opens the app from this link. ${w.pin?'They also need their PIN.':'They will create their own PIN the first time they open it – send it only to them.'}</p>
     <input id="lnk" readonly value="${esc(url)}" style="font-size:.9rem">
     <div class="row" style="gap:8px"><button class="btn alt" id="lnkCopy" type="button">Copy link</button><a class="btn accent" style="text-decoration:none" target="_blank" rel="noopener" href="https://wa.me/${to}?text=${encodeURIComponent(msg)}">Send on WhatsApp</a></div></div>`,{short:true});
   $('#lnkCopy',sh).onclick=async()=>{try{await navigator.clipboard.writeText(url);toast('Link copied')}catch(e){const i=$('#lnk',sh);i.select();document.execCommand&&document.execCommand('copy');toast('Link copied')}};
@@ -1056,7 +1068,7 @@ function teamView(){
   const ws=workers().sort((a,b)=>(a.active===false)-(b.active===false)||ROLES.indexOf(a.role)-ROLES.indexOf(b.role));
   let h=`<div class="row spread"><h2>Team</h2><button class="btn accent" data-act="addWorker">+ Add person</button></div>`;
   if(!ws.length)return h+`<div class="empty"><h3>Add your team</h3>Add each cutting master, stitcher, thread cutter and ironing person with a PIN. They pick their name on the first screen.</div>`;
-  return h+`<div class="tablewrap"><table><thead><tr><th>Name</th><th></th></tr></thead><tbody>${ws.map(w=>`<tr style="${w.active===false?'opacity:.5':''}"><td><b>${esc(w.name)}</b>${w.active===false?' <span class="chip">Inactive</span>':''}<div class="small muted">${esc(w.role)}${w.pin?'':' · <span class="warn">no PIN</span>'}</div></td><td style="white-space:nowrap;text-align:right">${w.active===false?'':`<button class="btn alt sm" data-openas="${w.id}">Open</button> `}${S.live?`<button class="btn accent sm" data-wlink="${w.id}">Link</button> `:''}<button class="btn alt sm" data-editw="${w.id}">Edit</button></td></tr>`).join('')}</tbody></table></div>`;
+  return h+`<div class="tablewrap"><table><thead><tr><th>Name</th><th></th></tr></thead><tbody>${ws.map(w=>`<tr style="${w.active===false?'opacity:.5':''}"><td><b>${esc(w.name)}</b>${w.active===false?' <span class="chip">Inactive</span>':''}<div class="small muted">${esc(w.role)}${w.pin?'':' · <span class="muted">PIN not set yet</span>'}</div></td><td style="white-space:nowrap;text-align:right">${w.active===false?'':`<button class="btn alt sm" data-openas="${w.id}">Open</button> `}${S.live?`<button class="btn accent sm" data-wlink="${w.id}">Link</button> `:''}<button class="btn alt sm" data-editw="${w.id}">Edit</button></td></tr>`).join('')}</tbody></table></div>`;
 }
 
 /* ---------- sheets ---------- */
@@ -1101,14 +1113,15 @@ function workerSheet(id){
   const sh=sheet(w?'Edit '+w.name:'Add person',`<form id="wForm" class="list" novalidate>
     <label class="f">Name<input id="pN" value="${esc(w?w.name:'')}"></label>
     <div class="grid2"><label class="f">Role<select id="pR">${ROLES.map(r=>`<option ${w&&w.role===r?'selected':''}>${r}</option>`).join('')}</select></label><label class="f">Phone<input id="pP" inputmode="tel" value="${esc(w?w.phone||'':'')}"></label></div>
-    <label class="f">${w&&w.pin?'New PIN (leave blank to keep)':'PIN (4 digits)'}<input id="pI" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+    <label class="f">${w&&w.pin?'New PIN (leave blank to keep)':'PIN (optional – leave blank and they set their own)'}<input id="pI" inputmode="numeric" maxlength="6" autocomplete="off"></label>
+    ${w&&w.pin?`<label class="row small"><input type="checkbox" id="pClr"> Clear PIN – they will set a new one from their link</label>`:''}
     ${w?`<label class="row small"><input type="checkbox" id="pA" ${w.active===false?'':'checked'}> Active (untick when someone leaves)</label>`:''}
     <div id="wErr" class="err"></div>
     <button class="btn accent big" type="submit">${w?'Save':'Add person'}</button></form>`,{short:true});
   $('#wForm',sh).onsubmit=async e=>{e.preventDefault();e.stopPropagation();const err=x=>{$('#wErr',sh).textContent=x};
     const name=$('#pN',sh).value.trim();if(!name)return err('Enter a name.');
     const pin=$('#pI',sh).value.trim();if(pin&&!/^\d{4,6}$/.test(pin))return err('PIN should be 4 to 6 digits.');
-    const wid=id||uid('w');const body={name,role:$('#pR',sh).value,phone:$('#pP',sh).value.trim(),active:w?$('#pA',sh).checked:true};if(pin)body.pin=hashPin(wid,pin);
+    const wid=id||uid('w');const body={name,role:$('#pR',sh).value,phone:$('#pP',sh).value.trim(),active:w?$('#pA',sh).checked:true};if(pin)body.pin=hashPin(wid,pin);else if(w&&$('#pClr',sh)&&$('#pClr',sh).checked)body.pin=null;
     try{await upsert('config/main',{workers:{[wid]:body}},{});closeSheet();toast(w?'Saved':name+' added')}catch(x){writeErr(x)}};
 }
 function ownerPinSheet(){
@@ -1123,7 +1136,11 @@ function ownerPinSheet(){
     try{await upsert('config/main',{ownerPin:hashPin('owner',p)},{});closeSheet();toast('Owner PIN saved');startSession({owner:true})}catch(x){writeErr(x)}};
   setTimeout(()=>{const i=$('#oP',sh);i&&i.focus()},60);
 }
-document.addEventListener('submit',e=>{if(e.target&&e.target.id==='myPin'){e.preventDefault();const w=W(URLW);if(hashPin(URLW,$('#myPinI').value.trim())!==w.pin){$('#myPinErr').textContent='That PIN does not match. Ask the manager to reset it.';return}startSession({wid:URLW})}});
+document.addEventListener('submit',async e=>{if(e.target&&e.target.id==='newPin'){e.preventDefault();const a=$('#np1').value.trim(),b=$('#np2').value.trim(),er=x=>{$('#npErr').textContent=x};
+    if(!/^\d{4,6}$/.test(a))return er('PIN should be 4 to 6 digits.');if(a!==b)return er('The two PINs are different.');
+    const w=W(URLW);if(w.pin)return er('A PIN is already set for you. Reload the page.');
+    try{e.target.querySelector('button').disabled=true;await S.db.doc('config/main').update({workers:{[URLW]:{pin:hashPin(URLW,a)}}});toast('PIN saved');startSession({wid:URLW})}catch(x){e.target.querySelector('button').disabled=false;writeErr(x)}return}
+  if(e.target&&e.target.id==='myPin'){e.preventDefault();const w=W(URLW);if(hashPin(URLW,$('#myPinI').value.trim())!==w.pin){$('#myPinErr').textContent='That PIN does not match. Ask the manager to reset it.';return}startSession({wid:URLW})}});
 function startSession(s){S.session=s;store('ffr.session',s);S.tab=s.owner?'team':null;pickedLot=null;cutDesign=null;cutCols=[];cutExtra=[];halfSel=null;S.month=ym(new Date());subscribeMonth();render();window.scrollTo(0,0)}
 
 /* ---------- form handling ---------- */
@@ -1178,6 +1195,7 @@ document.addEventListener('click',async ev=>{
     if(d.tab){S.tab=d.tab;render();window.scrollTo(0,0);return}
     if(d.login){pinSheet(d.login);return}
     if(d.act==='loginOwner'){if(S.live)ownerPinSheet();else startSession({owner:true});return}
+    if(d.act==='chgPin'){chgPinSheet();return}
     if(d.act==='backOwner'){monthSubs.forEach(u=>u());monthSubs=[];S.work={};startSession({owner:true});return}
     if(d.act==='logout'){S.session=null;store('ffr.session',null);monthSubs.forEach(u=>u());monthSubs=[];S.work={};render();return}
     if(d.act==='pickLot'){lotPicker();return}
