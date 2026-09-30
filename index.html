@@ -26,7 +26,7 @@
   --ok:#4CC38A; --ok-bg:#15301F; --warn:#E8AE4E; --warn-bg:#35280F; --bad:#F07A6E; --bad-bg:#3A1A18; --yel:#4A3B0E; --yel-ink:#F6D77A; --grn:#163826; --grn-ink:#8FE0B3; --gry:#262F40; --gry-ink:#8C95A8; color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html.offline body::before{content:'No connection – changes will not save until the internet is back';position:fixed;left:0;right:0;bottom:0;z-index:99;background:#b42318;color:#fff;font:600 .85rem/1.2 Barlow,system-ui,sans-serif;text-align:center;padding:8px 12px}
+html.offline body::before{pointer-events:none;content:'No connection – changes will not save until the internet is back';position:fixed;left:0;right:0;bottom:0;z-index:99;background:#b42318;color:#fff;font:600 .85rem/1.2 Barlow,system-ui,sans-serif;text-align:center;padding:8px 12px}
 body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;font-variant-numeric:tabular-nums}
 h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:.01em}
 h2{font-size:1.35rem;font-weight:700}
@@ -286,6 +286,7 @@ let lotQ='',lotFilter='open',halfSel=null,pickedLot=null,cutDesign=null,cutCols=
 function render(keep){
   const app=$('#app');
   if(!S.db){app.innerHTML=`<div class="wrap" style="padding-block:40px"><div class="empty"><h3>Shared records aren't available here</h3>Open this page from Claude, signed in, so entries are saved for everyone.</div></div>`;return}
+  if(S.live&&!S.db.ready()){app.innerHTML=`<div class="wrap" style="padding-block:40px"><div class="empty"><h3>${document.documentElement.classList.contains('offline')?'Can\'t reach the factory server':'Opening the register…'}</h3>${document.documentElement.classList.contains('offline')?'Check the internet connection. It will keep trying on its own.':'Connecting to the factory\'s shared records.'}</div></div>`;return}
   if(!S.loaded)return;
   /* keep what the worker is typing when other people's updates arrive */
   const draft={};if(keep)app.querySelectorAll('form input,form select').forEach(i=>{if(i.id)draft[i.id]=i.value});
@@ -1219,7 +1220,7 @@ function serverDb(cfg){
     const t=await r.text();if(!r.ok||!t)throw new Error('The server did not accept this ('+r.status+'). Try again.');return JSON.parse(t)}
   function snap(p){const d=cache[p];return {id:p.split('/').pop(),exists:d!==undefined,data:()=>clone(d)}}
   function fire(changed){subs.forEach(f=>{try{f(changed)}catch(e){console.warn(e)}})}
-  function net(ok){document.documentElement.classList.toggle('offline',!ok)}
+  function net(ok){const was=document.documentElement.classList.contains('offline');document.documentElement.classList.toggle('offline',!ok);if(was!==!ok&&!ready)schedule()}
   async function sync(){if(busy)return;busy=true;try{const r=await call({op:'sync',since});const ch=new Set();
       for(const x of (r.docs||[])){if(+x.v>since)since=+x.v;if(pend[x.p])continue;const s=JSON.stringify(x.d);if(JSON.stringify(cache[x.p])!==s){cache[x.p]=x.d;ch.add(x.p)}}
       if(!ready){ready=true;fire(null)}else if(ch.size)fire(ch);net(true)}catch(e){net(false)}finally{busy=false;if(want){want=false;setTimeout(sync,0)}}}
@@ -1236,7 +1237,7 @@ function serverDb(cfg){
     onSnapshot:(next)=>{const f=ch=>{if(!ready)return;if(ch===null||ch.has(p))next(snap(p))};subs.add(f);if(ready)setTimeout(()=>next(snap(p)),0);return()=>subs.delete(f)}}}
   function collection(c){return {onSnapshot:(next)=>{const pre=c+'/';const emit=()=>next({docs:Object.keys(cache).filter(k=>k.startsWith(pre)&&k.indexOf('/',pre.length)<0).map(snap)});
     const f=ch=>{if(!ready)return;if(ch===null||[...ch].some(k=>k.startsWith(pre)))emit()};subs.add(f);if(ready)setTimeout(emit,0);return()=>subs.delete(f)}}}
-  return {doc,collection};
+  return {doc,collection,ready:()=>ready,retry:()=>sync()};
 }
 /* ---------- boot ---------- */
 S.session=store('ffr.session');
