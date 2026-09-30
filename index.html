@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"}</script>
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};
+window.onerror=function(m){if(window.__ffrOk)return;var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>This phone could not open the app</h3><p>Please update Google Chrome from the Play Store, then open the link again in Chrome.</p><p style="color:#888;font-size:12px">'+String(m).replace(/</g,'&lt;').slice(0,200)+'</p></div>'};</script>
 <title>Factory Floor Register</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -112,7 +113,7 @@ label.f input,label.f select,label.f textarea{border:1px solid var(--line);backg
 .person b{display:block;font-size:1.02rem}
 .empty{text-align:center;padding:26px 16px;border:1px dashed var(--line);border-radius:var(--r);color:var(--muted)}
 .empty h3{color:var(--ink);margin-bottom:6px}
-.sheet-bg{position:fixed;inset:0;background:rgba(10,14,22,.55);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet-bg{position:fixed;top:0;right:0;bottom:0;left:0;inset:0;background:rgba(10,14,22,.55);z-index:20;display:flex;align-items:flex-end;justify-content:center}
 .sheet{background:var(--bg);width:100%;max-width:640px;height:94%;overflow-y:auto;border-radius:16px 16px 0 0;padding:0 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:14px}
 .sheet.short{height:auto;max-height:94%}
 .sheet .shead{position:sticky;top:0;margin-inline:-16px;padding:14px 16px;background:var(--bg);z-index:1;border-bottom:1px solid var(--line)}
@@ -168,6 +169,7 @@ table.split input{width:64px;border:1px solid var(--line);background:var(--bg);b
 <div id="app"><div class="wrap" style="padding-block:40px"><div class="empty"><h3>Opening the register…</h3>Connecting to the factory's shared records.</div></div></div>
 
 <script>
+if(!Object.fromEntries)Object.fromEntries=function(it){var o={};Array.from(it).forEach(function(p){o[p[0]]=p[1]});return o};
 (function(){
 /* ---------- constants ---------- */
 const STAGES=[
@@ -199,7 +201,7 @@ function fmtDT(iso){if(!iso)return '';const d=new Date(iso);if(isNaN(d))return f
 function dur(a,b){const ms=new Date(b)-new Date(a);if(!(ms>=0))return '—';const m=Math.round(ms/60000);if(m<1)return 'under 1 min';if(m<60)return m+' min';const h=Math.floor(m/60),mm=m%60;if(h<24)return h+' h'+(mm?' '+mm+' min':'');const d=Math.floor(h/24),hh=h%24;return d+(d>1?' days':' day')+(hh?' '+hh+' h':'')}
 function fmtDate(d){if(!d)return '';const [,m,dd]=d.split('-');return +dd+' '+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+m-1]}
 function uid(p){return p+Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function inr(n){n=+n||0;return '₹'+(Math.abs(n)<100&&n%1?n.toLocaleString('en-IN',{maximumFractionDigits:2}):Math.round(n).toLocaleString('en-IN'))}
 function hashPin(wid,pin){let h=5381;const s=wid+':'+pin;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return (h>>>0).toString(36)}
 function store(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem(k)||'null');localStorage.setItem(k,JSON.stringify(v))}catch(e){return null}}
@@ -1270,7 +1272,7 @@ function serverDb(cfg){
   const clone=v=>v===undefined?undefined:JSON.parse(JSON.stringify(v));
   function mergeInto(a,b){for(const k in b){const v=b[k];if(v&&typeof v==='object'&&!Array.isArray(v)&&a[k]&&typeof a[k]==='object'&&!Array.isArray(a[k]))mergeInto(a[k],v);else a[k]=clone(v)}return a}
   async function call(body){
-    let r;try{r=await fetch(cfg.url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({k:cfg.k},body)),cache:'no-store'})}catch(e){throw new Error('No connection to the server. Check the internet and try again.')}
+    let r;const ac=window.AbortController?new AbortController():null;const tm=ac?setTimeout(()=>ac.abort(),15000):0;try{r=await fetch(cfg.url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({k:cfg.k},body)),cache:'no-store',signal:ac?ac.signal:undefined})}catch(e){throw new Error('No connection to the server. Check the internet and try again.')}finally{clearTimeout(tm)}
     const t=await r.text();if(!r.ok||!t)throw new Error('The server did not accept this ('+r.status+'). Try again.');return JSON.parse(t)}
   function snap(p){const d=cache[p];return {id:p.split('/').pop(),exists:d!==undefined,data:()=>clone(d)}}
   function fire(changed){subs.forEach(f=>{try{f(changed)}catch(e){console.warn(e)}})}
@@ -1293,6 +1295,7 @@ function serverDb(cfg){
     const f=ch=>{if(!ready)return;if(ch===null||[...ch].some(k=>k.startsWith(pre)))emit()};subs.add(f);if(ready)setTimeout(emit,0);return()=>subs.delete(f)}}}
   return {doc,collection,ready:()=>ready,retry:()=>sync()};
 }
+window.__ffrOk=true;
 /* ---------- boot ---------- */
 S.session=store('ffr.session');
 (async()=>{
