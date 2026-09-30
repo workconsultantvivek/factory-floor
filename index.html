@@ -307,12 +307,12 @@ function render(keep){
     :m.role==='Checker'?[['inbox','Check work',ICON.done,nInbox()],['handover','Hand over',ICON.lots,lotsSorted().filter(l=>withChecker(l).total>0).length],['checked','Checked',ICON.team]]
     :m.role==='Thread cutter'?[['tnew','New lots',ICON.lots,lotsSorted().filter(l=>threadPool(l,m.id).total>0).length],['tdone','Completed',ICON.done]]
     :m.role==='Ironing'?[['inew','New lots',ICON.lots,flowItems('ironing').filter(v=>v.w===m.id&&v.st==='given').length],['idone','Completed',ICON.done]]
-    :m.role==='Manager'?boss
+    :m.role==='Manager'?boss.concat([['links','Team links',ICON.team,0,true]])
     :RECV_STAGES.includes(myStage())?[['add','New lots',ICON.lots,myLots(m.id).reduce((n,l)=>n+allocOpen(l,m.id).filter(a=>a.total>0).length,0)],['alter','Alter / Rejected',ICON.add,myLots(m.id).reduce((a,l)=>a+altWaiting(l,m.id).total,0)],['done','Completed',ICON.done]]
     :myStage()?[['add','Add entry',ICON.add],['lots','Cut lots',ICON.lots],['done','Completed',ICON.done]]
     :[['lots','Cut lots',ICON.lots]];
   if(!tabs.find(t=>t[0]===S.tab))S.tab=tabs[0][0];
-  const body=({add:addView,lots:lotsView,done:doneView,team:teamView,alter:alterView,alloc:allocView,allocd:allocdView,inbox:inboxView,checked:checkedView,rinbox:rinboxView,rhist:rhistView,wh:whInboxView,stock:stockView,handover:handoverView,pending:pendingView,otasks:bossTasksView,mtasks:masterTasksView,mthread:mgrThreadView,tnew:threadNewView,tdone:threadDoneView,inew:()=>flowNewView('ironing'),idone:()=>flowDoneView('ironing')})[S.tab]();
+  const body=({add:addView,lots:lotsView,done:doneView,team:teamView,alter:alterView,alloc:allocView,allocd:allocdView,inbox:inboxView,checked:checkedView,rinbox:rinboxView,rhist:rhistView,wh:whInboxView,stock:stockView,handover:handoverView,pending:pendingView,links:linksView,otasks:bossTasksView,mtasks:masterTasksView,mthread:mgrThreadView,tnew:threadNewView,tdone:threadDoneView,inew:()=>flowNewView('ironing'),idone:()=>flowDoneView('ironing')})[S.tab]();
   app.innerHTML=header()+`<main class="wrap">${body}</main>`+(tabs.length>1?`<nav class="bottom ${tabs.filter(t=>!t[4]).length>5?'many':''}"><div class="wrap">${tabs.filter(t=>!t[4]).map(t=>`<button data-tab="${t[0]}" aria-current="${S.tab===t[0]}"><span class="ico">${t[2]}${t[3]?`<i class="badge">${t[3]}</i>`:''}</span>${t[1]}</button>`).join('')}</div></nav>`:'');
   for(const [id,v] of Object.entries(draft)){const el=document.getElementById(id);if(el&&el.closest('form')&&!el.disabled)el.value=v}
   const tot=keep&&($('[data-size]')||$('[data-csize]'));if(tot)tot.dispatchEvent(new Event('input',{bubbles:true}));
@@ -333,6 +333,14 @@ function personalView(){
   return `<div class="card list" style="gap:14px;max-width:420px;margin:24px auto 0"><div><h2 style="margin:0">${esc(w.name)}</h2><span class="muted">${esc(w.role)}</span></div>
     ${w.pin?`<form id="myPin" class="list"><label class="f">Enter your PIN<input id="myPinI" type="password" inputmode="numeric" maxlength="6" autocomplete="off"></label><div id="myPinErr" class="err"></div><button class="btn accent big" type="submit">Start</button></form>`
     :`<button class="btn accent big" data-login="${URLW}">Start</button>`}</div>`;
+}
+function linksView(){
+  const ws=activeWorkers().filter(w=>w.id!==me().id);
+  let h=`<div class="row spread"><h2>Team links</h2><button class="btn alt sm" data-tab="pending">Back</button></div><p class="small muted" style="margin:0">Send each person their own link. Only the owner can add people or change PINs.</p>`;
+  if(!ws.length)return h+`<div class="empty">No team added yet. The owner adds people from Team.</div>`;
+  for(const role of ROLES){const g=ws.filter(w=>w.role===role);if(!g.length)continue;
+    h+=`<section class="list" style="gap:8px"><h3 class="muted" style="margin:6px 0 0">${esc(role)}</h3>${g.map(w=>`<div class="card row spread" style="padding:10px 14px"><span><b>${esc(w.name)}</b>${w.pin?'':' <span class="small warn">no PIN</span>'}</span><button class="btn accent sm" data-wlink="${w.id}">Link</button></div>`).join('')}</section>`}
+  return h;
 }
 function linkSheet(id){
   const w=W(id);const url=workerLink(id);const ph=String(w.phone||'').replace(/\D/g,'');const to=ph.length===10?'91'+ph:ph;
@@ -879,7 +887,7 @@ function pendingView(){
   const rows=pendingByPerson();const roles=['all',...ROLES.filter(r=>rows.some(x=>x.w.role===r))];
   const shown=rows.filter(r=>pendRole==='all'||r.w.role===pendRole);
   const busy=shown.filter(r=>r.total>0).sort((a,b)=>b.total-a.total),free=shown.filter(r=>!r.total);
-  let h=`<div class="row spread"><h2>Pending work</h2><span class="row" style="gap:6px"><button class="btn alt sm" data-tab="lots">All lots</button><button class="btn alt sm" data-tab="stock">Stock</button>${me().id==='owner'?'<button class="btn alt sm" data-tab="team">Team</button>':''}</span></div>
+  let h=`<div class="row spread"><h2>Pending work</h2><span class="row" style="gap:6px"><button class="btn alt sm" data-tab="lots">All lots</button><button class="btn alt sm" data-tab="stock">Stock</button>${me().id==='owner'?'<button class="btn alt sm" data-tab="team">Team</button>':S.live&&me().role==='Manager'?'<button class="btn alt sm" data-tab="links">Team links</button>':''}</span></div>
   <div class="small muted">${busy.length} people with work</div>`;
   h+=`<div class="colchips">${roles.map(r=>`<button type="button" class="colchip ${pendRole===r?'on':''}" data-prole="${esc(r)}">${r==='all'?'Everyone':esc(r)}</button>`).join('')}</div>`;
   if(!busy.length)h+=`<div class="empty"><h3>Nothing pending</h3>No one ${pendRole==='all'?'':'in this role '}has work waiting.</div>`;
