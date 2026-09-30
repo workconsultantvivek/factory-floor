@@ -321,7 +321,7 @@ function render(keep){
 }
 function header(){
   const m=me();
-  return `<header class="top"><div class="wrap"><div class="brand"><b>${m&&m.id!=='owner'?'Hello, '+esc(m.name):'Factory Floor Register'}</b><small>${m?(m.id==='owner'?'Owner':esc(m.role)):'Production register'}</small></div>${m?`<button class="ghost" data-act="logout">${S.live&&URLW?'Lock':S.live?'Log out':'Switch user'}</button>`:''}</div><div class="tape"></div></header>`;
+  return `<header class="top"><div class="wrap"><div class="brand"><b>${m&&m.id!=='owner'?'Hello, '+esc(m.name):'Factory Floor Register'}</b><small>${m?(m.id==='owner'?'Owner':esc(m.role)+(S.session&&S.session.via==='owner'?' · opened by owner':'')):'Production register'}</small></div>${m?(S.session&&S.session.via==='owner'?`<button class="ghost" data-act="backOwner">Back to owner</button>`:`<button class="ghost" data-act="logout">${S.live&&URLW?'Lock':S.live?'Log out':'Switch user'}</button>`):''}</div><div class="tape"></div></header>`;
 }
 
 /* login */
@@ -1056,7 +1056,7 @@ function teamView(){
   const ws=workers().sort((a,b)=>(a.active===false)-(b.active===false)||ROLES.indexOf(a.role)-ROLES.indexOf(b.role));
   let h=`<div class="row spread"><h2>Team</h2><button class="btn accent" data-act="addWorker">+ Add person</button></div>`;
   if(!ws.length)return h+`<div class="empty"><h3>Add your team</h3>Add each cutting master, stitcher, thread cutter and ironing person with a PIN. They pick their name on the first screen.</div>`;
-  return h+`<div class="tablewrap"><table><thead><tr><th>Name</th><th>Role</th><th>PIN</th><th></th></tr></thead><tbody>${ws.map(w=>`<tr style="${w.active===false?'opacity:.5':''}"><td><b>${esc(w.name)}</b>${w.active===false?' <span class="chip">Inactive</span>':''}</td><td>${esc(w.role)}</td><td>${w.pin?'Set':'—'}</td><td style="white-space:nowrap">${S.live?`<button class="btn accent sm" data-wlink="${w.id}">Link</button> `:''}<button class="btn alt sm" data-editw="${w.id}">Edit</button></td></tr>`).join('')}</tbody></table></div>`;
+  return h+`<div class="tablewrap"><table><thead><tr><th>Name</th><th></th></tr></thead><tbody>${ws.map(w=>`<tr style="${w.active===false?'opacity:.5':''}"><td><b>${esc(w.name)}</b>${w.active===false?' <span class="chip">Inactive</span>':''}<div class="small muted">${esc(w.role)}${w.pin?'':' · <span class="warn">no PIN</span>'}</div></td><td style="white-space:nowrap;text-align:right">${w.active===false?'':`<button class="btn alt sm" data-openas="${w.id}">Open</button> `}${S.live?`<button class="btn accent sm" data-wlink="${w.id}">Link</button> `:''}<button class="btn alt sm" data-editw="${w.id}">Edit</button></td></tr>`).join('')}</tbody></table></div>`;
 }
 
 /* ---------- sheets ---------- */
@@ -1178,6 +1178,7 @@ document.addEventListener('click',async ev=>{
     if(d.tab){S.tab=d.tab;render();window.scrollTo(0,0);return}
     if(d.login){pinSheet(d.login);return}
     if(d.act==='loginOwner'){if(S.live)ownerPinSheet();else startSession({owner:true});return}
+    if(d.act==='backOwner'){monthSubs.forEach(u=>u());monthSubs=[];S.work={};startSession({owner:true});return}
     if(d.act==='logout'){S.session=null;store('ffr.session',null);monthSubs.forEach(u=>u());monthSubs=[];S.work={};render();return}
     if(d.act==='pickLot'){lotPicker();return}
     if(d.act==='pickDesign'){designPicker();return}
@@ -1240,6 +1241,7 @@ document.addEventListener('click',async ev=>{
     if(d.act==='addWorker'){workerSheet(null);return}
     if(d.editw){workerSheet(d.editw);return}
     if(d.wlink){linkSheet(d.wlink);return}
+    if(d.openas){startSession({wid:d.openas,via:'owner'});toast('Opened as '+W(d.openas).name);return}
   }catch(err){t.disabled=false;writeErr(err)}
 });
 
