@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="3009-1257";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="3009-1405";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -1901,7 +1901,7 @@ ${url}`;
     const m = me();
     const todays = lotsSorted().filter((l) => l.cutBy === m.id && l.date === today());
     let h = `<div><h2>Add cut lot</h2><p class="small muted" style="margin:4px 0 0">When a lot comes off the cutting table, pick the design and enter the pieces cut per size.</p></div>`;
-    h += `<button type="button" class="picker ${d ? "set" : ""}" data-act="pickDesign">${d ? `<span><span class="lotno" style="font-size:1.25rem">${esc(d.code)}</span><span class="small muted ell" style="display:block">${esc(d.n || "")}</span></span><span class="small">Change</span>` : `<span><b>Select design</b><span class="small muted" style="display:block">${Object.keys(D).length} designs from Uniware</span></span><span class="small">\u25BE</span>`}</button>`;
+    h += `<button type="button" class="picker ${d ? "set" : ""}" data-act="pickDesign">${d ? `<span><span class="lotno" style="font-size:1.25rem">${esc(d.code)}</span><span class="small muted ell" style="display:block">${esc(d.n || "")}</span></span><span class="small">Change</span>` : `<span><b>Select design</b><span class="small muted" style="display:block">${Object.keys(D).length} designs \u2013 Uniware + added here</span></span><span class="small">\u25BE</span>`}</button>`;
     if (d) {
       const cols = (d.c || []).concat(cutExtra.filter((c) => !(d.c || []).includes(c)));
       const sizes = d.s && d.s.length ? sortSizes(d.s) : SIZE_ORDER.slice(0, 7);
@@ -2127,14 +2127,19 @@ ${url}`;
   function designPicker() {
     const D = allDesigns();
     const codes = Object.keys(D).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-    const sh = sheet("Select design", `<input class="search" type="search" id="dpQ" placeholder="Search ${codes.length} designs by code or name" autocomplete="off"><div class="list" id="dpList" style="gap:6px"></div>`);
+    const sh = sheet("Select design", `<input class="search" type="search" id="dpQ" placeholder="Search ${codes.length} designs by code or name" autocomplete="off"><button type="button" class="btn alt" id="dpNew" style="width:100%">+ Add a design not in Uniware</button><div class="list" id="dpList" style="gap:6px"></div>`);
+    $("#dpNew", sh).onclick = () => {
+      const q = $("#dpQ", sh).value.trim();
+      closeSheet();
+      setTimeout(() => newDesignSheet(q), 60);
+    };
     const draw = () => {
       const q = $("#dpQ", sh).value.trim().toLowerCase();
       const hits = codes.filter((k) => !q || k.toLowerCase().includes(q) || String(D[k].n || "").toLowerCase().includes(q));
       $("#dpList", sh).innerHTML = hits.length ? hits.map((k) => {
         const d = D[k];
         return `<button type="button" class="lotcard" data-pickd="${esc(k)}"><span style="min-width:0"><b class="lotno" style="font-size:1.1rem">${esc(k)}</b><span class="small muted ell" style="display:block">${esc(d.n || "")}</span></span><span class="small muted" style="text-align:right;white-space:nowrap">${(d.s || []).length} sizes<br>${(d.c || []).length} colours</span></button>`;
-      }).join("") : `<div class="empty">No design matches. Ask the manager to add it.</div>`;
+      }).join("") : `<div class="empty">No design matches. Tap <b>+ Add a design not in Uniware</b> above.</div>`;
     };
     $("#dpQ", sh).oninput = draw;
     sh.addEventListener("click", (e) => {
@@ -2151,6 +2156,66 @@ ${url}`;
       }
     });
     draw();
+  }
+  function newDesignSheet(pre) {
+    let sizes = ["S", "M", "L", "XL", "XXL"];
+    const sh = sheet("Add new design", `<form id="ndForm" class="list" novalidate>
+    <label class="f">Design code<input id="ndC" value="${esc(pre || "")}" placeholder="e.g. 7Pleat" autocomplete="off"></label>
+    <label class="f">Design name (optional)<input id="ndN" placeholder="e.g. Cotton Pleated Top" autocomplete="off"></label>
+    <label class="f">Colours (separate with commas)<input id="ndCol" placeholder="e.g. Black, White, Olive" autocomplete="off"></label>
+    <div class="f"><span>Sizes</span><div class="colchips" id="ndS"></div></div>
+    <div id="ndErr" class="err"></div><button class="btn accent big" type="submit">Save design</button></form>`, { short: true });
+    const drawS = () => {
+      $("#ndS", sh).innerHTML = SIZE_ORDER.map((z) => `<button type="button" class="colchip ${sizes.includes(z) ? "on" : ""}" data-ndz="${z}">${sizes.includes(z) ? "\u2713 " : ""}${z}</button>`).join("");
+    };
+    drawS();
+    sh.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-ndz]");
+      if (!b) return;
+      const z = b.dataset.ndz;
+      sizes = sizes.includes(z) ? sizes.filter((x) => x !== z) : SIZE_ORDER.filter((x) => x === z || sizes.includes(x));
+      drawS();
+    });
+    $("#ndForm", sh).onsubmit = async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const er = (x) => {
+        $("#ndErr", sh).textContent = x;
+      };
+      const code = $("#ndC", sh).value.trim().replace(/\s+/g, " ");
+      if (!code) return er("Enter the design code.");
+      if (!/^[A-Za-z0-9][A-Za-z0-9 _()+&-]{0,39}$/.test(code)) return er("Use letters, numbers, spaces or - _ only.");
+      const D = allDesigns();
+      const clash = Object.keys(D).find((k) => k.toLowerCase() === code.toLowerCase());
+      if (clash) return er(clash + " already exists. Pick it from the list.");
+      const cols = [];
+      $("#ndCol", sh).value.split(",").map((x) => x.trim().replace(/\s+/g, " ")).filter(Boolean).forEach((c) => {
+        if (!cols.some((x) => x.toLowerCase() === c.toLowerCase())) cols.push(c);
+      });
+      if (!cols.length) return er("Enter at least one colour.");
+      if (cols.some((c) => /[|\/]/.test(c) || c.length > 30)) return er("Colour names cannot contain | or / and must be short.");
+      if (!sizes.length) return er("Pick at least one size.");
+      const m = me();
+      const body = { designs: { [code]: { c: cols, s: sizes, n: $("#ndN", sh).value.trim().slice(0, 80), by: m ? m.name : "", at: (/* @__PURE__ */ new Date()).toISOString() } } };
+      try {
+        e.target.querySelector("[type=submit]").disabled = true;
+        await upsert("catalog/manual", body, { brand: "Added in app" });
+        cutCols = [];
+        cutExtra = [];
+        cutDesign = code;
+        closeSheet();
+        toast(code + " added");
+        render();
+        window.scrollTo(0, 0);
+      } catch (x) {
+        e.target.querySelector("[type=submit]").disabled = false;
+        writeErr(x);
+      }
+    };
+    setTimeout(() => {
+      const i = $(pre ? "#ndN" : "#ndC", sh);
+      i && i.focus();
+    }, 60);
   }
   function pinSheet(wid) {
     const w = W(wid);
