@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-0010";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-0020";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -107,6 +107,7 @@ label.f input,label.f select,label.f textarea{border:1px solid var(--line);backg
 .seg button{border:0;background:transparent;padding:8px 14px;font-weight:600;color:var(--muted)}
 .seg button+button{border-left:1px solid var(--line)}
 .seg button.on{background:var(--btn);color:var(--btn-ink)}
+.seg.navseg{display:flex;align-self:stretch}.seg.navseg button{flex:1;padding:9px 4px;white-space:nowrap}
 .search{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:11px 12px;font-size:1rem;width:100%;color:var(--ink)}
 .entry{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:start}
 .qty{font-family:var(--display);font-size:1.35rem;font-weight:700;text-align:right;line-height:1.1}
@@ -628,7 +629,7 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     const tabs = m.id === "owner" ? boss.concat([["team", "Team", ICON.team, 0, true]]) : m.role === "Cutting master" ? [["add", "Add cut lot", ICON.add], ["lots", "All lots", ICON.lots], ["mtasks", "Tasks", ICON.done, tasksFor(m.id).filter((t) => t.st !== "done").length]] : m.role === "Lot allocator" ? [["alloc", "Allocate", ICON.add, nAlloc()], ["allocd", "Allocated", ICON.team], ["lots", "All lots", ICON.lots]] : m.role === "Lot receiver" ? [["rinbox", "Receive work", ICON.add, nRcv()], ["rhist", "Received", ICON.done], ["lots", "All lots", ICON.lots]] : m.role === "Warehouse receiver" ? [["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["lots", "All lots", ICON.done]] : m.role === "Checker" ? [["inbox", "Check work", ICON.done, nInbox()], ["handover", "Hand over", ICON.lots, lotsSorted().filter((l) => withChecker(l).total > 0).length], ["checked", "Checked", ICON.team]] : m.role === "Thread cutter" ? [["tnew", "New lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["tdone", "Completed", ICON.done]] : m.role === "Ironing" ? [["inew", "New lots", ICON.lots, flowItems("ironing").filter((v) => v.w === m.id && v.st === "given").length], ["idone", "Completed", ICON.done]] : m.role === "Manager" ? boss.concat([["links", "Team links", ICON.team, 0, true]]) : RECV_STAGES.includes(myStage()) ? [["add", "New lots", ICON.lots, myLots(m.id).reduce((n, l) => n + allocOpen(l, m.id).filter((a) => a.total > 0).length, 0)], ["alter", "Alter / Rejected", ICON.add, myLots(m.id).reduce((a, l) => a + altWaiting(l, m.id).total, 0)], ["done", "Completed", ICON.done]] : myStage() ? [["add", "Add entry", ICON.add], ["lots", "Cut lots", ICON.lots], ["done", "Completed", ICON.done]] : [["lots", "Cut lots", ICON.lots]];
     if (!tabs.find((t) => t[0] === S.tab)) S.tab = tabs[0][0];
     const body = { add: addView, lots: lotsView, done: doneView, team: teamView, alter: alterView, alloc: allocView, allocd: allocdView, inbox: inboxView, checked: checkedView, rinbox: rinboxView, rhist: rhistView, wh: whInboxView, stock: stockView, handover: handoverView, pending: pendingView, links: linksView, otasks: bossTasksView, mtasks: masterTasksView, mthread: mgrThreadView, tnew: threadNewView, tdone: threadDoneView, inew: () => flowNewView("ironing"), idone: () => flowDoneView("ironing") }[S.tab]();
-    app.innerHTML = header() + `<main class="wrap">${body}</main>` + (tabs.length > 1 ? `<nav class="bottom ${tabs.filter((t) => !t[4]).length > 5 ? "many" : ""}"><div class="wrap">${tabs.filter((t) => !t[4]).map((t) => `<button data-tab="${t[0]}" aria-current="${S.tab === t[0]}"><span class="ico">${t[2]}${t[3] ? `<i class="badge">${t[3]}</i>` : ""}</span>${t[1]}</button>`).join("")}</div></nav>` : "");
+    app.innerHTML = header() + `<main class="wrap">${["pending", "lots", "stock", "team", "links"].includes(S.tab) ? bossLinks(S.tab) : ""}${body}</main>` + (tabs.length > 1 ? `<nav class="bottom ${tabs.filter((t) => !t[4]).length > 5 ? "many" : ""}"><div class="wrap">${tabs.filter((t) => !t[4]).map((t) => `<button data-tab="${t[0]}" aria-current="${S.tab === t[0]}"><span class="ico">${t[2]}${t[3] ? `<i class="badge">${t[3]}</i>` : ""}</span>${t[1]}</button>`).join("")}</div></nav>` : "");
     for (const [id, v] of Object.entries(draft)) {
       const el = document.getElementById(id);
       if (el && el.closest("form") && !el.disabled) el.value = v;
@@ -699,7 +700,7 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
   }
   function linksView() {
     const ws = activeWorkers().filter((w) => w.id !== me().id);
-    let h = `<div class="row spread"><h2>Team links</h2><button class="btn alt sm" data-tab="pending">Back</button></div><p class="small muted" style="margin:0">Send each person their own link. Only the owner can add people or change PINs.</p>`;
+    let h = `<div class="row spread"><h2>Team links</h2></div><p class="small muted" style="margin:0">Send each person their own link. Only the owner can add people or change PINs.</p>`;
     if (!ws.length) return h + `<div class="empty">No team added yet. The owner adds people from Team.</div>`;
     for (const role of ROLES) {
       const g = ws.filter((w) => w.role === role);
@@ -1756,7 +1757,7 @@ ${url}`;
   function stockView() {
     const { agg, total } = stockAgg();
     const recent = whRecords().sort((a, b) => String(b.wh.at).localeCompare(String(a.wh.at)));
-    let h = `<div class="row spread"><h2>Warehouse stock</h2><span class="small muted">${total} pcs received</span></div>` + bossLinks("stock");
+    let h = `<div class="row spread"><h2>Warehouse stock</h2><span class="small muted">${total} pcs received</span></div>`;
     if (!total) return h + `<div class="empty"><h3>No stock received yet</h3>Pieces appear here once they are received in the warehouse.</div>`;
     h += `<input class="search" type="search" id="stockQ" placeholder="Search design or colour" value="${esc(stockQ)}" autocomplete="off"><div class="list" id="stockList">${stockListHtml(agg)}</div>`;
     h += `<section class="list"><h3>Latest received</h3>${recent.slice(0, 15).map((r) => `<div class="card"><div class="row spread"><span><span class="lotno">${esc(r.lot.lotNo)}</span> <span class="muted">${esc(r.lot.design)}</span> <span class="small muted">${fmtDate(String(r.wh.at).slice(0, 10))}${W(r.wh.by) ? " \xB7 " + esc(W(r.wh.by).name) : ""}</span></span><b>${r.wh.q}</b></div><div class="small muted">${fmtCells(nz(r.wh.sz))}</div>${r.wh.short ? `<div class="small warn">${r.wh.short} short</div>` : ""}</div>`).join("")}</section>`;
@@ -1815,7 +1816,7 @@ ${url}`;
     const roles = ["all", ...ROLES.filter((r) => rows.some((x) => x.w.role === r))];
     const shown = rows.filter((r) => pendRole === "all" || r.w.role === pendRole);
     const busy = shown.filter((r) => r.total > 0).sort((a, b) => b.total - a.total), free = shown.filter((r) => !r.total);
-    let h = `<div class="row spread"><h2>Pending work</h2><span class="row" style="gap:6px"><button class="btn alt sm" data-tab="lots">All lots</button><button class="btn alt sm" data-tab="stock">Stock</button>${me().id === "owner" ? '<button class="btn alt sm" data-tab="team">Team</button>' : S.live && me().role === "Manager" ? '<button class="btn alt sm" data-tab="links">Team links</button>' : ""}</span></div>
+    let h = `<div class="row spread"><h2>Pending work</h2></div>
   <div class="small muted">${busy.length} people with work</div>`;
     h += `<div class="colchips">${roles.map((r) => `<button type="button" class="colchip ${pendRole === r ? "on" : ""}" data-prole="${esc(r)}">${r === "all" ? "Everyone" : esc(r)}</button>`).join("")}</div>`;
     if (!busy.length) h += `<div class="empty"><h3>Nothing pending</h3>No one ${pendRole === "all" ? "" : "in this role "}has work waiting.</div>`;
@@ -1940,7 +1941,7 @@ ${url}`;
 `;
     if (!all.length) return h + `<div class="empty"><h3>No lots cut yet</h3>Lots appear here as soon as the cutting master adds them.</div>`;
     h += `<input class="search" type="search" id="lotQ" placeholder="Search lot no., design or colour" value="${esc(lotQ)}" autocomplete="off">`;
-    if (!mine && isBoss()) h += bossLinks("lots") + lotsOverview(all) + `<div class="seg">${[["open", "In process"], ["all", "All lots"]].map(([k, n]) => `<button data-lotfilter="${k}" class="${lotFilter === k ? "on" : ""}">${n}</button>`).join("")}</div>`;
+    if (!mine && isBoss()) h += lotsOverview(all) + `<div class="seg">${[["open", "In process"], ["all", "Including finished"]].map(([k, n]) => `<button data-lotfilter="${k}" class="${lotFilter === k ? "on" : ""}">${n}</button>`).join("")}</div>`;
     if (mine) h += `<div class="seg">${[["open", "Pieces left for me"], ["all", "All lots"]].map(([k, n]) => `<button data-lotfilter="${k}" class="${lotFilter === k ? "on" : ""}">${n}</button>`).join("")}</div>`;
     return h + `<div class="list" id="lotList">${lotListHtml()}</div>`;
   }
@@ -1955,7 +1956,7 @@ ${url}`;
       return g.na + g.st + g.qc + g.fin > 0;
     });
     if (q) ls = ls.filter((l) => [l.lotNo, l.design, l.colour, l.designName].some((x) => String(x || "").toLowerCase().includes(q)));
-    if (!ls.length) return `<div class="empty">${q ? "No lot matches." : (isBoss() ? "No lot in process. Tap <b>All lots</b> to see finished ones." : "No lots with pieces left for you. Tap <b>All lots</b> to see finished ones.")}</div>`;
+    if (!ls.length) return `<div class="empty">${q ? "No lot matches." : (isBoss() ? "No lot in process. Tap <b>Including finished</b> to see finished ones." : "No lots with pieces left for you. Tap <b>All lots</b> to see finished ones.")}</div>`;
     return ls.map((l) => lotCard(l, { progress: true, tap: mine, where: isBoss() })).join("");
   }
   function lotPhases(l) {
@@ -2096,8 +2097,8 @@ ${url}`;
   function bossLinks(cur) {
     if (!isBoss()) return "";
     const own = me().id === "owner";
-    const ls = [["pending", "Pending"], ["lots", "All lots"], ["stock", "Stock"], own ? ["team", "Team"] : S.live ? ["links", "Team links"] : null].filter((x) => x && x[0] !== cur);
-    return `<div class="row" style="gap:6px;flex-wrap:wrap">${ls.map(([k, n]) => `<button class="btn alt sm" data-tab="${k}">${n}</button>`).join("")}</div>`;
+    const ls = [["pending", "Pending"], ["lots", "All lots"], ["stock", "Stock"], own ? ["team", "Team"] : S.live ? ["links", "Team links"] : null].filter(Boolean);
+    return `<div class="seg navseg">${ls.map(([k, n]) => `<button type="button" data-tab="${k}" class="${k === cur ? "on" : ""}">${n}</button>`).join("")}</div>`;
   }
   function lotsOverview(ls) {
     const grp = {};
@@ -2186,7 +2187,7 @@ ${url}`;
   }
   function teamView() {
     const ws = workers().sort((a, b) => (a.active === false) - (b.active === false) || ROLES.indexOf(a.role) - ROLES.indexOf(b.role));
-    let h = `<div class="row spread"><h2>Team</h2><button class="btn accent" data-act="addWorker">+ Add person</button></div>` + bossLinks("team");
+    let h = `<div class="row spread"><h2>Team</h2><button class="btn accent" data-act="addWorker">+ Add person</button></div>`;
     if (!ws.length) return h + `<div class="empty"><h3>Add your team</h3>Add each cutting master, stitcher, thread cutter and ironing person with a PIN. They pick their name on the first screen.</div>`;
     return h + `<div class="tablewrap"><table><thead><tr><th>Name</th><th></th></tr></thead><tbody>${ws.map((w) => `<tr style="${w.active === false ? "opacity:.5" : ""}"><td><b>${esc(w.name)}</b>${w.active === false ? ' <span class="chip">Inactive</span>' : ""}<div class="small muted">${esc(w.role)}${w.pin ? "" : ' \xB7 <span class="muted">PIN not set yet</span>'}</div></td><td style="white-space:nowrap;text-align:right">${w.active === false ? "" : `<button class="btn alt sm" data-openas="${w.id}">Open</button> `}${S.live ? `<button class="btn accent sm" data-wlink="${w.id}">Link</button> ` : ""}<button class="btn alt sm" data-editw="${w.id}">Edit</button></td></tr>`).join("")}</tbody></table></div>`;
   }
