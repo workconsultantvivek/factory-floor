@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="3009-1405";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0210-2350";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -159,6 +159,12 @@ table.split input{width:64px;border:1px solid var(--line);background:var(--bg);b
 .chip.ph-wh{background:var(--gry);color:var(--gry-ink);border-color:transparent}
 .phbar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--surface);border:1px solid var(--line)}
 .phbar i{display:block;height:100%}.phbar i.ph-st{background:#E2B93B}.phbar i.ph-qc{background:#3FA36B}.phbar i.ph-wh{background:#A3A9B5}
+.phbar i.ph-na{background:transparent}.phbar i.ph-fin{background:#5B8DEF}.phbar i.ph-bad{background:#E5675A}
+.chip.ph-fin{background:#DCE7FB;color:#1E3F8A;border-color:transparent}.chip.ph-bad{background:var(--bad-bg);color:var(--bad);border-color:transparent}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .chip.ph-fin{background:#1B2B4D;color:#A9C4FF}}
+.wgrp{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:8px}
+.wrow{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.wsum{display:flex;flex-wrap:wrap;gap:5px}
 .lotph-stitch{border-left:5px solid #E2B93B}.lotph-qc{border-left:5px solid #3FA36B}.lotph-wh{opacity:.6;background:var(--sunk)}
 .tl{margin:0;padding-left:18px;font-size:.88rem;display:flex;flex-direction:column;gap:2px}
 .tl li::marker{color:var(--muted)}
@@ -1934,6 +1940,7 @@ ${url}`;
 `;
     if (!all.length) return h + `<div class="empty"><h3>No lots cut yet</h3>Lots appear here as soon as the cutting master adds them.</div>`;
     h += `<input class="search" type="search" id="lotQ" placeholder="Search lot no., design or colour" value="${esc(lotQ)}" autocomplete="off">`;
+    if (!mine && isBoss()) h += lotsOverview(all) + `<div class="seg">${[["open", "In process"], ["all", "All lots"]].map(([k, n]) => `<button data-lotfilter="${k}" class="${lotFilter === k ? "on" : ""}">${n}</button>`).join("")}</div>`;
     if (mine) h += `<div class="seg">${[["open", "Pieces left for me"], ["all", "All lots"]].map(([k, n]) => `<button data-lotfilter="${k}" class="${lotFilter === k ? "on" : ""}">${n}</button>`).join("")}</div>`;
     return h + `<div class="list" id="lotList">${lotListHtml()}</div>`;
   }
@@ -1943,9 +1950,13 @@ ${url}`;
     const q = lotQ.trim().toLowerCase();
     let ls = lotsSorted();
     if (mine && lotFilter === "open") ls = ls.filter((l) => !l.closed && lotLeft(l, st).total > 0);
+    if (!mine && isBoss() && lotFilter === "open") ls = ls.filter((l) => {
+      const g = lotWhere(l).grp;
+      return g.na + g.st + g.qc + g.fin > 0;
+    });
     if (q) ls = ls.filter((l) => [l.lotNo, l.design, l.colour, l.designName].some((x) => String(x || "").toLowerCase().includes(q)));
-    if (!ls.length) return `<div class="empty">${q ? "No lot matches." : "No lots with pieces left for you. Tap <b>All lots</b> to see finished ones."}</div>`;
-    return ls.map((l) => lotCard(l, { progress: true, tap: mine })).join("");
+    if (!ls.length) return `<div class="empty">${q ? "No lot matches." : (isBoss() ? "No lot in process. Tap <b>All lots</b> to see finished ones." : "No lots with pieces left for you. Tap <b>All lots</b> to see finished ones.")}</div>`;
+    return ls.map((l) => lotCard(l, { progress: true, tap: mine, where: isBoss() })).join("");
   }
   function lotPhases(l) {
     const cells = lotCells(l);
@@ -1999,12 +2010,114 @@ ${url}`;
     if (c.wh) return "ph-wh";
     return "ph-wh";
   }
+  const WGRP = [["na", "Not given", "", "Cut, not given to any stitcher"], ["st", "Stitching", "ph-st", "With stitchers"], ["qc", "Receive / check", "ph-qc", "Lot receiver and checker"], ["fin", "Thread / ironing", "ph-fin", "Thread cutter, ironing, on the way to warehouse"], ["wh", "Warehouse", "ph-wh", "Counted into stock"], ["bad", "Rejected / short", "ph-bad", "Rejected by checker or short at warehouse"]];
+  function isBoss() {
+    const m = me();
+    return !!m && (m.id === "owner" || m.role === "Manager");
+  }
+  function lotWhere(l) {
+    const cells = lotCells(l);
+    const rows = [];
+    const nm = (id) => (W(id) || { name: id === "owner" ? "Owner" : "Unknown" }).name;
+    const add = (o, sz, f) => {
+      for (const [k, n] of Object.entries(sz || {})) o[k] = (o[k] || 0) + (f || 1) * (+n || 0);
+      return o;
+    };
+    const push = (g, label, who, sz) => {
+      const c = {};
+      for (const [k, n] of Object.entries(sz || {})) if (+n > 0) c[k] = +n;
+      const t = Object.values(c).reduce((a, b) => a + b, 0);
+      if (t > 0) rows.push({ g, label, who, cells: c, total: t });
+    };
+    const prog = Object.values((l.prog || {}).stitching || {}).filter(Boolean);
+    const flow = Object.values(l.flow || {}).filter((v) => v && v.st !== "cancelled");
+    push("na", "Not given to any stitcher", "", toReceive(l, "stitching").left);
+    const sw = [...new Set(Object.keys(holders(l, "stitching")).concat(prog.map((v) => v.w)).filter(Boolean))];
+    for (const w of sw) push("st", "Stitching", nm(w), myOpen(l, "stitching", w).left);
+    for (const w of sw) push("st", "Alter, going back to stitcher", nm(w), altWaiting(l, w).cells);
+    const lr = {}, ck = {}, rj = {}, whs = {}, sh = {}, sent = {};
+    for (const v of prog) {
+      if (v.st === "pending") add(lr, v.sz);
+      if (v.st === "received") add(ck, v.sz);
+      if (v.st === "approved") {
+        add(rj, v.rejSz);
+        if (v.wh) add(whs, v.wh.sz);
+      }
+    }
+    push("qc", "Submitted, lot receiver to count", "", lr);
+    push("qc", "Counted, checker to check", "", ck);
+    push("qc", "Passed, not given to thread cutter", "", withChecker(l).left);
+    const tcs = [...new Set(flow.filter((v) => v.stage === "thread").map((v) => v.w))];
+    for (const w of tcs) push("fin", "Thread cutting", nm(w), threadPool(l, w).left);
+    const irs = {};
+    for (const v of flow) {
+      if (v.stage !== "ironing") continue;
+      if (v.st === "given") add(irs[v.w] = irs[v.w] || {}, v.sz);
+      else if (v.st === "done" && !v.wh) add(sent, v.sz);
+      if (v.wh) {
+        add(whs, v.wh.sz);
+        for (const [k, n] of Object.entries(v.sz || {})) sh[k] = (sh[k] || 0) + Math.max(0, (+n || 0) - (+(v.wh.sz || {})[k] || 0));
+      }
+    }
+    for (const [w, c] of Object.entries(irs)) push("fin", "Ironing", nm(w), c);
+    push("fin", "Sent to warehouse, not counted yet", "", sent);
+    push("wh", "In warehouse", "", whs);
+    push("bad", "Rejected by checker", "", rj);
+    push("bad", "Short at warehouse count", "", sh);
+    const acc = {};
+    rows.forEach((r) => add(acc, r.cells));
+    const miss = {};
+    for (const [k, q] of Object.entries(cells)) miss[k] = Math.max(0, (+q || 0) - (acc[k] || 0));
+    push("bad", "Not traced (check entries)", "", miss);
+    const grp = {};
+    WGRP.forEach(([k]) => grp[k] = 0);
+    rows.forEach((r) => grp[r.g] += r.total);
+    return { rows, grp, total: Object.values(cells).reduce((a, b) => a + (+b || 0), 0) };
+  }
+  function whereBar(grp, total) {
+    const t = Math.max(1, total);
+    return `<div class="phbar">${WGRP.filter(([k]) => grp[k] > 0).map(([k, , cls]) => `<i class="${cls || "ph-na"}" style="width:${(grp[k] / t * 100).toFixed(1)}%"></i>`).join("")}</div>`;
+  }
+  function whereChips(grp) {
+    return `<div class="wsum small">${WGRP.filter(([k]) => grp[k] > 0).map(([k, n, cls]) => `<span class="chip line ${cls}">${n} <b>${grp[k]}</b></span>`).join("")}</div>`;
+  }
+  function lotWhereSheet(lid) {
+    const l = __spreadValues({ id: lid }, S.lots[lid]);
+    const r = lotWhere(l);
+    const cutter = W(l.cutBy);
+    const body = WGRP.map(([g, n, cls, hint]) => {
+      const rs = r.rows.filter((x) => x.g === g);
+      if (!rs.length) return "";
+      return `<div class="wgrp"><div class="wrow"><span class="chip ${cls || "line"}">${n}</span><b>${r.grp[g]} pcs</b></div>${rs.map((x) => `<div class="card list" style="gap:6px;padding:10px"><div class="wrow"><span><b>${x.who ? esc(x.who) : esc(x.label)}</b>${x.who ? ` <span class="small muted">${esc(x.label)}</span>` : ""}</span><b>${x.total}</b></div>${openRows(x.cells)}</div>`).join("")}</div>`;
+    }).join("");
+    sheet("Lot " + l.lotNo, `<div class="list">
+    <div><span class="muted">${lotLabel(l)}</span><div class="small muted">${l.designName ? esc(l.designName) + " \xB7 " : ""}cut ${fmtDate(l.date)}${cutter ? " by " + esc(cutter.name) : ""} \xB7 <b>${r.total} pcs</b></div></div>
+    ${whereBar(r.grp, r.total)}${whereChips(r.grp)}
+    ${body || `<div class="empty">No pieces in this lot.</div>`}</div>`);
+  }
+  function lotsOverview(ls) {
+    const grp = {};
+    let tot = 0;
+    WGRP.forEach(([k]) => grp[k] = 0);
+    for (const l of ls) {
+      const r = lotWhere(l);
+      if (r.grp.na + r.grp.st + r.grp.qc + r.grp.fin === 0) continue;
+      WGRP.forEach(([k]) => grp[k] += r.grp[k]);
+      tot += r.total;
+    }
+    if (!tot) return "";
+    return `<div class="card list" style="gap:8px"><div class="wrow"><b>Lots in process</b><span class="small muted">${tot} pcs cut</span></div>${whereBar(grp, tot)}${whereChips(grp)}</div>`;
+  }
   function lotCard(l, o) {
     const cutter = W(l.cutBy);
     return `<div class="card list" style="gap:8px">
     <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> <span class="muted">${lotLabel(l)}</span><div class="small muted ell">${l.designName ? esc(l.designName) + " \xB7 " : ""}cut ${fmtDate(l.date)}${cutter ? " by " + esc(cutter.name) : ""}</div></div>
     <div><div class="left">${l.total}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
     ${cellRows(l, null)}
+    ${o && o.where ? (() => {
+      const r = lotWhere(l);
+      return `${whereBar(r.grp, r.total)}${whereChips(r.grp)}<button type="button" class="btn alt sm" data-lotwhere="${l.id}" style="align-self:flex-start">Where are the pieces?</button>`;
+    })() : ""}
   </div>`;
   }
   function doneView() {
@@ -2526,6 +2639,10 @@ ${url}`;
         S.tab = d.tab;
         render();
         window.scrollTo(0, 0);
+        return;
+      }
+      if (d.lotwhere) {
+        lotWhereSheet(d.lotwhere);
         return;
       }
       if (d.login) {
