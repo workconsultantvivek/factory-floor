@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-0105";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-0115";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -165,6 +165,7 @@ table.split input{width:64px;border:1px solid var(--line);background:var(--bg);b
 .wgrp{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:8px}
 .wrow{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .wsum{display:flex;flex-wrap:wrap;gap:5px}
+.tapcard{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:transform .08s}.tapcard:active{transform:scale(.985);background:var(--sunk)}
 .lotph-stitch{border-left:5px solid #E2B93B}.lotph-qc{border-left:5px solid #3FA36B}.lotph-wh{opacity:.6;background:var(--sunk)}
 .tl{margin:0;padding-left:18px;font-size:.88rem;display:flex;flex-direction:column;gap:2px}
 .tl li::marker{color:var(--muted)}
@@ -2174,12 +2175,12 @@ ${url}`;
   }
   function lotCard(l, o) {
     const cutter = W(l.cutBy);
-    return `<div class="card list" style="gap:8px">
+    return `<div class="card list ${o && o.where ? "tapcard" : ""}" style="gap:8px" ${o && o.where ? `data-lotwhere="${l.id}" role="button" tabindex="0"` : ""}>
     <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> <span class="muted">${lotLabel(l)}</span><div class="small muted ell">${l.designName ? esc(l.designName) + " \xB7 " : ""}cut ${fmtDate(l.date)}${cutter ? " by " + esc(cutter.name) : ""}</div></div>
     <div><div class="left">${l.total}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
     ${o && o.where ? (() => {
       const r = lotWhere(l);
-      return `${markedCellRows(l, r)}${whereBar(r.grp, r.total)}${whereChips(r.grp)}<button type="button" class="btn alt sm" data-lotwhere="${l.id}" style="align-self:flex-start">Where are the pieces?</button>`;
+      return `${markedCellRows(l, r)}${whereBar(r.grp, r.total)}${whereChips(r.grp)}`;
     })() : cellRows(l, null)}
   </div>`;
   }
@@ -2694,7 +2695,7 @@ ${url}`;
     }
   });
   document.addEventListener("click", async (ev) => {
-    const t = ev.target.closest("button");
+    const t = ev.target.closest("button") || ev.target.closest("[data-lotwhere]");
     if (!t || t.closest(".sheet")) return;
     const d = t.dataset;
     try {
