@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0210-2350";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-0005";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -2023,11 +2023,11 @@ ${url}`;
       for (const [k, n] of Object.entries(sz || {})) o[k] = (o[k] || 0) + (f || 1) * (+n || 0);
       return o;
     };
-    const push = (g, label, who, sz) => {
+    const push = (g, label, who, sz, note) => {
       const c = {};
       for (const [k, n] of Object.entries(sz || {})) if (+n > 0) c[k] = +n;
       const t = Object.values(c).reduce((a, b) => a + b, 0);
-      if (t > 0) rows.push({ g, label, who, cells: c, total: t });
+      if (t > 0) rows.push({ g, label, who, cells: c, total: t, note: note || "" });
     };
     const prog = Object.values((l.prog || {}).stitching || {}).filter(Boolean);
     const flow = Object.values(l.flow || {}).filter((v) => v && v.st !== "cancelled");
@@ -2036,16 +2036,14 @@ ${url}`;
     for (const w of sw) push("st", "Stitching", nm(w), myOpen(l, "stitching", w).left);
     for (const w of sw) push("st", "Alter, going back to stitcher", nm(w), altWaiting(l, w).cells);
     const lr = {}, ck = {}, rj = {}, whs = {}, sh = {}, sent = {};
-    for (const v of prog) {
-      if (v.st === "pending") add(lr, v.sz);
-      if (v.st === "received") add(ck, v.sz);
+    const byAt = (a, b) => String(a.at || a.date || "").localeCompare(String(b.at || b.date || ""));
+    for (const v of prog.slice().sort(byAt)) {
+      if (v.st === "pending") push("qc", "Submitted, lot receiver to count", nm(v.w), v.sz, "submitted " + fmtDT(v.at || v.date));
+      if (v.st === "received") push("qc", "Counted, checker to check", nm(v.w), v.sz, "submitted " + fmtDT(v.at || v.date) + (v.rat ? " \xB7 counted " + fmtDT(v.rat) : "") + (v.rby ? " by " + nm(v.rby) : ""));
       if (v.st === "approved") {
-        add(rj, v.rejSz);
         if (v.wh) add(whs, v.wh.sz);
       }
     }
-    push("qc", "Submitted, lot receiver to count", "", lr);
-    push("qc", "Counted, checker to check", "", ck);
     push("qc", "Passed, not given to thread cutter", "", withChecker(l).left);
     const tcs = [...new Set(flow.filter((v) => v.stage === "thread").map((v) => v.w))];
     for (const w of tcs) push("fin", "Thread cutting", nm(w), threadPool(l, w).left);
@@ -2062,7 +2060,7 @@ ${url}`;
     for (const [w, c] of Object.entries(irs)) push("fin", "Ironing", nm(w), c);
     push("fin", "Sent to warehouse, not counted yet", "", sent);
     push("wh", "In warehouse", "", whs);
-    push("bad", "Rejected by checker", "", rj);
+    for (const v of prog) if (v.st === "approved") push("bad", "Rejected by checker", nm(v.w), v.rejSz, v.at2 ? "checked " + fmtDT(v.at2) + (v.by2 ? " by " + nm(v.by2) : "") : "");
     push("bad", "Short at warehouse count", "", sh);
     const acc = {};
     rows.forEach((r) => add(acc, r.cells));
@@ -2088,7 +2086,7 @@ ${url}`;
     const body = WGRP.map(([g, n, cls, hint]) => {
       const rs = r.rows.filter((x) => x.g === g);
       if (!rs.length) return "";
-      return `<div class="wgrp"><div class="wrow"><span class="chip ${cls || "line"}">${n}</span><b>${r.grp[g]} pcs</b></div>${rs.map((x) => `<div class="card list" style="gap:6px;padding:10px"><div class="wrow"><span><b>${x.who ? esc(x.who) : esc(x.label)}</b>${x.who ? ` <span class="small muted">${esc(x.label)}</span>` : ""}</span><b>${x.total}</b></div>${openRows(x.cells)}</div>`).join("")}</div>`;
+      return `<div class="wgrp"><div class="wrow"><span class="chip ${cls || "line"}">${n}</span><b>${r.grp[g]} pcs</b></div>${rs.map((x) => `<div class="card list" style="gap:6px;padding:10px"><div class="wrow"><span><b>${x.who ? esc(x.who) : esc(x.label)}</b>${x.who ? ` <span class="small muted">${esc(x.label)}</span>` : ""}</span><b>${x.total}</b></div>${x.note ? `<div class="small muted">${esc(x.note)}</div>` : ""}${openRows(x.cells)}</div>`).join("")}</div>`;
     }).join("");
     sheet("Lot " + l.lotNo, `<div class="list">
     <div><span class="muted">${lotLabel(l)}</span><div class="small muted">${l.designName ? esc(l.designName) + " \xB7 " : ""}cut ${fmtDate(l.date)}${cutter ? " by " + esc(cutter.name) : ""} \xB7 <b>${r.total} pcs</b></div></div>
