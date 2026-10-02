@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-0020";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-0030";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -17,16 +17,16 @@ setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start th
   --display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
   --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
   --r:12px;
-  --yel:#F6E3A1; --yel-ink:#5C4300; --grn:#CDEBD9; --grn-ink:#14573A; --gry:#DADDE3; --gry-ink:#6B7280;
+  --yel:#F6E3A1; --yel-ink:#5C4300; --grn:#CDEBD9; --grn-ink:#14573A; --gry:#DADDE3; --gry-ink:#6B7280; --fin:#DCE7FB; --fin-ink:#1E3F8A;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0E1420; --surface:#161F30; --sunk:#1D2839; --ink:#E6EBF3; --muted:#98A2B6; --line:#2A3650;
   --accent:#F0B43A; --accent-ink:#1E1502; --btn:#E6EBF3; --btn-ink:#0E1420; --head:#1B2538; --head-ink:#E6EBF3;
-  --ok:#4CC38A; --ok-bg:#15301F; --warn:#E8AE4E; --warn-bg:#35280F; --bad:#F07A6E; --bad-bg:#3A1A18; --yel:#4A3B0E; --yel-ink:#F6D77A; --grn:#163826; --grn-ink:#8FE0B3; --gry:#262F40; --gry-ink:#8C95A8; color-scheme:dark}}
+  --ok:#4CC38A; --ok-bg:#15301F; --warn:#E8AE4E; --warn-bg:#35280F; --bad:#F07A6E; --bad-bg:#3A1A18; --yel:#4A3B0E; --yel-ink:#F6D77A; --grn:#163826; --grn-ink:#8FE0B3; --gry:#262F40; --gry-ink:#8C95A8; --fin:#1B2B4D; --fin-ink:#A9C4FF; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0E1420; --surface:#161F30; --sunk:#1D2839; --ink:#E6EBF3; --muted:#98A2B6; --line:#2A3650;
   --accent:#F0B43A; --accent-ink:#1E1502; --btn:#E6EBF3; --btn-ink:#0E1420; --head:#1B2538; --head-ink:#E6EBF3;
-  --ok:#4CC38A; --ok-bg:#15301F; --warn:#E8AE4E; --warn-bg:#35280F; --bad:#F07A6E; --bad-bg:#3A1A18; --yel:#4A3B0E; --yel-ink:#F6D77A; --grn:#163826; --grn-ink:#8FE0B3; --gry:#262F40; --gry-ink:#8C95A8; color-scheme:dark}
+  --ok:#4CC38A; --ok-bg:#15301F; --warn:#E8AE4E; --warn-bg:#35280F; --bad:#F07A6E; --bad-bg:#3A1A18; --yel:#4A3B0E; --yel-ink:#F6D77A; --grn:#163826; --grn-ink:#8FE0B3; --gry:#262F40; --gry-ink:#8C95A8; --fin:#1B2B4D; --fin-ink:#A9C4FF; color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html.offline body::before{pointer-events:none;content:'No connection – changes will not save until the internet is back';position:fixed;left:0;right:0;bottom:0;z-index:99;background:#b42318;color:#fff;font:600 .85rem/1.2 Barlow,system-ui,sans-serif;text-align:center;padding:8px 12px}
@@ -161,8 +161,7 @@ table.split input{width:64px;border:1px solid var(--line);background:var(--bg);b
 .phbar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--surface);border:1px solid var(--line)}
 .phbar i{display:block;height:100%}.phbar i.ph-st{background:#E2B93B}.phbar i.ph-qc{background:#3FA36B}.phbar i.ph-wh{background:#A3A9B5}
 .phbar i.ph-na{background:transparent}.phbar i.ph-fin{background:#5B8DEF}.phbar i.ph-bad{background:#E5675A}
-.chip.ph-fin{background:#DCE7FB;color:#1E3F8A;border-color:transparent}.chip.ph-bad{background:var(--bad-bg);color:var(--bad);border-color:transparent}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .chip.ph-fin{background:#1B2B4D;color:#A9C4FF}}
+.chip.ph-fin{background:var(--fin);color:var(--fin-ink);border-color:transparent}.chip.ph-bad{background:var(--bad-bg);color:var(--bad);border-color:transparent}
 .wgrp{display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line);padding-top:8px}
 .wrow{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .wsum{display:flex;flex-wrap:wrap;gap:5px}
@@ -2068,10 +2067,38 @@ ${url}`;
     const miss = {};
     for (const [k, q] of Object.entries(cells)) miss[k] = Math.max(0, (+q || 0) - (acc[k] || 0));
     push("bad", "Not traced (check entries)", "", miss);
-    const grp = {};
+    const grp = {}, cg = {};
     WGRP.forEach(([k]) => grp[k] = 0);
-    rows.forEach((r) => grp[r.g] += r.total);
-    return { rows, grp, total: Object.values(cells).reduce((a, b) => a + (+b || 0), 0) };
+    rows.forEach((r) => {
+      grp[r.g] += r.total;
+      for (const [k, n] of Object.entries(r.cells)) (cg[k] = cg[k] || {})[r.g] = (cg[k][r.g] || 0) + n;
+    });
+    return { rows, grp, cg, total: Object.values(cells).reduce((a, b) => a + (+b || 0), 0) };
+  }
+  const WCOL = { na: "var(--surface)", st: "var(--yel)", qc: "var(--grn)", fin: "var(--fin)", wh: "var(--gry)", bad: "var(--bad-bg)" };
+  function cellMarkStyle(g, total) {
+    const segs = WGRP.map(([k]) => [WCOL[k], (g || {})[k] || 0]).filter((x) => x[1] > 0);
+    const t = Math.max(1, total || segs.reduce((a, x) => a + x[1], 0));
+    if (!segs.length) return "";
+    if (segs.length === 1) return `background:${segs[0][0]};border-color:${segs[0][0] === WCOL.na ? "var(--line)" : "transparent"}`;
+    let at = 0;
+    return `background:linear-gradient(90deg,${segs.map(([c, n]) => {
+      const f = at / t * 100;
+      at += n;
+      return `${c} ${f.toFixed(1)}% ${(at / t * 100).toFixed(1)}%`;
+    }).join(",")});border-color:var(--line)`;
+  }
+  function markedCellRows(l, r) {
+    const cells = lotCells(l);
+    return `<div class="crows">${lotColours(l).map((c) => {
+      const zs = sortSizes(Object.keys(cells).filter((k) => splitCK(k)[0] === c && +cells[k] > 0).map((k) => splitCK(k)[1]));
+      if (!zs.length) return "";
+      return `<div class="crow">${c ? `<span class="cname">${esc(c)}</span>` : ""}<span class="row" style="gap:5px">${zs.map((z) => {
+        const k = CK(c, z), g = r.cg[k] || {};
+        const tip = WGRP.filter(([x]) => g[x]).map(([x, n]) => n + " " + g[x]).join(", ");
+        return `<span class="chip line ph-chip" style="${cellMarkStyle(g, +cells[k])}" title="${esc(tip)}">${esc(z)} <b>${cells[k]}</b></span>`;
+      }).join("")}</span></div>`;
+    }).join("")}</div>`;
   }
   function whereBar(grp, total) {
     const t = Math.max(1, total);
@@ -2118,11 +2145,10 @@ ${url}`;
     return `<div class="card list" style="gap:8px">
     <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> <span class="muted">${lotLabel(l)}</span><div class="small muted ell">${l.designName ? esc(l.designName) + " \xB7 " : ""}cut ${fmtDate(l.date)}${cutter ? " by " + esc(cutter.name) : ""}</div></div>
     <div><div class="left">${l.total}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
-    ${cellRows(l, null)}
     ${o && o.where ? (() => {
       const r = lotWhere(l);
-      return `${whereBar(r.grp, r.total)}${whereChips(r.grp)}<button type="button" class="btn alt sm" data-lotwhere="${l.id}" style="align-self:flex-start">Where are the pieces?</button>`;
-    })() : ""}
+      return `${markedCellRows(l, r)}${whereBar(r.grp, r.total)}${whereChips(r.grp)}<button type="button" class="btn alt sm" data-lotwhere="${l.id}" style="align-self:flex-start">Where are the pieces?</button>`;
+    })() : cellRows(l, null)}
   </div>`;
   }
   function doneView() {
