@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-0005";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-0010";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -1756,7 +1756,7 @@ ${url}`;
   function stockView() {
     const { agg, total } = stockAgg();
     const recent = whRecords().sort((a, b) => String(b.wh.at).localeCompare(String(a.wh.at)));
-    let h = `<div class="row spread"><h2>Warehouse stock</h2><span class="small muted">${total} pcs received</span></div>`;
+    let h = `<div class="row spread"><h2>Warehouse stock</h2><span class="small muted">${total} pcs received</span></div>` + bossLinks("stock");
     if (!total) return h + `<div class="empty"><h3>No stock received yet</h3>Pieces appear here once they are received in the warehouse.</div>`;
     h += `<input class="search" type="search" id="stockQ" placeholder="Search design or colour" value="${esc(stockQ)}" autocomplete="off"><div class="list" id="stockList">${stockListHtml(agg)}</div>`;
     h += `<section class="list"><h3>Latest received</h3>${recent.slice(0, 15).map((r) => `<div class="card"><div class="row spread"><span><span class="lotno">${esc(r.lot.lotNo)}</span> <span class="muted">${esc(r.lot.design)}</span> <span class="small muted">${fmtDate(String(r.wh.at).slice(0, 10))}${W(r.wh.by) ? " \xB7 " + esc(W(r.wh.by).name) : ""}</span></span><b>${r.wh.q}</b></div><div class="small muted">${fmtCells(nz(r.wh.sz))}</div>${r.wh.short ? `<div class="small warn">${r.wh.short} short</div>` : ""}</div>`).join("")}</section>`;
@@ -1940,7 +1940,7 @@ ${url}`;
 `;
     if (!all.length) return h + `<div class="empty"><h3>No lots cut yet</h3>Lots appear here as soon as the cutting master adds them.</div>`;
     h += `<input class="search" type="search" id="lotQ" placeholder="Search lot no., design or colour" value="${esc(lotQ)}" autocomplete="off">`;
-    if (!mine && isBoss()) h += lotsOverview(all) + `<div class="seg">${[["open", "In process"], ["all", "All lots"]].map(([k, n]) => `<button data-lotfilter="${k}" class="${lotFilter === k ? "on" : ""}">${n}</button>`).join("")}</div>`;
+    if (!mine && isBoss()) h += bossLinks("lots") + lotsOverview(all) + `<div class="seg">${[["open", "In process"], ["all", "All lots"]].map(([k, n]) => `<button data-lotfilter="${k}" class="${lotFilter === k ? "on" : ""}">${n}</button>`).join("")}</div>`;
     if (mine) h += `<div class="seg">${[["open", "Pieces left for me"], ["all", "All lots"]].map(([k, n]) => `<button data-lotfilter="${k}" class="${lotFilter === k ? "on" : ""}">${n}</button>`).join("")}</div>`;
     return h + `<div class="list" id="lotList">${lotListHtml()}</div>`;
   }
@@ -2093,6 +2093,12 @@ ${url}`;
     ${whereBar(r.grp, r.total)}${whereChips(r.grp)}
     ${body || `<div class="empty">No pieces in this lot.</div>`}</div>`);
   }
+  function bossLinks(cur) {
+    if (!isBoss()) return "";
+    const own = me().id === "owner";
+    const ls = [["pending", "Pending"], ["lots", "All lots"], ["stock", "Stock"], own ? ["team", "Team"] : S.live ? ["links", "Team links"] : null].filter((x) => x && x[0] !== cur);
+    return `<div class="row" style="gap:6px;flex-wrap:wrap">${ls.map(([k, n]) => `<button class="btn alt sm" data-tab="${k}">${n}</button>`).join("")}</div>`;
+  }
   function lotsOverview(ls) {
     const grp = {};
     let tot = 0;
@@ -2180,7 +2186,7 @@ ${url}`;
   }
   function teamView() {
     const ws = workers().sort((a, b) => (a.active === false) - (b.active === false) || ROLES.indexOf(a.role) - ROLES.indexOf(b.role));
-    let h = `<div class="row spread"><h2>Team</h2><button class="btn accent" data-act="addWorker">+ Add person</button></div>`;
+    let h = `<div class="row spread"><h2>Team</h2><button class="btn accent" data-act="addWorker">+ Add person</button></div>` + bossLinks("team");
     if (!ws.length) return h + `<div class="empty"><h3>Add your team</h3>Add each cutting master, stitcher, thread cutter and ironing person with a PIN. They pick their name on the first screen.</div>`;
     return h + `<div class="tablewrap"><table><thead><tr><th>Name</th><th></th></tr></thead><tbody>${ws.map((w) => `<tr style="${w.active === false ? "opacity:.5" : ""}"><td><b>${esc(w.name)}</b>${w.active === false ? ' <span class="chip">Inactive</span>' : ""}<div class="small muted">${esc(w.role)}${w.pin ? "" : ' \xB7 <span class="muted">PIN not set yet</span>'}</div></td><td style="white-space:nowrap;text-align:right">${w.active === false ? "" : `<button class="btn alt sm" data-openas="${w.id}">Open</button> `}${S.live ? `<button class="btn accent sm" data-wlink="${w.id}">Link</button> ` : ""}<button class="btn alt sm" data-editw="${w.id}">Edit</button></td></tr>`).join("")}</tbody></table></div>`;
   }
