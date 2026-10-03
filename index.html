@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1530";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1545";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -2154,8 +2154,99 @@ ${url}`;
     <div><span class="muted">${lotLabel(l)}</span><div class="small muted">${l.designName ? esc(l.designName) + " \xB7 " : ""}cut ${fmtDate(l.date)}${cutter ? " by " + esc(cutter.name) : ""} \xB7 <b>${r.total} pcs</b></div></div>
     ${whereBar(r.grp, r.total)}${whereChips(r.grp)}
     ${body || `<div class="empty">No pieces in this lot.</div>`}
-    ${canFix ? `<button type="button" class="btn alt" id="lwEditSize" style="align-self:flex-start">Edit size</button>` : ""}</div>`);
+    ${canFix || canEditCut(l) ? `<div class="row" style="gap:8px">${canEditCut(l) ? `<button type="button" class="btn alt" id="lwEditCut">Edit cut lot</button>` : ""}${canFix ? `<button type="button" class="btn alt" id="lwEditSize">Edit size</button>` : ""}</div>` : ""}</div>`);
     if (canFix) $("#lwEditSize", sh).onclick = () => editSizeSheet(lid, null);
+    if (canEditCut(l)) $("#lwEditCut", sh).onclick = () => editCutSheet(lid);
+  }
+  function canEditCut(l) {
+    const m = me();
+    return !!m && !!l && (isBoss() || m.role === "Cutting master" && l.cutBy === m.id);
+  }
+  function editCutSheet(lid) {
+    const l = S.lots[lid];
+    if (!l) return;
+    const cells = lotCells(l);
+    const given = {};
+    for (const [k, n] of Object.entries(sumCells(recvList(l, "stitching")))) if (n > 0) given[k] = n;
+    const d = allDesigns()[l.design];
+    const sizes = sortSizes([...new Set((d && d.s && d.s.length ? d.s : SIZE_ORDER.slice(0, 7)).concat(Object.keys(cells).map((k) => splitCK(k)[1])))]);
+    const cols = lotColours(l);
+    const sh = sheet("Edit cut lot " + l.lotNo, `<form id="ecForm" class="list" novalidate>
+    <div class="hint">Correct the pieces cut per size. A size can't go below what is already given to stitchers (shown as <b>given</b>).</div>
+    <div class="card list" style="gap:12px"><div class="row spread"><b>${esc(l.design)}</b><b id="ecTotal" style="font-family:var(--display);font-size:1.3rem">${l.total} pcs</b></div>
+    ${cols.map((c) => `<div class="cblock"><div class="row spread"><b>${esc(c || "Pieces")}</b><span class="small muted" id="ect_${safeId(c)}"></span></div><div class="sizes">${sizes.map((z) => {
+      const k = CK(c, z), id = "ec_" + safeId(k), g = given[k] || 0;
+      return `<label class="sizebox" for="${id}"><span class="top"><b>${esc(z)}</b>${g ? `<span class="muted small">given ${g}</span>` : ""}</span><input type="number" inputmode="numeric" min="${g}" id="${id}" data-ecsize="${esc(k)}" data-min="${g}" placeholder="0" value="${+cells[k] || ""}"></label>`;
+    }).join("")}</div></div>`).join("")}
+    <div class="small" id="ecDiff"></div></div>
+    <div id="ecErr" class="err"></div>
+    <button class="btn accent big" type="submit">Save cut lot</button></form>`);
+    const read = () => {
+      const o = {};
+      let total = 0, bad = "";
+      sh.querySelectorAll("[data-ecsize]").forEach((i) => {
+        const v = Math.round(Math.max(0, +i.value || 0)), k = i.dataset.ecsize;
+        const low = v < +i.dataset.min;
+        i.closest(".sizebox").classList.toggle("over", low);
+        if (low) bad = (splitCK(k)[0] ? splitCK(k)[0] + " " : "") + splitCK(k)[1] + ": " + i.dataset.min + " pcs are already given to stitchers.";
+        o[k] = v;
+        total += v;
+      });
+      return { o, total, bad };
+    };
+    const upd = () => {
+      const r = read();
+      $("#ecTotal", sh).textContent = r.total + " pcs";
+      cols.forEach((c) => {
+        const t = Object.entries(r.o).filter(([k]) => splitCK(k)[0] === c).reduce((a, [, n]) => a + n, 0);
+        $("#ect_" + safeId(c), sh).textContent = t + " pcs";
+      });
+      const ch = Object.keys(r.o).filter((k) => r.o[k] !== (+cells[k] || 0));
+      $("#ecDiff", sh).innerHTML = ch.length ? "Changes: " + ch.map((k) => `${esc(splitCK(k)[0] ? splitCK(k)[0] + " " : "")}<b>${esc(splitCK(k)[1])}</b> ${+cells[k] || 0} \u2192 <b>${r.o[k]}</b>`).join(", ") : "";
+      $("#ecErr", sh).textContent = r.bad;
+    };
+    upd();
+    sh.addEventListener("input", (e) => {
+      if (e.target.dataset.ecsize != null) upd();
+    });
+    $("#ecForm", sh).addEventListener("submit", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const r = read();
+      if (r.bad) return $("#ecErr", sh).textContent = r.bad;
+      if (!r.total) return $("#ecErr", sh).textContent = "A lot needs at least 1 piece.";
+      const cur = lotCells(S.lots[lid]), now = sumCells(recvList(S.lots[lid], "stitching"));
+      const ch = {};
+      for (const [k, v] of Object.entries(r.o)) if (v !== (+cur[k] || 0)) ch[k] = v;
+      for (const k of Object.keys(cur)) if (!(k in r.o) && +cur[k]) ch[k] = 0;
+      if (!Object.keys(ch).length) return closeSheet();
+      for (const [k, v] of Object.entries(ch)) if (v < (now[k] || 0)) return $("#ecErr", sh).textContent = "Some pieces were just given to a stitcher. Close and try again.";
+      const newCells = Object.assign({}, cur, ch);
+      const sizeQty = {};
+      let total = 0;
+      for (const [k, v] of Object.entries(newCells)) {
+        if (!+v) continue;
+        const z = splitCK(k)[1];
+        sizeQty[z] = (sizeQty[z] || 0) + +v;
+        total += +v;
+      }
+      const before = {};
+      Object.keys(ch).forEach((k) => before[k] = +cur[k] || 0);
+      const patch = { cells: ch, sizeQty, total, fixes: { [uid("x")]: { type: "cut", before, after: ch, totalBefore: +S.lots[lid].total || 0, total, by: me().id, at: (/* @__PURE__ */ new Date()).toISOString() } } };
+      const ce = Object.entries((S.lots[lid].prog || {}).cutting || {}).find(([, v]) => v);
+      if (ce) patch.prog = { cutting: { [ce[0]]: { sz: ch, q: total } } };
+      const btn = e.target.querySelector("[type=submit]");
+      btn.disabled = true;
+      try {
+        await S.db.doc("lots/" + lid).update(patch);
+        closeSheet();
+        toast("Lot " + l.lotNo + " updated: " + total + " pcs");
+        render();
+      } catch (x) {
+        btn.disabled = false;
+        writeErr(x);
+      }
+    });
   }
   function canEditSize() {
     const m = me();
@@ -2341,6 +2432,7 @@ ${url}`;
       const r = lotWhere(l);
       return `${markedCellRows(l, r)}${whereBar(r.grp, r.total)}${whereChips(r.grp)}`;
     })() : cellRows(l, null)}
+    ${!(o && o.where) && canEditCut(l) ? `<button type="button" class="btn alt sm" data-editcut="${l.id}" style="align-self:flex-start">Edit</button>` : ""}
   </div>`;
   }
   function doneView() {
@@ -2866,6 +2958,10 @@ ${url}`;
       }
       if (d.lotwhere) {
         lotWhereSheet(d.lotwhere);
+        return;
+      }
+      if (d.editcut) {
+        editCutSheet(d.editcut);
         return;
       }
       if (d.editsize) {
