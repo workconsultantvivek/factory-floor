@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2320";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2330";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -217,7 +217,7 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     { k: "thread", n: "Thread cutting", role: "Thread cutter" },
     { k: "ironing", n: "Ironing", role: "Ironing" }
   ];
-  const ROLES = ["Cutting master", "Stitcher", "Thread cutter", "Ironing", "Lot allocator", "Lot receiver", "Checker", "Warehouse receiver", "Sub manager", "Manager"];
+  const ROLES = ["Cutting master", "Stitcher", "Thread cutter", "Ironing", "Lot allocator", "Lot receiver", "Checker", "Warehouse receiver", "Warehouse Receiver & Pusher", "Sub manager", "Manager"];
   const isThreadW = (w) => !!w && (w.role === "Thread cutter" || w.role === "Sub manager");
   const STAGE_BY_ROLE = Object.fromEntries(STAGES.map((s) => [s.role, s.k]));
   const stageName = (k) => (STAGES.find((s) => s.k === k) || { n: k }).n;
@@ -653,7 +653,7 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     const nTh = () => activeWorkers().filter(isThreadW).reduce((a, w) => a + lotsSorted().filter((l) => threadPool(l, w.id).total > 0).length, 0);
     const nTask = () => tasksFor().filter((t) => t.st !== "done").length;
     const boss = [["alloc", "Allocate", ICON.add, nAlloc()], ["rinbox", "Receive", ICON.add, nRcv()], ["inbox", "Check", ICON.done, nInbox()], ["handover", "To thread cutter", ICON.lots, nHo()], ["mthread", "To ironing", ICON.lots, nTh()], ["bundles", "Report", ICON.team], ["otasks", "Tasks", ICON.done, nTask()], ["dash", "Dashboard", ICON.team, 0, true], ["duty", "Duty hours", ICON.done, 0, true], ["lots", "All lots", ICON.lots, 0, true], ["stock", "Stock", ICON.lots, 0, true]];
-    const tabs = m.id === "owner" ? boss.concat([["team", "Team", ICON.team, 0, true]]) : m.role === "Cutting master" ? [["add", "Add cut lot", ICON.add], ["lots", "All lots", ICON.lots], ["mtasks", "Tasks", ICON.done, tasksFor(m.id).filter((t) => t.st !== "done").length]] : m.role === "Lot allocator" ? [["alloc", "Allocate", ICON.add, nAlloc()], ["allocd", "Bundles", ICON.team], ["lots", "All lots", ICON.lots]] : m.role === "Lot receiver" ? [["rinbox", "Receive work", ICON.add, nRcv()], ["rhist", "Received", ICON.done], ["lots", "All lots", ICON.lots]] : m.role === "Warehouse receiver" ? [["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["lots", "All lots", ICON.done]] : m.role === "Checker" ? [["inbox", "Check work", ICON.done, nInbox()], ["checked", "Checked", ICON.team]] : m.role === "Sub manager" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "Thread lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["tdone", "Completed", ICON.done]] : m.role === "Thread cutter" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "New lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["tdone", "Completed", ICON.done]] : m.role === "Ironing" ? [["inew", "New lots", ICON.lots, flowItems("ironing").filter((v) => v.w === m.id && v.st === "given").length], ["idone", "Completed", ICON.done]] : m.role === "Manager" ? boss.filter((t) => !["dash", "handover", "mthread"].includes(t[0])).concat([["links", "Team links", ICON.team, 0, true]]) : RECV_STAGES.includes(myStage()) ? [["add", "New lots", ICON.lots, myLots(m.id).reduce((n, l) => n + allocOpen(l, m.id).filter((a) => a.total > 0).length, 0)], ["alter", "Alter / Rejected", ICON.add, myLots(m.id).reduce((a, l) => a + altWaiting(l, m.id).total, 0)], ["done", "Completed", ICON.done]] : myStage() ? [["add", "Add entry", ICON.add], ["lots", "Cut lots", ICON.lots], ["done", "Completed", ICON.done]] : [["lots", "Cut lots", ICON.lots]];
+    const tabs = m.id === "owner" ? boss.concat([["team", "Team", ICON.team, 0, true]]) : m.role === "Cutting master" ? [["add", "Add cut lot", ICON.add], ["lots", "All lots", ICON.lots], ["mtasks", "Tasks", ICON.done, tasksFor(m.id).filter((t) => t.st !== "done").length]] : m.role === "Lot allocator" ? [["alloc", "Allocate", ICON.add, nAlloc()], ["allocd", "Bundles", ICON.team], ["lots", "All lots", ICON.lots]] : m.role === "Lot receiver" ? [["rinbox", "Receive work", ICON.add, nRcv()], ["rhist", "Received", ICON.done], ["lots", "All lots", ICON.lots]] : m.role === "Warehouse receiver" || m.role === "Warehouse Receiver & Pusher" ? [["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["lots", "All lots", ICON.done]] : m.role === "Checker" ? [["inbox", "Check work", ICON.done, nInbox()], ["checked", "Checked", ICON.team]] : m.role === "Sub manager" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "Thread lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["tdone", "Completed", ICON.done]] : m.role === "Thread cutter" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "New lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["tdone", "Completed", ICON.done]] : m.role === "Ironing" ? [["inew", "New lots", ICON.lots, flowItems("ironing").filter((v) => v.w === m.id && v.st === "given").length], ["idone", "Completed", ICON.done]] : m.role === "Manager" ? boss.filter((t) => !["dash", "handover", "mthread"].includes(t[0])).concat([["links", "Team links", ICON.team, 0, true]]) : RECV_STAGES.includes(myStage()) ? [["add", "New lots", ICON.lots, myLots(m.id).reduce((n, l) => n + allocOpen(l, m.id).filter((a) => a.total > 0).length, 0)], ["alter", "Alter / Rejected", ICON.add, myLots(m.id).reduce((a, l) => a + altWaiting(l, m.id).total, 0)], ["done", "Completed", ICON.done]] : myStage() ? [["add", "Add entry", ICON.add], ["lots", "Cut lots", ICON.lots], ["done", "Completed", ICON.done]] : [["lots", "Cut lots", ICON.lots]];
     if (!tabs.find((t) => t[0] === S.tab)) S.tab = tabs[0][0];
     const body = { add: addView, lots: lotsView, done: doneView, team: teamView, alter: alterView, alloc: allocView, allocd: bundlesView, duty: dutyView, trecv: threadRecvView, bundles: bundlesView, dash: dashView, inbox: inboxView, checked: checkedView, rinbox: rinboxView, rhist: rhistView, wh: whInboxView, stock: stockView, handover: handoverView, pending: pendingView, links: linksView, otasks: bossTasksView, mtasks: masterTasksView, mthread: mgrThreadView, tnew: threadNewView, tdone: threadDoneView, inew: () => flowNewView("ironing"), idone: () => flowDoneView("ironing") }[S.tab]();
     app.innerHTML = header() + `<main class="wrap">${["dash", "duty", "bundles", "lots", "stock", "team", "links"].includes(S.tab) ? bossLinks(S.tab) : ""}${body}</main>` + (tabs.length > 1 ? `<nav class="bottom ${tabs.filter((t) => !t[4]).length > 5 ? "many" : ""}"><div class="wrap">${tabs.filter((t) => !t[4]).map((t) => `<button data-tab="${t[0] === "bundles" && m.id === "owner" ? "dash" : t[0]}" aria-current="${S.tab === t[0] || t[0] === "bundles" && isBoss() && ["dash", "duty", "lots", "stock", "team", "links"].includes(S.tab)}"><span class="ico">${t[2]}${t[3] ? `<i class="badge">${t[3]}</i>` : ""}</span>${t[1]}</button>`).join("")}</div></nav>` : "");
@@ -2063,6 +2063,10 @@ ${url}`;
   }
   const UW_URL = "https://vivekshingala707.app.n8n.cloud/webhook/factory-uniware-push-9f0c42", UW_KEY = "9f0c423ae2fd359b84ea99ad";
   const UW_FAC = [["THE_MUSK", "The Musk"], ["clothinco", "Clothinco"]];
+  function canUwPush() {
+    const m = me();
+    return !!m && (m.id === "owner" || m.role === "Warehouse Receiver & Pusher");
+  }
   function uwPushed(design) {
     const o = {};
     for (const p of Object.values((S.cfg || {}).uwPush || {})) {
@@ -2197,7 +2201,7 @@ ${url}`;
         const pz = pushed[CK(c, z)] || 0;
         return `<span class="chip line ${pz >= zs[z] ? "approved" : ""}" title="${pz} pushed to Uniware">${esc(z)} <b>${zs[z]}</b>${pz ? ` <span class="small">(${pz} \u2191)</span>` : ""}</span>`;
       }).join("")}</span></div>`).join("")}</div>
-      <div class="row spread"><span class="small muted">Uniware / B2B: <b>${pt}</b> done \xB7 <b>${Math.max(0, left)}</b> left</span>${left > 0 ? `<button class="btn accent sm" data-uwpush="${esc(d)}">Push to Uniware</button>` : `<span class="chip approved">All pushed</span>`}</div></div>`;
+      <div class="row spread"><span class="small muted">Uniware / B2B: <b>${pt}</b> done \xB7 <b>${Math.max(0, left)}</b> left</span>${left > 0 ? canUwPush() ? `<button class="btn accent sm" data-uwpush="${esc(d)}">Push to Uniware</button>` : "" : `<span class="chip approved">All pushed</span>`}</div></div>`;
     }).join("");
   }
   function pendingByPerson() {
@@ -2231,7 +2235,7 @@ ${url}`;
       }
       if (isThreadW(w)) tasks.push(shared("Thread cutting in hand", lots.map((l) => ({ lot: l, q: threadPool(l, w.id).total }))));
       if (w.role === "Ironing") tasks.push(shared("Ironing in hand", flowItems("ironing").filter((v) => v.w === w.id && v.st === "given").map((v) => ({ lot: v.lot, q: +v.q || 0 })))), tasks.push(shared("Sent, warehouse not counted", wh.filter((x) => x.who === w.id)));
-      if (w.role === "Warehouse receiver") tasks.push(shared("To receive in warehouse", wh));
+      if (w.role === "Warehouse receiver" || w.role === "Warehouse Receiver & Pusher") tasks.push(shared("To receive in warehouse", wh));
       const live = tasks.filter((t) => t.pairs.length);
       rows.push({ w, tasks: live, total: live.reduce((a, t) => a + t.pairs.reduce((b, x) => b + x.q, 0), 0) });
     }
@@ -4310,7 +4314,7 @@ ${url}`;
         return;
       }
       if (d.uwpush) {
-        uwPushSheet(d.uwpush);
+        if (canUwPush()) uwPushSheet(d.uwpush);
         return;
       }
       if (d.dashw) {
