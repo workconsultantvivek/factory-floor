@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2250";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2300";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -1637,6 +1637,10 @@ ${url}`;
     return { left, total };
   }
   let tSel = { lid: null, wid: null, keys: /* @__PURE__ */ new Set() };
+  function chkBullets(v) {
+    const nm = (id) => id === "owner" ? "Owner" : id ? (W(id) || { name: "?" }).name : "\u2014";
+    return `<li>Checking started: <b>${v.chkStart ? esc(nm(v.chkBy || v.by2)) : "\u2014"}</b>${v.chkStart ? ` (${fmtDT(v.chkStart)})` : ""}</li><li>Checking finished: <b>${esc(nm(v.by2))}</b>${v.at2 ? ` (${fmtDT(v.at2)})` : ""}</li><li>Checking time: <b>${v.chkStart && v.at2 ? dur(v.chkStart, v.at2) : "\u2014"}</b></li>`;
+  }
   function bunTitle(l, cells) {
     const by = {};
     for (const [k, n] of Object.entries(nz(cells))) {
@@ -1682,7 +1686,7 @@ ${url}`;
     return h + bs.map((b) => {
       const st = W(b.v.w), ck = W(b.v.by2);
       return `<div class="card list" style="gap:8px"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(b.lot.lotNo)}</span> ${bunTitle(b.lot, b.left)}</div><div><div class="left">${b.total}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
-      <ul class="tl small" style="margin:0"><li>Stitcher: <b>${st ? esc(st.name) : "\u2014"}</b></li><li>Checker: <b>${ck ? esc(ck.name) : b.v.by2 === "owner" ? "Owner" : "\u2014"}</b>${b.v.at2 ? " \xB7 " + fmtDT(b.v.at2) : ""}</li></ul>
+      <ul class="tl small" style="margin:0"><li>Stitcher: <b>${st ? esc(st.name) : "\u2014"}</b></li>${chkBullets(b.v)}</ul>
       <button class="btn accent" data-trecv="${b.lot.id}|${b.eid}" style="align-self:flex-start">Receive</button></div>`;
     }).join("");
   }
@@ -1821,7 +1825,7 @@ ${url}`;
     return h + bs.map((b) => {
       const st = W(b.v.w), ck = W(b.v.by2);
       return `<div class="card list" style="gap:8px"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(b.lot.lotNo)}</span> ${bunTitle(b.lot, b.left)}</div><div><div class="left">${b.total}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
-      <ul class="tl small" style="margin:0"><li>Stitcher: <b>${st ? esc(st.name) : "\u2014"}</b></li><li>Checker: <b>${ck ? esc(ck.name) : b.v.by2 === "owner" ? "Owner" : "\u2014"}</b>${b.v.at2 ? " \xB7 " + fmtDT(b.v.at2) : ""}</li></ul>
+      <ul class="tl small" style="margin:0"><li>Stitcher: <b>${st ? esc(st.name) : "\u2014"}</b></li>${chkBullets(b.v)}</ul>
       <button class="btn accent" data-hobun="${b.lot.id}|${b.eid}" style="align-self:flex-start">Give to thread cutter</button></div>`;
     }).join("");
   }
