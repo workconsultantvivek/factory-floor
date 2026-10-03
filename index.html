@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2100";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2120";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -173,6 +173,7 @@ table.split input{width:64px;border:1px solid var(--line);background:var(--bg);b
 .tl li::marker{color:var(--muted)}
 .dname{font-weight:700;font-size:1.12rem;color:var(--ink)}
 .cksum{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:.85rem;white-space:nowrap;flex:none}.cksum b{font-size:1rem;margin-left:4px}.cksum .ok{color:var(--ok)}
+.bunseg{display:grid;grid-template-columns:1fr 1fr;align-self:stretch}.bunseg button{padding:9px 6px;border-bottom:1px solid var(--line)}.bunseg button:nth-child(odd){border-right:1px solid var(--line)}.bunseg button:nth-child(n+3){border-bottom:0}
 .erow{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:7px;font-size:.85rem;flex-wrap:wrap}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}}}
 </style>
@@ -635,8 +636,8 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     const nHo = () => lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0);
     const nTh = () => activeWorkers().filter(isThreadW).reduce((a, w) => a + lotsSorted().filter((l) => threadPool(l, w.id).total > 0).length, 0);
     const nTask = () => tasksFor().filter((t) => t.st !== "done").length;
-    const boss = [["alloc", "Allocate", ICON.add, nAlloc()], ["rinbox", "Receive", ICON.add, nRcv()], ["inbox", "Check", ICON.done, nInbox()], ["handover", "To thread cutter", ICON.lots, nHo()], ["mthread", "To ironing", ICON.lots, nTh()], ["pending", "Report", ICON.team], ["otasks", "Tasks", ICON.done, nTask()], ["dash", "Dashboard", ICON.team, 0, true], ["bundles", "Bundles", ICON.team, 0, true], ["lots", "All lots", ICON.lots, 0, true], ["stock", "Stock", ICON.lots, 0, true]];
-    const tabs = m.id === "owner" ? boss.concat([["team", "Team", ICON.team, 0, true]]) : m.role === "Cutting master" ? [["add", "Add cut lot", ICON.add], ["lots", "All lots", ICON.lots], ["mtasks", "Tasks", ICON.done, tasksFor(m.id).filter((t) => t.st !== "done").length]] : m.role === "Lot allocator" ? [["alloc", "Allocate", ICON.add, nAlloc()], ["allocd", "Bundles", ICON.team], ["lots", "All lots", ICON.lots]] : m.role === "Lot receiver" ? [["rinbox", "Receive work", ICON.add, nRcv()], ["rhist", "Received", ICON.done], ["lots", "All lots", ICON.lots]] : m.role === "Warehouse receiver" ? [["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["lots", "All lots", ICON.done]] : m.role === "Checker" ? [["inbox", "Check work", ICON.done, nInbox()], ["checked", "Checked", ICON.team]] : m.role === "Sub manager" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "Thread lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["tdone", "Completed", ICON.done]] : m.role === "Thread cutter" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "New lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["tdone", "Completed", ICON.done]] : m.role === "Ironing" ? [["inew", "New lots", ICON.lots, flowItems("ironing").filter((v) => v.w === m.id && v.st === "given").length], ["idone", "Completed", ICON.done]] : m.role === "Manager" ? boss.concat([["links", "Team links", ICON.team, 0, true]]) : RECV_STAGES.includes(myStage()) ? [["add", "New lots", ICON.lots, myLots(m.id).reduce((n, l) => n + allocOpen(l, m.id).filter((a) => a.total > 0).length, 0)], ["alter", "Alter / Rejected", ICON.add, myLots(m.id).reduce((a, l) => a + altWaiting(l, m.id).total, 0)], ["done", "Completed", ICON.done]] : myStage() ? [["add", "Add entry", ICON.add], ["lots", "Cut lots", ICON.lots], ["done", "Completed", ICON.done]] : [["lots", "Cut lots", ICON.lots]];
+    const boss = [["alloc", "Allocate", ICON.add, nAlloc()], ["rinbox", "Receive", ICON.add, nRcv()], ["inbox", "Check", ICON.done, nInbox()], ["handover", "To thread cutter", ICON.lots, nHo()], ["mthread", "To ironing", ICON.lots, nTh()], ["otasks", "Tasks", ICON.done, nTask()], ["dash", "Dashboard", ICON.team, 0, true], ["bundles", "Bundles", ICON.team], ["lots", "All lots", ICON.lots, 0, true], ["stock", "Stock", ICON.lots, 0, true]];
+    const tabs = m.id === "owner" ? boss.concat([["team", "Team", ICON.team, 0, true]]) : m.role === "Cutting master" ? [["add", "Add cut lot", ICON.add], ["lots", "All lots", ICON.lots], ["mtasks", "Tasks", ICON.done, tasksFor(m.id).filter((t) => t.st !== "done").length]] : m.role === "Lot allocator" ? [["alloc", "Allocate", ICON.add, nAlloc()], ["allocd", "Bundles", ICON.team], ["lots", "All lots", ICON.lots]] : m.role === "Lot receiver" ? [["rinbox", "Receive work", ICON.add, nRcv()], ["rhist", "Received", ICON.done], ["lots", "All lots", ICON.lots]] : m.role === "Warehouse receiver" ? [["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["lots", "All lots", ICON.done]] : m.role === "Checker" ? [["inbox", "Check work", ICON.done, nInbox()], ["checked", "Checked", ICON.team]] : m.role === "Sub manager" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "Thread lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["tdone", "Completed", ICON.done]] : m.role === "Thread cutter" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "New lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["tdone", "Completed", ICON.done]] : m.role === "Ironing" ? [["inew", "New lots", ICON.lots, flowItems("ironing").filter((v) => v.w === m.id && v.st === "given").length], ["idone", "Completed", ICON.done]] : m.role === "Manager" ? boss.filter((t) => t[0] !== "dash").concat([["links", "Team links", ICON.team, 0, true]]) : RECV_STAGES.includes(myStage()) ? [["add", "New lots", ICON.lots, myLots(m.id).reduce((n, l) => n + allocOpen(l, m.id).filter((a) => a.total > 0).length, 0)], ["alter", "Alter / Rejected", ICON.add, myLots(m.id).reduce((a, l) => a + altWaiting(l, m.id).total, 0)], ["done", "Completed", ICON.done]] : myStage() ? [["add", "Add entry", ICON.add], ["lots", "Cut lots", ICON.lots], ["done", "Completed", ICON.done]] : [["lots", "Cut lots", ICON.lots]];
     if (!tabs.find((t) => t[0] === S.tab)) S.tab = tabs[0][0];
     const body = { add: addView, lots: lotsView, done: doneView, team: teamView, alter: alterView, alloc: allocView, allocd: bundlesView, trecv: threadRecvView, bundles: bundlesView, dash: dashView, inbox: inboxView, checked: checkedView, rinbox: rinboxView, rhist: rhistView, wh: whInboxView, stock: stockView, handover: handoverView, pending: pendingView, links: linksView, otasks: bossTasksView, mtasks: masterTasksView, mthread: mgrThreadView, tnew: threadNewView, tdone: threadDoneView, inew: () => flowNewView("ironing"), idone: () => flowDoneView("ironing") }[S.tab]();
     app.innerHTML = header() + `<main class="wrap">${["dash", "pending", "bundles", "lots", "stock", "team", "links"].includes(S.tab) ? bossLinks(S.tab) : ""}${body}</main>` + (tabs.length > 1 ? `<nav class="bottom ${tabs.filter((t) => !t[4]).length > 5 ? "many" : ""}"><div class="wrap">${tabs.filter((t) => !t[4]).map((t) => `<button data-tab="${t[0]}" aria-current="${S.tab === t[0] || t[0] === "pending" && isBoss() && ["lots", "stock", "team", "links"].includes(S.tab)}"><span class="ico">${t[2]}${t[3] ? `<i class="badge">${t[3]}</i>` : ""}</span>${t[1]}</button>`).join("")}</div></nav>` : "");
@@ -1262,7 +1263,7 @@ ${url}`;
       }).join("")}</section>`;
     }).join("");
   }
-  let bunQ = "", bunFilter = "open";
+  let bunQ = "", bunFilter = "st";
   function bundleRows() {
     const out = [];
     for (const l of lotsSorted()) {
@@ -1287,16 +1288,56 @@ ${url}`;
     <p class="small muted" style="margin:0">Every bundle given to a stitcher. Tap <b>Edit bundle</b> to fix pieces or size.</p>`;
     if (!rows.length) return h + `<div class="empty"><h3>No bundles yet</h3>Bundles show here once lots are allocated to stitchers.</div>`;
     h += `<input class="search" type="search" id="bunQ" placeholder="Search stitcher, lot no., design or colour" value="${esc(bunQ)}" autocomplete="off">
-    <div class="seg">${[["open", "In work"], ["all", "All bundles"]].map(([k, n]) => `<button data-bunfilter="${k}" class="${bunFilter === k ? "on" : ""}">${n}</button>`).join("")}</div>`;
+    <div class="seg bunseg">${[["st", "In stitching"], ["ck", "In checking"], ["th", "In thread cutting"], ["ir", "In ironing"]].map(([k, n]) => `<button data-bunfilter="${k}" class="${bunFilter === k ? "on" : ""}">${n} <span class="small">${bunCount(k)}</span></button>`).join("")}</div>`;
     return h + `<div class="list" id="bunList">${bundleListHtml()}</div>`;
+  }
+  function stageCards(k) {
+    const out = [];
+    const nm = (w) => w === "owner" ? "Owner" : (W(w) || { name: "?" }).name;
+    for (const l of lotsSorted()) {
+      const prog = (l.prog || {}).stitching || {};
+      if (k === "ck") {
+        for (const [eid, v] of Object.entries(prog)) {
+          if (!v || v.st !== "pending" && v.st !== "received") continue;
+          out.push({ lot: l, cells: nz(v.sz), total: +v.q || 0, who: v.w, when: v.at || v.date, chip: v.st === "pending" ? ["pending", "With lot receiver"] : [v.chkStart ? "pending" : "pending", v.chkStart ? "Checking" : "With checker"], bullets: [["Stitcher", nm(v.w)], ["Submitted", fmtDT(v.at || v.date)], v.rby ? ["Received by", nm(v.rby) + " \xB7 " + fmtDT(v.rat)] : null, v.chkStart ? ["Check started", nm(v.chkBy) + " \xB7 " + fmtDT(v.chkStart)] : null] });
+        }
+        for (const b of bundlesToReceive(l)) out.push({ lot: l, cells: b.left, total: b.total, who: b.v.w, when: b.v.at2, chip: ["approved", "Passed \xB7 not given to thread cutter"], bullets: [["Stitcher", nm(b.v.w)], ["Checker", nm(b.v.by2) + (b.v.at2 ? " \xB7 " + fmtDT(b.v.at2) : "")]] });
+      } else if (k === "th") {
+        for (const w of activeWorkers().filter(isThreadW)) for (const b of threadBundles(l, w.id)) {
+          const src = b.v.eid && prog[b.v.eid];
+          out.push({ lot: l, cells: b.left, total: b.total, who: src ? src.w : null, when: b.v.at, chip: ["line ph-fin", b.v.tc ? "With " + nm(b.v.tc) : "With " + w.name], bullets: [src ? ["Stitcher", nm(src.w)] : null, ["Checker", nm(b.v.by)], ["Received by", w.name + " \xB7 " + fmtDT(b.v.at)], b.v.tc ? ["Thread cutter", nm(b.v.tc) + " \xB7 " + fmtDT(b.v.tcAt)] : null] });
+        }
+      } else if (k === "ir") {
+        for (const v of Object.values(l.flow || {})) {
+          if (!v || v.stage !== "ironing" || v.st !== "given") continue;
+          const from = v.from && (l.flow || {})[v.from];
+          const src = from && from.eid && prog[from.eid];
+          out.push({ lot: l, cells: nz(v.sz), total: +v.q || 0, who: src ? src.w : null, when: v.at, chip: ["line ph-fin", "With " + nm(v.w)], bullets: [src ? ["Stitcher", nm(src.w)] : null, from && from.tc ? ["Thread cutter", nm(from.tc)] : null, ["Ironing", nm(v.w) + " \xB7 given " + fmtDT(v.at)], v.by ? ["Given by", nm(v.by)] : null] });
+        }
+      }
+    }
+    return out.sort((a, b) => String(a.when || "").localeCompare(String(b.when || "")));
+  }
+  function bunCount(k) {
+    if (k === "st") return bundleRows().filter((r) => r.left > 0).length;
+    return stageCards(k).length;
   }
   function bundleListHtml() {
     const q = bunQ.trim().toLowerCase();
+    if (bunFilter !== "st") {
+      let cs = stageCards(bunFilter);
+      if (q) cs = cs.filter((c) => [c.who ? (W(c.who) || {}).name : "", c.lot.lotNo, c.lot.design, c.lot.colour, ...c.bullets.filter(Boolean).map((x) => x[1])].some((x) => String(x || "").toLowerCase().includes(q)));
+      if (!cs.length) return `<div class="empty">${q ? "No bundle matches." : "No bundle here right now."}</div>`;
+      const tot = cs.reduce((a, c) => a + c.total, 0);
+      return `<div class="small muted">${cs.length} bundle${cs.length === 1 ? "" : "s"} \xB7 ${tot} pcs</div>` + cs.map((c) => `<div class="card list" style="gap:8px"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.15rem">${esc(c.lot.lotNo)}</span> <span class="dname">${esc(c.lot.design)}</span><div style="margin-top:4px"><span class="chip ${c.chip[0]}">${esc(c.chip[1])}</span></div></div><div><div class="left">${c.total}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
+      ${openRows(c.cells)}
+      <ul class="tl small" style="margin:0">${c.bullets.filter(Boolean).map(([a, b]) => `<li>${esc(a)}: <b>${esc(b)}</b></li>`).join("")}</ul></div>`).join("");
+    }
     let rows = bundleRows();
-    if (bunFilter === "open") rows = rows.filter((r) => r.left > 0 || r.sub > 0 || r.chk > 0);
+    rows = rows.filter((r) => r.left > 0);
     const nm = (w) => (W(w) || { name: "?" }).name;
     if (q) rows = rows.filter((r) => [nm(r.a.w), r.lot.lotNo, r.lot.design, r.lot.colour, r.lot.designName].some((x) => String(x || "").toLowerCase().includes(q)));
-    if (!rows.length) return `<div class="empty">${q ? "No bundle matches." : "No bundle in work. Tap <b>All bundles</b> to see finished ones."}</div>`;
+    if (!rows.length) return `<div class="empty">${q ? "No bundle matches." : "No bundle with stitchers right now."}</div>`;
     const by = {};
     rows.forEach((r) => (by[r.a.w] = by[r.a.w] || []).push(r));
     const canEdit = canEditSize();
@@ -2747,7 +2788,7 @@ ${url}`;
   function bossLinks(cur) {
     if (!isBoss()) return "";
     const own = me().id === "owner";
-    const ls = [["dash", "Dashboard"], ["pending", "Pending"], ["bundles", "Bundles"], ["lots", "Lots"], ["stock", "Stock"], own ? ["team", "Team"] : S.live ? ["links", "Team links"] : null].filter(Boolean);
+    const ls = [own ? ["dash", "Dashboard"] : null, ["bundles", "Bundles"], ["lots", "Lots"], ["stock", "Stock"], own ? ["team", "Team"] : S.live ? ["links", "Team links"] : null].filter(Boolean);
     return `<div class="seg navseg">${ls.map(([k, n]) => `<button type="button" data-tab="${k}" class="${k === cur ? "on" : ""}">${n}</button>`).join("")}</div>`;
   }
   function lotsOverview(ls) {
