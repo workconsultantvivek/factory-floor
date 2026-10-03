@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-0115";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1530";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -482,7 +482,7 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
   }
   function fmtCells(sz) {
     const by = {};
-    for (const [k, n] of Object.entries(sz || {})) {
+    for (const [k, n] of Object.entries(nz(sz))) {
       const [c, z] = splitCK(k);
       (by[c] = by[c] || []).push([z, n]);
     }
@@ -1248,7 +1248,7 @@ ${url}`;
       return `<section class="card list" style="gap:8px"><div class="row spread"><h3>${esc(w.name)}</h3><span class="small muted">${inHand} to finish${waiting ? " \xB7 " + waiting + " not received" : ""}</span></div>
     ${rs.sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 12).map((r) => {
         const o = myOpen(r.lot, "stitching", wid);
-        return `<div class="erow"><span style="min-width:0"><b class="lotno">${esc(r.lot.lotNo)}</b> <span class="muted">${lotLabel(r.lot)}</span><span class="small muted" style="display:block">${fmtDT(r.at || r.date)} \xB7 ${fmtCells(r.sz)}</span></span><span class="row" style="gap:6px"><b>${r.q}</b>${o.total ? '<span class="chip line">In work</span>' : '<span class="chip approved">Submitted</span>'}${!stageEntries(r.lot, "stitching").some((v) => v.w === wid) ? `<button class="btn alt sm" data-cancelalloc="${r.lot.id}|${r.rid}">Cancel</button>` : ""}</span></div>`;
+        return `<div class="erow"><span style="min-width:0"><b class="lotno">${esc(r.lot.lotNo)}</b> <span class="muted">${lotLabel(r.lot)}</span><span class="small muted" style="display:block">${fmtDT(r.at || r.date)} \xB7 ${fmtCells(r.sz)}</span></span><span class="row" style="gap:6px"><b>${r.q}</b>${o.total ? '<span class="chip line">In work</span>' : '<span class="chip approved">Submitted</span>'}${!stageEntries(r.lot, "stitching").some((v) => v.w === wid) ? `<button class="btn alt sm" data-cancelalloc="${r.lot.id}|${r.rid}">Cancel</button>` : ""}<button class="btn alt sm" data-editsize="${r.lot.id}|${wid}">Edit size</button></span></div>`;
       }).join("")}</section>`;
     }).join("");
   }
@@ -2149,10 +2149,169 @@ ${url}`;
       if (!rs.length) return "";
       return `<div class="wgrp"><div class="wrow"><span class="chip ${cls || "line"}">${n}</span><b>${r.grp[g]} pcs</b></div>${rs.map((x) => `<div class="card list" style="gap:6px;padding:10px"><div class="wrow"><span><b>${x.who ? esc(x.who) : esc(x.label)}</b>${x.who ? ` <span class="small muted">${esc(x.label)}</span>` : ""}</span><b>${x.total}</b></div>${x.note ? `<div class="small muted">${esc(x.note)}</div>` : ""}${openRows(x.cells)}</div>`).join("")}</div>`;
     }).join("");
-    sheet("Lot " + l.lotNo, `<div class="list">
+    const canFix = canEditSize() && sizeFixStitchers(l).length > 0;
+    const sh = sheet("Lot " + l.lotNo, `<div class="list">
     <div><span class="muted">${lotLabel(l)}</span><div class="small muted">${l.designName ? esc(l.designName) + " \xB7 " : ""}cut ${fmtDate(l.date)}${cutter ? " by " + esc(cutter.name) : ""} \xB7 <b>${r.total} pcs</b></div></div>
     ${whereBar(r.grp, r.total)}${whereChips(r.grp)}
-    ${body || `<div class="empty">No pieces in this lot.</div>`}</div>`);
+    ${body || `<div class="empty">No pieces in this lot.</div>`}
+    ${canFix ? `<button type="button" class="btn alt" id="lwEditSize" style="align-self:flex-start">Edit size</button>` : ""}</div>`);
+    if (canFix) $("#lwEditSize", sh).onclick = () => editSizeSheet(lid, null);
+  }
+  function canEditSize() {
+    const m = me();
+    return !!m && (isBoss() || m.role === "Lot allocator");
+  }
+  function sizeFixStitchers(l) {
+    return [...new Set(recvList(l, "stitching").map((v) => v.w).filter(Boolean))];
+  }
+  function stitcherCells(l, wid) {
+    return nz(sumCells(recvList(l, "stitching").filter((v) => v.w === wid)));
+  }
+  function deepMerge(a, b) {
+    for (const k in b) {
+      const v = b[k];
+      if (v && typeof v === "object" && !Array.isArray(v) && a[k] && typeof a[k] === "object" && !Array.isArray(a[k])) deepMerge(a[k], v);
+      else a[k] = JSON.parse(JSON.stringify(v));
+    }
+    return a;
+  }
+  function planSizeFix(lid, wid, c, from, to, n) {
+    const l = S.lots[lid];
+    const A = CK(c, from), B = CK(c, to);
+    const mv = (o, take) => ({ [A]: (+(o || {})[A] || 0) - take, [B]: (+(o || {})[B] || 0) + take });
+    const patch = { recv: { stitching: {} }, prog: { stitching: {} } };
+    const work = {};
+    let rem = n;
+    const allocs = recvList(l, "stitching").filter((v) => v.w === wid).sort((a, b) => String(a.at || a.date).localeCompare(String(b.at || b.date)));
+    for (const a of allocs) {
+      const take = Math.min(rem, +(a.sz || {})[A] || 0);
+      if (!take) continue;
+      patch.recv.stitching[a.rid] = { sz: mv(a.sz, take) };
+      rem -= take;
+    }
+    if (rem > 0) return { err: "This stitcher has only " + (n - rem) + " pcs of " + (c ? c + " " : "") + from + " in this lot." };
+    for (const [eid, v] of Object.entries((l.prog || {}).stitching || {})) {
+      if (!v || v.w !== wid || v.st === "withdrawn") continue;
+      let left = n;
+      const p = {};
+      for (const f of ["sz", "altSz", "rejSz"]) {
+        const take = Math.min(left, +(v[f] || {})[A] || 0);
+        if (!take) continue;
+        p[f] = mv(v[f], take);
+        left -= take;
+      }
+      if (!Object.keys(p).length) continue;
+      patch.prog.stitching[eid] = p;
+      const path = "work/" + wid + "_" + String(v.date || "").slice(0, 7);
+      (work[path] = work[path] || {})[eid] = p;
+    }
+    const nl = deepMerge(JSON.parse(JSON.stringify(l)), patch);
+    const pa = passedCells(nl)[A] || 0, ha = handedCells(nl)[A] || 0;
+    if (ha > pa) return { err: "Some " + (c ? c + " " : "") + from + " pieces from this lot were already given to the thread cutter, so their size can't be changed here." };
+    const cells = lotCells(l);
+    const alloc = sumCells(recvList(nl, "stitching"));
+    const need = Math.max(0, (alloc[B] || 0) - (+cells[B] || 0));
+    let cutShift = 0;
+    if (need) {
+      if ((+cells[A] || 0) - need < (alloc[A] || 0)) return { err: "The cut lot has only " + (+cells[B] || 0) + " pcs of " + (c ? c + " " : "") + to + ". Fix the cut lot sizes first." };
+      cutShift = need;
+      const nc = l.cells ? mv(cells, need) : Object.assign({}, cells, mv(cells, need));
+      patch.cells = nc;
+      for (const [eid, v] of Object.entries((l.prog || {}).cutting || {})) {
+        if (v && +(v.sz || {})[A] >= need) {
+          patch.prog.cutting = { [eid]: { sz: mv(v.sz, need) } };
+          break;
+        }
+      }
+    }
+    patch.fixes = { [uid("x")]: { w: wid, c, from, to, q: n, cut: cutShift, by: me().id, at: (/* @__PURE__ */ new Date()).toISOString() } };
+    return { patch, work, cutShift };
+  }
+  function editSizeSheet(lid, wid0) {
+    const l = S.lots[lid];
+    if (!l) return;
+    const ws = sizeFixStitchers(l);
+    if (!ws.length) return toast("No stitcher has pieces from this lot.");
+    const lotSizes = sortSizes([...new Set(SIZE_ORDER.concat(Object.keys(lotCells(l)).map((k) => splitCK(k)[1])))]);
+    const sh = sheet("Edit size \xB7 " + l.lotNo, `<form id="esForm" class="list" novalidate>
+    <div class="hint">Use this when a stitcher actually got (or made) a different size than the one entered. The pieces move to the right size everywhere: the stitcher's lot, completed work and checks.</div>
+    <label class="f">Stitcher<select id="esW">${ws.map((w) => `<option value="${w}" ${w === wid0 ? "selected" : ""}>${esc((W(w) || { name: "?" }).name)}</option>`).join("")}</select></label>
+    <label class="f" id="esCWrap">Colour<select id="esC"></select></label>
+    <div class="row" style="gap:10px;flex-wrap:nowrap">
+      <label class="f" style="flex:1">Entered size (wrong)<select id="esFrom"></select></label>
+      <label class="f" style="flex:1">Actual size<select id="esTo"></select></label>
+    </div>
+    <label class="f">Pieces<input type="number" inputmode="numeric" min="1" id="esN"></label>
+    <div class="small" id="esInfo"></div>
+    <div id="esErr" class="err"></div>
+    <button class="btn accent big" type="submit">Change size</button></form>`, { short: true });
+    const cur = () => stitcherCells(S.lots[lid], $("#esW", sh).value);
+    const fillC = () => {
+      const cs = [...new Set(Object.keys(cur()).map((k) => splitCK(k)[0]))];
+      $("#esC", sh).innerHTML = cs.map((c) => `<option value="${esc(c)}">${esc(c || "-")}</option>`).join("");
+      $("#esCWrap", sh).style.display = cs.length > 1 || cs[0] ? "" : "none";
+      fillFrom();
+    };
+    const fillFrom = () => {
+      const c = $("#esC", sh).value, cc = cur();
+      const zs = sortSizes(Object.keys(cc).filter((k) => splitCK(k)[0] === c).map((k) => splitCK(k)[1]));
+      $("#esFrom", sh).innerHTML = zs.map((z) => `<option value="${esc(z)}">${esc(z)} (${cc[CK(c, z)]} pcs)</option>`).join("");
+      fillTo();
+    };
+    const fillTo = () => {
+      const f = $("#esFrom", sh).value;
+      const was = $("#esTo", sh).value;
+      const opts = lotSizes.filter((z) => z !== f);
+      const up = opts.find((z) => SIZE_ORDER.indexOf(z) > SIZE_ORDER.indexOf(f));
+      const def = was && was !== f ? was : up || opts[0];
+      $("#esTo", sh).innerHTML = opts.map((z) => `<option value="${esc(z)}" ${z === def ? "selected" : ""}>${esc(z)}</option>`).join("");
+      const max = cur()[CK($("#esC", sh).value, f)] || 0;
+      const n = $("#esN", sh);
+      n.max = max;
+      n.value = max;
+      info();
+    };
+    const info = () => {
+      const c = $("#esC", sh).value, f = $("#esFrom", sh).value, t = $("#esTo", sh).value, n = Math.round(+$("#esN", sh).value || 0);
+      $("#esInfo", sh).innerHTML = f && t && n > 0 ? `<b>${n} pcs</b> ${c ? esc(c) + " " : ""}<b>${esc(f)}</b> → <b>${esc(t)}</b> for ${esc((W($("#esW", sh).value) || { name: "?" }).name)}` : "";
+      $("#esErr", sh).textContent = "";
+    };
+    $("#esW", sh).onchange = fillC;
+    $("#esC", sh).onchange = fillFrom;
+    $("#esFrom", sh).onchange = fillTo;
+    $("#esTo", sh).onchange = info;
+    $("#esN", sh).oninput = info;
+    fillC();
+    $("#esForm", sh).addEventListener("submit", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const wid = $("#esW", sh).value, c = $("#esC", sh).value, f = $("#esFrom", sh).value, t = $("#esTo", sh).value;
+      const n = Math.round(+$("#esN", sh).value || 0);
+      const max = cur()[CK(c, f)] || 0;
+      if (!f || !t) return $("#esErr", sh).textContent = "Pick both sizes.";
+      if (f === t) return $("#esErr", sh).textContent = "Entered and actual size are the same.";
+      if (n < 1 || n > max) return $("#esErr", sh).textContent = "Pieces must be between 1 and " + max + ".";
+      const p = planSizeFix(lid, wid, c, f, t, n);
+      if (p.err) return $("#esErr", sh).textContent = p.err;
+      const btn = e.target.querySelector("[type=submit]");
+      btn.disabled = true;
+      try {
+        await S.db.doc("lots/" + lid).update(p.patch);
+        for (const [path, entries] of Object.entries(p.work)) {
+          try {
+            await upsert(path, { entries }, { workerId: wid, month: path.slice(-7) });
+          } catch (x) {
+            console.warn("work doc", x);
+          }
+        }
+        closeSheet();
+        toast(n + " pcs changed " + f + " → " + t + (p.cutShift ? " \xB7 cut lot also fixed" : ""));
+        render();
+      } catch (x) {
+        btn.disabled = false;
+        writeErr(x);
+      }
+    });
   }
   function bossLinks(cur) {
     if (!isBoss()) return "";
@@ -2707,6 +2866,11 @@ ${url}`;
       }
       if (d.lotwhere) {
         lotWhereSheet(d.lotwhere);
+        return;
+      }
+      if (d.editsize) {
+        const [l, w] = d.editsize.split("|");
+        editSizeSheet(l, w);
         return;
       }
       if (d.login) {
