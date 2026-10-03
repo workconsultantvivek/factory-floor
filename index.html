@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1620";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1640";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -341,8 +341,9 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
   }
   function designRates(d) {
     const out = {};
+    const o = d && ((cfg().rates || {})[d.code] || {});
     STAGES.forEach((s) => {
-      const r = d && d.r && d.r[s.k];
+      const r = o && o[s.k] !== void 0 ? o[s.k] : d && d.r && d.r[s.k];
       out[s.k] = r != null && r !== "" ? +r : null;
     });
     return out;
@@ -1977,7 +1978,7 @@ ${url}`;
         return `<label class="sizebox" for="${id}"><span class="top"><b>${esc(z)}</b></span><input type="number" inputmode="numeric" min="0" id="${id}" data-csize="${esc(k)}" placeholder="0"></label>`;
       }).join("")}</div></div>`).join("")}</div>` : `<div class="empty small">Tick the colours that were cut to enter pieces per size.</div>`}
       <div class="grid2"><label class="f">Lot no. (automatic)<input id="cNo" value="${esc(nextLotNo())}" readonly style="background:var(--sunk)"></label><label class="f">Cutting date<input type="date" id="cDate" value="${today()}" max="${today()}"></label></div>
-      <div class="hint">Piece rates: ${STAGES.map((s) => `${s.n} <b>${r[s.k] != null ? inr(r[s.k]) : "\u2014"}</b>`).join(" \xB7 ")}${STAGES.some((s) => r[s.k] == null) ? '<br><span class="warn">Some rates are not set for this design yet.</span>' : ""}</div>
+      <div class="hint">Piece rates: ${STAGES.map((s) => `${s.n} <b>${r[s.k] != null ? inr(r[s.k]) : "\u2014"}</b>`).join(" \xB7 ")}${STAGES.some((s) => r[s.k] == null) ? '<br><span class="warn">Some rates are not set for this design yet.</span>' + (isBoss() ? ` <button type="button" class="btn alt sm" data-act="rateOne">Set rates</button>` : "") : ""}</div>
       <div id="cErr" class="err"></div>
       <button class="btn accent big" type="submit">Add cut lot</button>
     </form>`;
@@ -1989,7 +1990,7 @@ ${url}`;
     const st = myStage();
     const all = lotsSorted();
     const mine = st && st !== "cutting";
-    let h = `<div class="row spread"><h2>${mine ? "Lots cut by master" : "All cut lots"}</h2><span class="small muted">${all.length} lots</span></div>
+    let h = `<div class="row spread"><h2>${mine ? "Lots cut by master" : "All cut lots"}</h2><span class="row" style="gap:8px"><span class="small muted">${all.length} lots</span>${isBoss() ? `<button type="button" class="btn alt sm" data-act="rates">Design rates</button>` : ""}</span></div>
 `;
     if (!all.length) return h + `<div class="empty"><h3>No lots cut yet</h3>Lots appear here as soon as the cutting master adds them.</div>`;
     h += `<input class="search" type="search" id="lotQ" placeholder="Search lot no., design or colour" value="${esc(lotQ)}" autocomplete="off">`;
@@ -2763,6 +2764,80 @@ ${url}`;
     });
     draw();
   }
+  function ratesSheet() {
+    const D = allDesigns();
+    const codes = Object.keys(D).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+    const sh = sheet("Design rates", `<input class="search" type="search" id="rtQ" placeholder="Search ${codes.length} designs" autocomplete="off"><div class="seg"><button type="button" data-rtf="all" class="on">All</button><button type="button" data-rtf="missing">Rate missing</button></div><div class="list" id="rtList" style="gap:6px"></div>`);
+    let f = "all";
+    const draw = () => {
+      const q = $("#rtQ", sh).value.trim().toLowerCase();
+      const D2 = allDesigns();
+      let hits = codes.filter((k) => !q || k.toLowerCase().includes(q) || String(D2[k].n || "").toLowerCase().includes(q));
+      if (f === "missing") hits = hits.filter((k) => STAGES.some((st) => designRates(D2[k])[st.k] == null));
+      $("#rtList", sh).innerHTML = hits.length ? hits.slice(0, 200).map((k) => {
+        const r = designRates(D2[k]);
+        return `<button type="button" class="lotcard" data-rtd="${esc(k)}"><span style="min-width:0"><b class="lotno" style="font-size:1.05rem">${esc(k)}</b><span class="small muted ell" style="display:block">${esc(D2[k].n || "")}</span><span class="small" style="display:block;margin-top:3px">${STAGES.map((st) => `${st.n.split(" ")[0]} <b>${r[st.k] != null ? inr(r[st.k]) : '<span class="warn">\u2014</span>'}</b>`).join(" \xB7 ")}</span></span><span class="small">Edit</span></button>`;
+      }).join("") : `<div class="empty">No design matches.</div>`;
+    };
+    $("#rtQ", sh).oninput = draw;
+    sh.addEventListener("click", (e) => {
+      const fb = e.target.closest("[data-rtf]");
+      if (fb) {
+        f = fb.dataset.rtf;
+        sh.querySelectorAll("[data-rtf]").forEach((b) => b.classList.toggle("on", b === fb));
+        draw();
+        return;
+      }
+      const p = e.target.closest("[data-rtd]");
+      if (p) rateSheet(p.dataset.rtd, true);
+    });
+    draw();
+  }
+  function rateSheet(code, back) {
+    const d = allDesigns()[code];
+    if (!d) return;
+    const r = designRates(d);
+    const open = lotsSorted().filter((l) => l.design === code && (() => {
+      const g = lotWhere(l).grp;
+      return g.na + g.st + g.qc + g.fin > 0;
+    })());
+    const sh = sheet("Rates \xB7 " + code, `<form id="rtForm" class="list" novalidate>
+    ${d.n ? `<div class="small muted">${esc(d.n)}</div>` : ""}
+    <div class="hint">Rate per piece in \u20B9. Leave empty if not paid per piece.</div>
+    <div class="grid2">${STAGES.map((st) => `<label class="f">${esc(st.n)}<input type="number" inputmode="decimal" min="0" step="0.01" id="rt_${st.k}" value="${r[st.k] != null ? r[st.k] : ""}" placeholder="\u2014"></label>`).join("")}</div>
+    ${open.length ? `<label class="row small" style="gap:8px;flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="rtLots" checked> <span>Also use the new rates for <b>${open.length}</b> lot${open.length > 1 ? "s" : ""} of this design still in process (${open.slice(0, 6).map((l) => esc(l.lotNo)).join(", ")}${open.length > 6 ? "\u2026" : ""}). Work already submitted keeps its old rate.</span></label>` : ""}
+    <div id="rtErr" class="err"></div>
+    <button class="btn accent big" type="submit">Save rates</button></form>`, { short: true });
+    $("#rtForm", sh).addEventListener("submit", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const nr = {};
+      for (const st of STAGES) {
+        const v = $("#rt_" + st.k, sh).value.trim();
+        if (v === "") nr[st.k] = null;
+        else if (!(+v >= 0) || +v > 10000) return $("#rtErr", sh).textContent = st.n + ": enter a valid rate.";
+        else nr[st.k] = Math.round(+v * 100) / 100;
+      }
+      const btn = e.target.querySelector("[type=submit]");
+      btn.disabled = true;
+      try {
+        await S.db.doc("config/main").update({ rates: { [code]: Object.assign({}, nr, { by: me().id, at: (/* @__PURE__ */ new Date()).toISOString() }) } });
+        const cb = $("#rtLots", sh);
+        let n = 0;
+        if (cb && cb.checked) for (const l of open) {
+          await S.db.doc("lots/" + l.id).update({ rates: nr });
+          n++;
+        }
+        toast(code + " rates saved" + (n ? " \xB7 " + n + " lot" + (n > 1 ? "s" : "") + " updated" : ""));
+        if (back) ratesSheet();
+        else closeSheet();
+        render();
+      } catch (x) {
+        btn.disabled = false;
+        writeErr(x);
+      }
+    });
+  }
   function newDesignSheet(pre) {
     let sizes = ["S", "M", "L", "XL", "XXL"];
     const sh = sheet("Add new design", `<form id="ndForm" class="list" novalidate>
@@ -3142,6 +3217,14 @@ ${url}`;
       }
       if (d.lotwhere) {
         lotWhereSheet(d.lotwhere);
+        return;
+      }
+      if (d.act === "rates") {
+        ratesSheet();
+        return;
+      }
+      if (d.act === "rateOne") {
+        if (cutDesign) rateSheet(cutDesign, false);
         return;
       }
       if (d.editalloc) {
