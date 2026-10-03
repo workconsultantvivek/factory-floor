@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2350";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2240b";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -1907,11 +1907,17 @@ ${url}`;
     const tot = items.reduce((a, v) => a + (+v.q || 0), 0);
     let h = `<div class="row spread"><h2>New lots</h2><span class="small muted">${tot} pcs in hand</span></div>`;
     if (!items.length) return h + `<div class="empty"><h3>No lot in hand</h3>${stage === "thread" ? "Lots the checker hands over to you appear here." : "Lots the thread cutter hands over to you appear here."}</div>`;
-    return h + items.map((v) => {
+    const card = (v, cells, q, key) => {
       const from = W(v.fromW || v.by);
       return `<div class="card list" style="gap:8px">
-    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(v.lot.lotNo)}</span> ${bunTitle(v.lot, v.sz)}<div class="small muted ell">from ${from ? esc(from.name) : "?"} \xB7 ${fmtDate(String(v.at).slice(0, 10))}</div></div><div><div class="left">${v.q}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
-    <button class="btn accent" data-flowdone="${v.lot.id}|${v.fid}" style="align-self:flex-start">${stage === "thread" ? "Done \u2013 hand over to ironing" : "Done \u2013 send to warehouse"}</button></div>`;
+    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(v.lot.lotNo)}</span> ${bunTitle(v.lot, cells)}<div class="small muted ell">from ${from ? esc(from.name) : "?"} \xB7 ${fmtDate(String(v.at).slice(0, 10))}</div></div><div><div class="left">${q}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
+    <button class="btn accent" data-flowdone="${v.lot.id}|${v.fid}${key ? "|" + esc(key) : ""}" style="align-self:flex-start">${stage === "thread" ? "Done \u2013 hand over to ironing" : "Done \u2013 send to warehouse"}</button></div>`;
+    };
+    return h + items.map((v) => {
+      const cells = Object.entries(nz(v.sz));
+      if (stage !== "ironing" || cells.length < 2) return card(v, v.sz, v.q, "");
+      const ord = (k) => { const [c, z] = splitCK(k); return c + "\u0000" + String(sortSizes([z, ...Object.keys(nz(v.sz)).map((x) => splitCK(x)[1])]).indexOf(z)).padStart(3, "0"); };
+      return cells.sort((a, b) => ord(a[0]).localeCompare(ord(b[0]))).map(([k, n]) => card(v, { [k]: n }, n, k)).join("");
     }).join("");
   }
   function threadDoneView() {
@@ -4174,22 +4180,36 @@ ${url}`;
         return;
       }
       if (d.flowdone) {
-        const [lid, fid] = d.flowdone.split("|");
+        const [lid, fid, ...ckp] = d.flowdone.split("|");
+        const ck = ckp.join("|");
         const v = S.lots[lid].flow[fid];
         if (v.stage === "thread") {
           giveSheet(lid, v.sz, "ironing", fid);
           return;
         }
+        const left = nz(v.sz);
+        const part = ck && left[ck] != null && Object.keys(left).length > 1 ? +left[ck] : 0;
+        const q = part || v.q;
         if (!t.dataset.sure) {
           t.dataset.sure = "1";
-          t.textContent = "Tap again to send " + v.q + " pcs to warehouse";
+          t.textContent = "Tap again to send " + q + " pcs to warehouse";
           t.classList.remove("accent");
           t.classList.add("bad");
           return;
         }
         t.disabled = true;
-        await S.db.doc("lots/" + lid).update({ flow: { [fid]: { st: "done", doneAt: (/* @__PURE__ */ new Date()).toISOString() } } });
-        toast(v.q + " pcs sent to the warehouse");
+        const now = (/* @__PURE__ */ new Date()).toISOString();
+        if (part) {
+          const nid = uid("f");
+          const copy = Object.assign({}, v);
+          delete copy.lot;
+          delete copy.fid;
+          Object.assign(copy, { sz: { [ck]: part }, q: part, st: "done", doneAt: now, splitOf: fid });
+          await S.db.doc("lots/" + lid).update({ flow: { [nid]: copy, [fid]: { sz: { [ck]: 0 }, q: (+v.q || 0) - part } } });
+        } else {
+          await S.db.doc("lots/" + lid).update({ flow: { [fid]: { st: "done", doneAt: now } } });
+        }
+        toast(q + " pcs sent to the warehouse");
         return;
       }
       if (d.act === "newtask") {
