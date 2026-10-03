@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2345";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2350";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -1925,13 +1925,27 @@ ${url}`;
   }
   function flowDoneView(stage) {
     const m = me();
-    const items = flowItems(stage).filter((v) => v.w === m.id && v.st === "done").sort((a, b) => String(b.doneAt).localeCompare(String(a.doneAt)));
     const cur = ym(/* @__PURE__ */ new Date());
-    const monthPcs = items.filter((v) => String(v.doneAt).slice(0, 7) === cur).reduce((a, v) => a + (+v.q || 0), 0);
-    const pend = items.filter((v) => !v.wh).reduce((a, v) => a + (+v.q || 0), 0);
-    let h = `<div class="row spread"><h2>Completed</h2><span class="small muted">${monthPcs} pcs this month</span></div>${pend ? `<p class="small muted" style="margin:0">${pend} pcs are waiting for the warehouse to count.</p>` : ""}`;
-    if (!items.length) return h + `<div class="empty">Nothing sent to the warehouse yet.</div>`;
-    return h + items.slice(0, 40).map((v) => {
+    const items = flowItems(stage).filter((v) => v.w === m.id && v.st === "done" && String(v.doneAt || v.at).slice(0, 7) === S.month).sort((a, b) => String(b.doneAt).localeCompare(String(a.doneAt)));
+    const rateOf = (l) => {
+      if (l.rates && l.rates[stage] != null) return +l.rates[stage];
+      const d = allDesigns()[l.design];
+      return d ? designRates(d)[stage] : null;
+    };
+    let pcs = 0, got = 0, amt = 0, norate = false;
+    for (const v of items) {
+      pcs += +v.q || 0;
+      const g = v.wh ? Math.min(+v.wh.q || 0, +v.q || 0) : 0;
+      got += g;
+      const r = rateOf(v.lot);
+      if (r != null) amt += g * r;
+      else if (g) norate = true;
+    }
+    let h = `<div class="row spread"><h2>Completed</h2><div class="row" style="gap:6px"><button class="btn alt sm" data-month="-1" aria-label="Previous month">\u2039</button><b>${monthLabel(S.month)}</b><button class="btn alt sm" data-month="1" aria-label="Next month" ${S.month >= cur ? "disabled" : ""}>\u203A</button></div></div>
+    <div class="stats"><div class="stat"><span>Lots</span><b>${items.length}</b></div><div class="stat"><span>Pieces</span><b>${pcs}</b></div><div class="stat"><span>Earned</span><b>${inr(amt)}</b></div></div>
+    ${pcs > got ? `<p class="small muted" style="margin:0">${pcs - got} pcs are waiting for the warehouse to count. Amount is added once they are received.</p>` : ""}${norate ? `<p class="small warn" style="margin:0">Rate is not set for some designs, so their amount is not counted yet.</p>` : ""}`;
+    if (!items.length) return h + `<div class="empty">Nothing sent to the warehouse in ${monthLabel(S.month)}.</div>`;
+    return h + items.map((v) => {
       const wh = v.wh;
       const full = wh && +wh.q >= +v.q;
       let status;
@@ -1946,9 +1960,11 @@ ${url}`;
         }
         return o;
       })() : null;
-      return `<div class="card list" style="gap:6px"><div class="row spread" style="align-items:flex-start"><span><span class="lotno">${esc(v.lot.lotNo)}</span> <span class="muted">${esc(v.lot.design)}</span> <span class="small muted">sent ${fmtDate(String(v.doneAt).slice(0, 10))}</span></span><b>${v.q} pcs</b></div>
+      return `<div class="card list" style="gap:6px"><div class="row spread" style="align-items:flex-start"><span><span class="lotno">${esc(v.lot.lotNo)}</span> ${bunTitle(v.lot, v.sz)} <span class="small muted" style="display:block">sent ${fmtDT(v.doneAt)}${(() => {
+        const r = rateOf(v.lot), g = v.wh ? Math.min(+v.wh.q || 0, +v.q || 0) : 0;
+        return r != null && g ? " \xB7 <b>" + inr(g * r) + "</b>" : "";
+      })()}</span></span><b>${v.q} pcs</b></div>
       <div class="row" style="gap:6px">${status}</div>
-      <div class="small muted">${fmtCells(nz(v.sz))}</div>
       ${missing && Object.keys(missing).length ? `<div class="small" style="color:var(--bad)">Not received: ${fmtCells(missing)}</div>` : ""}
       ${wh ? `<div class="small muted">Counted ${fmtDate(String(wh.at).slice(0, 10))}${W(wh.by) ? " by " + esc(W(wh.by).name) : ""}${wh.note ? " \xB7 " + esc(wh.note) : ""}</div>` : ""}</div>`;
     }).join("");
