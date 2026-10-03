@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1700";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1715";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -2615,6 +2615,32 @@ ${url}`;
     ${!(o && o.where) && canEditCut(l) ? `<button type="button" class="btn alt sm" data-editcut="${l.id}" style="align-self:flex-start">Edit</button>` : ""}
   </div>`;
   }
+  function stitchPay(lot, wid) {
+    const cap = sumCells(recvList(lot, "stitching").filter((v) => v.w === wid));
+    const seen = {}, out = {};
+    const ents = Object.entries((lot.prog || {}).stitching || {}).filter(([, v]) => v && v.w === wid && (v.st === "received" || v.st === "approved")).sort((a, b) => String(a[1].rat || a[1].at || a[1].date).localeCompare(String(b[1].rat || b[1].at || b[1].date)));
+    for (const [eid, v] of ents) {
+      const o = {};
+      const keys = new Set(Object.keys(v.sz || {}).concat(Object.keys(v.altSz || {}), Object.keys(v.rejSz || {})));
+      for (const k of keys) {
+        const got = (+(v.sz || {})[k] || 0) + (v.st === "approved" ? (+(v.altSz || {})[k] || 0) + (+(v.rejSz || {})[k] || 0) : 0);
+        const rej = v.st === "approved" ? +(v.rejSz || {})[k] || 0 : 0;
+        const take = Math.max(0, Math.min(got, (cap[k] || 0) - (seen[k] || 0)));
+        seen[k] = (seen[k] || 0) + take;
+        const pay = Math.max(0, take - rej);
+        if (pay) o[k] = pay;
+      }
+      out[eid] = o;
+    }
+    return out;
+  }
+  function stitchRate(lot, e) {
+    if (e && e.rate != null) return +e.rate;
+    if (lot && lot.rates && lot.rates.stitching != null) return +lot.rates.stitching;
+    const d = lot && allDesigns()[lot.design];
+    const r = d ? designRates(d).stitching : null;
+    return r != null ? r : null;
+  }
   function doneView() {
     const m = me();
     const cur = ym(/* @__PURE__ */ new Date());
@@ -2635,9 +2661,20 @@ ${url}`;
       return h + (lots.length ? `<div class="list">${lots.map((l) => lotCard(l, {})).join("")}</div>` : `<div class="empty">No lots cut on ${range} ${monthLabel(S.month)}.</div>`);
     }
     const list = myEntries(m.id, S.month).filter((e) => e.status !== "rejected" && inHalf(e.date)).sort((a, b) => b.date.localeCompare(a.date) || String(b.at).localeCompare(String(a.at)));
-    const sum = (arr) => arr.reduce((a, e) => ({ pcs: a.pcs + (+e.qty || 0), amt: a.amt + (e.rate != null && e.status === "approved" ? e.qty * e.rate : 0), appr: a.appr + (e.status === "approved" ? +e.qty : 0) }), { pcs: 0, amt: 0, appr: 0 });
+    const payBy = {};
+    const payOf = (e) => {
+      const lot = S.lots[e.lotId];
+      if (!lot || e.stage !== "stitching") return { pcs: e.status === "approved" ? +e.qty || 0 : 0, sz: {}, rate: e.rate != null ? +e.rate : null };
+      const pm = payBy[e.lotId] || (payBy[e.lotId] = stitchPay(lot, m.id));
+      const sz = pm[e.eid] || {};
+      return { pcs: Object.values(sz).reduce((a, b) => a + b, 0), sz, rate: stitchRate(lot, e) };
+    };
+    const sum = (arr) => arr.reduce((a, e) => {
+      const p = payOf(e);
+      return { pcs: a.pcs + (+e.qty || 0) + (e.status === "approved" ? (+e.alter || 0) + (+e.reject || 0) : 0), amt: a.amt + (p.rate != null ? p.pcs * p.rate : 0), got: a.got + (e.status === "received" || e.status === "approved" ? (+e.qty || 0) + (e.status === "approved" ? (+e.alter || 0) + (+e.reject || 0) : 0) : 0), paid: a.paid + p.pcs, norate: a.norate || p.pcs > 0 && p.rate == null };
+    }, { pcs: 0, amt: 0, got: 0, paid: 0, norate: false });
     const t = sum(list);
-    h += `<div class="stats"><div class="stat"><span>Pieces</span><b>${t.pcs}</b></div><div class="stat"><span>Passed</span><b>${t.appr}</b></div><div class="stat"><span>Earned</span><b>${inr(t.amt)}</b></div></div>${t.pcs > t.appr ? `<p class="small muted" style="margin:0">${t.pcs - t.appr} pcs are still with the lot receiver or checker. Amount is added once they pass.</p>` : ""}`;
+    h += `<div class="stats"><div class="stat"><span>Pieces</span><b>${t.pcs}</b></div><div class="stat"><span>Received</span><b>${t.got}</b></div><div class="stat"><span>Earned</span><b>${inr(t.amt)}</b></div></div>${t.pcs > t.got ? `<p class="small muted" style="margin:0">${t.pcs - t.got} pcs are still with the lot receiver. Amount is added once they are received.</p>` : ""}${t.norate ? `<p class="small warn" style="margin:0">Rate is not set for some designs, so their amount is not counted yet.</p>` : ""}`;
     if (!list.length) return h + `<div class="empty">No entries on ${range} ${monthLabel(S.month)}.</div>`;
     const groups = {};
     for (const e of list) {
@@ -2652,7 +2689,7 @@ ${url}`;
       g.last = g.subs[g.subs.length - 1].e.at || g.subs[g.subs.length - 1].e.date;
       return g;
     }).sort((x, y) => String(y.last).localeCompare(String(x.last)));
-    const stChip = (e) => `<span class="chip ${e.status === "received" ? "pending" : e.status}">${e.status === "pending" ? "Pending" : e.status === "received" ? "With checker" : "Passed"}</span>`;
+    const stChip = (e) => `<span class="chip ${e.status === "pending" ? "pending" : "approved"}">${e.status === "pending" ? "Pending \xB7 with receiver" : e.status === "received" ? "Received" : "Received \xB7 checked"}</span>`;
     h += `<div class="list">${gl.map((g) => {
       const lot = S.lots[g.lotId] || { lotNo: "(lot removed)", design: "" };
       const [c, z] = splitCK(g.k);
@@ -2662,7 +2699,8 @@ ${url}`;
       let amt = null;
       g.subs.forEach((x) => {
         const e = x.e;
-        if (e.rate != null && e.status === "approved") amt = (amt || 0) + Math.round(e.qty * e.rate * x.share);
+        const p = payOf(e);
+        if (p.rate != null && (e.status === "received" || e.status === "approved")) amt = (amt || 0) + Math.round((e.stage === "stitching" && S.lots[e.lotId] ? p.sz[g.k] || 0 : e.qty * x.share) * p.rate);
       });
       const first = g.subs[0].e.at || g.subs[0].e.date;
       const lastE = g.subs[g.subs.length - 1].e;
