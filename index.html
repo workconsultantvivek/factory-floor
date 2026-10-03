@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2340";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2345";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -1910,8 +1910,7 @@ ${url}`;
     return h + items.map((v) => {
       const from = W(v.fromW || v.by);
       return `<div class="card list" style="gap:8px">
-    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(v.lot.lotNo)}</span> <span class="muted">${esc(v.lot.design)}</span><div class="small muted ell">from ${from ? esc(from.name) : "?"} \xB7 ${fmtDate(String(v.at).slice(0, 10))}</div></div><div><div class="left">${v.q}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
-    ${openRows(v.sz)}
+    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(v.lot.lotNo)}</span> ${bunTitle(v.lot, v.sz)}<div class="small muted ell">from ${from ? esc(from.name) : "?"} \xB7 ${fmtDate(String(v.at).slice(0, 10))}</div></div><div><div class="left">${v.q}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
     <button class="btn accent" data-flowdone="${v.lot.id}|${v.fid}" style="align-self:flex-start">${stage === "thread" ? "Done \u2013 hand over to ironing" : "Done \u2013 send to warehouse"}</button></div>`;
     }).join("");
   }
