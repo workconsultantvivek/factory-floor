@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2325";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2345";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -666,9 +666,9 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     const nTh = () => activeWorkers().filter(isThreadW).reduce((a, w) => a + lotsSorted().filter((l) => threadPool(l, w.id).total > 0).length, 0);
     const nTask = () => tasksFor().filter((t) => t.st !== "done").length;
     const boss = [["alloc", "Allocate", ICON.add, nAlloc()], ["rinbox", "Receive", ICON.add, nRcv()], ["inbox", "Check", ICON.done, nInbox()], ["handover", "To thread cutter", ICON.lots, nHo()], ["mthread", "To ironing", ICON.lots, nTh()], ["bundles", "Report", ICON.team], ["otasks", "Tasks", ICON.done, nTask()], ["dash", "Dashboard", ICON.team, 0, true], ["duty", "Duty hours", ICON.done, 0, true], ["lots", "All lots", ICON.lots, 0, true], ["stock", "Stock", ICON.lots, 0, true]];
-    const tabs = m.id === "owner" ? boss.concat([["team", "Team", ICON.team, 0, true]]) : m.role === "Cutting master" ? [["add", "Add cut lot", ICON.add], ["lots", "All lots", ICON.lots], ["mtasks", "Tasks", ICON.done, tasksFor(m.id).filter((t) => t.st !== "done").length]] : m.role === "Lot allocator" ? [["alloc", "Allocate", ICON.add, nAlloc()], ["allocd", "Bundles", ICON.team], ["lots", "All lots", ICON.lots]] : m.role === "Lot receiver" ? [["rinbox", "Receive work", ICON.add, nRcv()], ["rhist", "Received", ICON.done], ["lots", "All lots", ICON.lots]] : m.role === "Warehouse receiver" || m.role === "Warehouse Receiver & Pusher" ? [["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["lots", "All lots", ICON.done]] : m.role === "Checker" ? [["inbox", "Check work", ICON.done, nInbox()], ["checked", "Checked", ICON.team]] : m.role === "Sub manager" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "Thread lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots]] : m.role === "Thread cutter" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "New lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["tdone", "Completed", ICON.done]] : m.role === "Ironing" ? [["inew", "New lots", ICON.lots, flowItems("ironing").filter((v) => v.w === m.id && v.st === "given").length], ["idone", "Completed", ICON.done]] : m.role === "Manager" ? boss.filter((t) => !["dash", "handover", "mthread"].includes(t[0])).concat([["links", "Team links", ICON.team, 0, true]]) : RECV_STAGES.includes(myStage()) ? [["add", "New lots", ICON.lots, myLots(m.id).reduce((n, l) => n + allocOpen(l, m.id).filter((a) => a.total > 0).length, 0)], ["alter", "Alter / Rejected", ICON.add, myLots(m.id).reduce((a, l) => a + altWaiting(l, m.id).total + irAltCells(l, m.id, "sent").total, 0)], ["done", "Completed", ICON.done]] : myStage() ? [["add", "Add entry", ICON.add], ["lots", "Cut lots", ICON.lots], ["done", "Completed", ICON.done]] : [["lots", "Cut lots", ICON.lots]];
+    const tabs = m.id === "owner" ? boss.concat([["team", "Team", ICON.team, 0, true]]) : m.role === "Cutting master" ? [["add", "Add cut lot", ICON.add], ["lots", "All lots", ICON.lots], ["mtasks", "Tasks", ICON.done, tasksFor(m.id).filter((t) => t.st !== "done").length]] : m.role === "Lot allocator" ? [["alloc", "Allocate", ICON.add, nAlloc()], ["allocd", "Bundles", ICON.team], ["lots", "All lots", ICON.lots]] : m.role === "Lot receiver" ? [["rinbox", "Receive work", ICON.add, nRcv()], ["rhist", "Received", ICON.done], ["lots", "All lots", ICON.lots]] : m.role === "Warehouse Receiver & Pusher" ? [["whr", "Received in Warehouse", ICON.add, whFlowState().filter((r) => !r.split && r.baseQ > 0).length], ["uwp", "Push Uniware", ICON.lots, whFlowState().filter((r) => r.split && r.uwLeftQ > 0).length], ["uwh", "Pushed", ICON.done]] : m.role === "Warehouse receiver" ? [["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["lots", "All lots", ICON.done]] : m.role === "Checker" ? [["inbox", "Check work", ICON.done, nInbox()], ["checked", "Checked", ICON.team]] : m.role === "Sub manager" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "Thread lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots]] : m.role === "Thread cutter" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "New lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["tdone", "Completed", ICON.done]] : m.role === "Ironing" ? [["inew", "New lots", ICON.lots, flowItems("ironing").filter((v) => v.w === m.id && v.st === "given").length], ["idone", "Completed", ICON.done]] : m.role === "Manager" ? boss.filter((t) => !["dash", "handover", "mthread"].includes(t[0])).concat([["links", "Team links", ICON.team, 0, true]]) : RECV_STAGES.includes(myStage()) ? [["add", "New lots", ICON.lots, myLots(m.id).reduce((n, l) => n + allocOpen(l, m.id).filter((a) => a.total > 0).length, 0)], ["alter", "Alter / Rejected", ICON.add, myLots(m.id).reduce((a, l) => a + altWaiting(l, m.id).total + irAltCells(l, m.id, "sent").total, 0)], ["done", "Completed", ICON.done]] : myStage() ? [["add", "Add entry", ICON.add], ["lots", "Cut lots", ICON.lots], ["done", "Completed", ICON.done]] : [["lots", "Cut lots", ICON.lots]];
     if (!tabs.find((t) => t[0] === S.tab)) S.tab = tabs[0][0];
-    const body = { add: addView, lots: lotsView, done: doneView, team: teamView, alter: alterView, alloc: allocView, allocd: bundlesView, duty: dutyView, trecv: threadRecvView, bundles: bundlesView, dash: dashView, inbox: inboxView, checked: checkedView, rinbox: rinboxView, rhist: rhistView, wh: whInboxView, stock: stockView, handover: handoverView, pending: pendingView, links: linksView, otasks: bossTasksView, mtasks: masterTasksView, mthread: mgrThreadView, tnew: threadNewView, tdone: threadDoneView, inew: () => flowNewView("ironing"), idone: () => flowDoneView("ironing") }[S.tab]();
+    const body = { add: addView, lots: lotsView, done: doneView, team: teamView, alter: alterView, alloc: allocView, allocd: bundlesView, duty: dutyView, trecv: threadRecvView, bundles: bundlesView, dash: dashView, inbox: inboxView, checked: checkedView, rinbox: rinboxView, rhist: rhistView, wh: whInboxView, stock: stockView, whr: whRecvdView, uwp: uwQueueView, uwh: uwHistView, handover: handoverView, pending: pendingView, links: linksView, otasks: bossTasksView, mtasks: masterTasksView, mthread: mgrThreadView, tnew: threadNewView, tdone: threadDoneView, inew: () => flowNewView("ironing"), idone: () => flowDoneView("ironing") }[S.tab]();
     app.innerHTML = header() + `<main class="wrap">${["dash", "duty", "bundles", "lots", "stock", "team", "links"].includes(S.tab) ? bossLinks(S.tab) : ""}${body}</main>` + (tabs.length > 1 ? `<nav class="bottom ${tabs.filter((t) => !t[4]).length > 5 ? "many" : ""}"><div class="wrap">${tabs.filter((t) => !t[4]).map((t) => `<button data-tab="${t[0] === "bundles" && m.id === "owner" ? "dash" : t[0]}" aria-current="${S.tab === t[0] || t[0] === "bundles" && isBoss() && ["dash", "duty", "lots", "stock", "team", "links"].includes(S.tab)}"><span class="ico">${t[2]}${t[3] ? `<i class="badge">${t[3]}</i>` : ""}</span>${t[1]}</button>`).join("")}</div></nav>` : "");
     for (const [id, v] of Object.entries(draft)) {
       const el = document.getElementById(id);
@@ -2209,8 +2209,8 @@ ${url}`;
   function whRecords() {
     const out = [];
     for (const l of lotsSorted()) {
-      for (const v of Object.values((l.prog || {}).stitching || {})) if (v && v.wh) out.push({ lot: l, wh: v.wh });
-      for (const v of Object.values(l.flow || {})) if (v && v.wh) out.push({ lot: l, wh: v.wh });
+      for (const [id, v] of Object.entries((l.prog || {}).stitching || {})) if (v && v.wh) out.push({ lot: l, wh: v.wh, kind: "prog", id });
+      for (const [id, v] of Object.entries(l.flow || {})) if (v && v.wh) out.push({ lot: l, wh: v.wh, kind: "flow", id });
     }
     return out;
   }
@@ -2377,7 +2377,242 @@ ${url}`;
         const pz = pushed[CK(c, z)] || 0;
         return `<span class="chip line ${pz >= zs[z] ? "approved" : ""}" title="${pz} pushed to Uniware">${esc(z)} <b>${zs[z]}</b>${pz ? ` <span class="small">(${pz} \u2191)</span>` : ""}</span>`;
       }).join("")}</span></div>`).join("")}</div>
-      <div class="row spread"><span class="small muted">Uniware / B2B: <b>${pt}</b> done \xB7 <b>${Math.max(0, left)}</b> left</span>${left > 0 ? canUwPush() ? `<button class="btn accent sm" data-uwpush="${esc(d)}">Push to Uniware</button>` : "" : `<span class="chip approved">All pushed</span>`}</div></div>`;
+      <div class="row spread"><span class="small muted">Uniware / B2B: <b>${pt}</b> done \xB7 <b>${Math.max(0, left)}</b> left</span>${left > 0 ? "" : `<span class="chip approved">All pushed</span>`}</div></div>`;
+    }).join("");
+  }
+  function whRecKey(r) {
+    return r.lot.id + ":" + r.kind + ":" + r.id;
+  }
+  function whFlowState() {
+    const pool = {};
+    for (const p of Object.values((S.cfg || {}).uwPush || {})) {
+      if (!p || p.rec) continue;
+      const d = pool[p.design] = pool[p.design] || {};
+      for (const [k, n] of Object.entries(p.ok || {})) d[k] = (d[k] || 0) + (+n || 0);
+    }
+    const recs = whRecords().sort((a, b) => String(a.wh.at).localeCompare(String(b.wh.at)));
+    for (const r of recs) {
+      const d = pool[r.lot.design] || {};
+      const base = {};
+      for (const [k, n] of Object.entries(nz(r.wh.sz))) {
+        const take = Math.min(+n, d[k] || 0);
+        if (take) d[k] -= take;
+        if (+n - take > 0) base[k] = +n - take;
+      }
+      r.base = base;
+      r.baseQ = Object.values(base).reduce((a, b) => a + b, 0);
+      r.split = r.wh.split || null;
+      const done = r.wh.uwDone || {};
+      const left = {};
+      if (r.split) for (const [k, n] of Object.entries(nz(r.split.uw))) if (+n - (+done[k] || 0) > 0) left[k] = +n - (+done[k] || 0);
+      r.uwLeft = left;
+      r.uwLeftQ = Object.values(left).reduce((a, b) => a + b, 0);
+    }
+    return recs;
+  }
+  function whRecPatch(r, wh) {
+    return r.kind === "flow" ? { flow: { [r.id]: { wh } } } : { prog: { stitching: { [r.id]: { wh } } } };
+  }
+  function whRecFind(key) {
+    return whFlowState().find((r) => whRecKey(r) === key);
+  }
+  function whRecCard(r, cells, q, extra, btn) {
+    const by = W(r.wh.by);
+    return `<div class="card list" style="gap:8px">
+    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.15rem">${esc(r.lot.lotNo)}</span> ${bunTitle(r.lot, cells)}
+    <ul class="tl small" style="margin:4px 0 0"><li>Received by: ${by ? esc(by.name) : r.wh.by === "owner" ? "Owner" : "?"} (${fmtDT(r.wh.at)})</li>${extra || ""}</ul></div>
+    <div><div class="left">${q}</div><div class="small muted" style="text-align:right">pcs</div></div></div>${btn}</div>`;
+  }
+  function whRecvdView() {
+    const list = whFlowState().filter((r) => !r.split && r.baseQ > 0).reverse();
+    const tot = list.reduce((a, r) => a + r.baseQ, 0);
+    let h = `<div><div class="row spread"><h2>Received in Warehouse</h2><span class="small muted">${tot} pcs to split</span></div><p class="small muted" style="margin:4px 0 0">Stock the sub manager received. Split each one: pieces a B2B merchant took, and pieces to push to Uniware.</p></div>`;
+    if (!list.length) return h + `<div class="empty"><h3>Nothing to split</h3>Stock shows here once the sub manager receives it in the warehouse.</div>`;
+    return h + list.map((r) => whRecCard(r, r.base, r.baseQ, r.wh.note ? `<li>Note: ${esc(r.wh.note)}</li>` : "", `<button class="btn accent" data-whsplit="${esc(whRecKey(r))}" style="align-self:flex-start">Split B2B / Uniware</button>`)).join("");
+  }
+  function whSplitSheet(key) {
+    const r = whRecFind(key);
+    if (!r || r.split) return toast("Already split.");
+    const keys = Object.keys(r.base).sort((a, b) => {
+      const [ca, za] = splitCK(a), [cb, zb] = splitCK(b);
+      return ca.localeCompare(cb) || (SIZE_ORDER.indexOf(za) + 1 || 99) - (SIZE_ORDER.indexOf(zb) + 1 || 99);
+    });
+    const sh = sheet("Split " + r.lot.lotNo, `<form id="wsForm" class="list" novalidate>
+    <div class="card list" style="gap:6px"><div>${bunTitle(r.lot, r.base)}</div><b>${r.baseQ} pcs received</b></div>
+    <div class="hint">Enter the pieces a B2B merchant took. The rest goes to <b>Push Uniware</b>.</div>
+    <div class="tablewrap"><table class="dtab uwtab"><thead><tr><th>SKU</th><th>Pcs</th><th>B2B taken</th><th>Uniware</th></tr></thead><tbody>
+    ${keys.map((k) => `<tr><td><b>${esc(uwSku(r.lot.design, ...splitCK(k)))}</b></td><td>${r.base[k]}</td><td><input type="number" inputmode="numeric" min="0" max="${r.base[k]}" data-wsb="${esc(k)}" placeholder="0" style="width:56px;text-align:right;padding:6px 4px"></td><td class="wsu-${safeId(k)}">${r.base[k]}</td></tr>`).join("")}
+    </tbody></table></div>
+    <div class="row spread"><span class="small" id="wsSum"></span></div>
+    <div id="wsErr" class="err"></div>
+    <button class="btn accent big" type="submit">Save split</button></form>`);
+    const read = () => {
+      const b2b = {}, uw = {};
+      let tb = 0, tu = 0, bad = "";
+      for (const k of keys) {
+        const b = Math.round(Math.max(0, +(sh.querySelector(`[data-wsb="${CSS.escape(k)}"]`) || {}).value || 0));
+        if (b > r.base[k]) bad = uwSku(r.lot.design, ...splitCK(k)) + ": B2B is more than " + r.base[k] + ".";
+        const u = Math.max(0, r.base[k] - b);
+        if (b) b2b[k] = Math.min(b, r.base[k]);
+        if (u) uw[k] = u;
+        tb += Math.min(b, r.base[k]);
+        tu += u;
+        const c = sh.querySelector(".wsu-" + safeId(k));
+        if (c) c.textContent = u;
+      }
+      return { b2b, uw, tb, tu, bad };
+    };
+    const upd = () => {
+      const x = read();
+      $("#wsSum", sh).innerHTML = `<b>${x.tu}</b> pcs to Uniware · <b>${x.tb}</b> B2B taken`;
+      $("#wsErr", sh).textContent = x.bad;
+    };
+    upd();
+    sh.addEventListener("input", upd);
+    $("#wsForm", sh).addEventListener("submit", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const x = read();
+      if (x.bad) return $("#wsErr", sh).textContent = x.bad;
+      const cur = whRecFind(key);
+      if (!cur || cur.split) return $("#wsErr", sh).textContent = "Already split. Close and check.";
+      const btn = e.target.querySelector("[type=submit]");
+      btn.disabled = true;
+      const now = (/* @__PURE__ */ new Date()).toISOString();
+      try {
+        await S.db.doc("lots/" + r.lot.id).update(whRecPatch(r, { split: { b2b: x.b2b, uw: x.uw, at: now, by: me().id } }));
+        if (x.tb) await S.db.doc("config/main").update({ uwPush: { [uid("u")]: { design: r.lot.design, fac: "B2B", ok: x.b2b, failed: 0, at: now, by: me().id, byName: me().name, rec: key, lot: r.lot.id, lotNo: r.lot.lotNo } } });
+        closeSheet();
+        toast(x.tu + " pcs ready to push" + (x.tb ? " · " + x.tb + " B2B" : ""));
+      } catch (er) {
+        btn.disabled = false;
+        writeErr(er);
+      }
+    });
+  }
+  function uwQueueView() {
+    const list = whFlowState().filter((r) => r.split && r.uwLeftQ > 0).reverse();
+    const tot = list.reduce((a, r) => a + r.uwLeftQ, 0);
+    let h = `<div class="row spread"><h2>Push Uniware</h2><span class="small muted">${tot} pcs to push</span></div>`;
+    if (!list.length) return h + `<div class="empty"><h3>Nothing to push</h3>Stock shows here after you split it in Received in Warehouse.</div>`;
+    return h + list.map((r) => {
+      const sb = W(r.split.by);
+      const b2 = Object.values(nz(r.split.b2b)).reduce((a, b) => a + +b, 0);
+      return whRecCard(r, r.uwLeft, r.uwLeftQ, `<li>Split by: ${sb ? esc(sb.name) : r.split.by === "owner" ? "Owner" : "?"} (${fmtDT(r.split.at)})${b2 ? " · " + b2 + " B2B taken" : ""}</li>`, canUwPush() ? `<button class="btn accent" data-uwrec="${esc(whRecKey(r))}" style="align-self:flex-start">Push to Uniware</button>` : "");
+    }).join("");
+  }
+  function uwRecSheet(key) {
+    const r = whRecFind(key);
+    if (!r || !r.uwLeftQ) return toast("Already pushed.");
+    const design = r.lot.design;
+    const keys = Object.keys(r.uwLeft).sort((a, b) => {
+      const [ca, za] = splitCK(a), [cb, zb] = splitCK(b);
+      return ca.localeCompare(cb) || (SIZE_ORDER.indexOf(za) + 1 || 99) - (SIZE_ORDER.indexOf(zb) + 1 || 99);
+    });
+    const facName = (f) => (UW_FAC.find((x) => x[0] === f) || [0, f])[1];
+    const sh = sheet("Push " + r.lot.lotNo + " to Uniware", `<form id="urForm" class="list" novalidate>
+    <div class="f"><span>Warehouse</span><div class="row" style="gap:8px">${UW_FAC.map(([f, n]) => `<button type="button" class="btn alt" data-urfac="${f}" style="flex:1">${esc(n)}</button>`).join("")}</div></div>
+    <div class="tablewrap"><table class="dtab uwtab"><thead><tr><th>SKU</th><th>Left</th><th>Push</th></tr></thead><tbody>
+    ${keys.map((k) => `<tr><td><b>${esc(uwSku(design, ...splitCK(k)))}</b></td><td>${r.uwLeft[k]}</td><td><input type="number" inputmode="numeric" min="0" max="${r.uwLeft[k]}" data-urk="${esc(k)}" value="${r.uwLeft[k]}" style="width:56px;text-align:right;padding:6px 4px"></td></tr>`).join("")}
+    </tbody></table></div>
+    <div class="row spread"><span class="small" id="urSum"></span></div>
+    <div id="urErr" class="err"></div><div id="urRes" class="small"></div>
+    <button class="btn accent big" type="submit">Push to Uniware</button></form>`);
+    let fac = "";
+    const read = () => {
+      const push = {};
+      let tp = 0, bad = "";
+      for (const k of keys) {
+        const p = Math.round(Math.max(0, +(sh.querySelector(`[data-urk="${CSS.escape(k)}"]`) || {}).value || 0));
+        if (p > r.uwLeft[k]) bad = uwSku(design, ...splitCK(k)) + ": more than " + r.uwLeft[k] + " left.";
+        if (p) push[k] = p;
+        tp += p;
+      }
+      return { push, tp, bad };
+    };
+    const upd = () => {
+      const x = read();
+      $("#urSum", sh).innerHTML = `${fac ? "<b>" + esc(facName(fac)) + "</b>: " : ""}<b>${x.tp}</b> pcs to push`;
+      $("#urErr", sh).textContent = x.bad;
+      sh.querySelectorAll("[data-urfac]").forEach((b) => b.className = "btn " + (b.dataset.urfac === fac ? "accent" : "alt"));
+    };
+    upd();
+    sh.addEventListener("input", upd);
+    sh.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-urfac]");
+      if (!b) return;
+      fac = b.dataset.urfac;
+      upd();
+    });
+    $("#urForm", sh).addEventListener("submit", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const x = read();
+      if (x.bad) return $("#urErr", sh).textContent = x.bad;
+      if (!fac) return $("#urErr", sh).textContent = "Select the warehouse first.";
+      if (!x.tp) return $("#urErr", sh).textContent = "Enter the pieces to push.";
+      const btn = e.target.querySelector("[type=submit]");
+      btn.disabled = true;
+      btn.textContent = "Pushing…";
+      const adj = Object.entries(x.push).map(([k, q]) => ({ sku: uwSku(design, ...splitCK(k)), qty: q, k }));
+      let res = null, err = "";
+      try {
+        const resp = await fetch(UW_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ k: UW_KEY, facility: fac, adjustments: adj.map(({ sku, qty }) => ({ sku, qty })) }) });
+        res = await resp.json().catch(() => null);
+        if (!resp.ok || !res || res.error) err = res && res.error || "Server error " + resp.status;
+      } catch (er) {
+        err = "No connection to Uniware push. Try again.";
+      }
+      const ok = {}, fails = [];
+      if (res && res.results) for (const y of res.results) {
+        const a = adj.find((z) => z.sku === y.sku);
+        if (!a) continue;
+        if (y.status === "OK") ok[a.k] = (ok[a.k] || 0) + a.qty;
+        else fails.push(y.sku + ": " + y.error);
+      }
+      if (err) fails.push(err);
+      if (Object.keys(ok).length) {
+        const now = (/* @__PURE__ */ new Date()).toISOString();
+        const cur = whRecFind(key) || r;
+        const done = Object.assign({}, cur.wh.uwDone || {});
+        for (const [k, n] of Object.entries(ok)) done[k] = (+done[k] || 0) + n;
+        try {
+          await S.db.doc("config/main").update({ uwPush: { [uid("u")]: { design, fac, ok, failed: fails.length, at: now, by: me().id, byName: me().name, rec: key, lot: r.lot.id, lotNo: r.lot.lotNo } } });
+          await S.db.doc("lots/" + r.lot.id).update(whRecPatch(r, { uwDone: done }));
+        } catch (er) {
+          fails.push("Pushed to Uniware but could not save the record here.");
+        }
+      }
+      const n = Object.values(ok).reduce((a, b) => a + b, 0);
+      $("#urRes", sh).innerHTML = `<div><b>${esc(facName(fac))}:</b> ${n} pcs pushed${fails.length ? `<div style="color:var(--bad)">${fails.map(esc).join("<br>")}</div>` : " ✓"}</div>`;
+      btn.disabled = false;
+      btn.textContent = "Push to Uniware";
+      if (!fails.length) {
+        toast(n + " pcs pushed to " + facName(fac));
+        closeSheet();
+      }
+    });
+  }
+  function uwHistView() {
+    const cur = ym(/* @__PURE__ */ new Date());
+    const facName = (f) => f === "B2B" ? "B2B merchant" : (UW_FAC.find((x) => x[0] === f) || [0, f])[1];
+    const list = Object.values((S.cfg || {}).uwPush || {}).filter((p) => p && String(p.at).slice(0, 7) === S.month).sort((a, b) => String(b.at).localeCompare(String(a.at)));
+    let up = 0, bb = 0;
+    for (const p of list) {
+      const n = Object.values(p.ok || {}).reduce((a, b) => a + (+b || 0), 0);
+      if (p.fac === "B2B") bb += n;
+      else up += n;
+    }
+    let h = `<div class="row spread"><h2>Pushed</h2><div class="row" style="gap:6px"><button class="btn alt sm" data-month="-1" aria-label="Previous month">‹</button><b>${monthLabel(S.month)}</b><button class="btn alt sm" data-month="1" aria-label="Next month" ${S.month >= cur ? "disabled" : ""}>›</button></div></div>
+    <div class="stats"><div class="stat"><span>Pushes</span><b>${list.filter((p) => p.fac !== "B2B").length}</b></div><div class="stat"><span>To Uniware</span><b>${up}</b></div><div class="stat"><span>B2B taken</span><b>${bb}</b></div></div>`;
+    if (!list.length) return h + `<div class="empty">Nothing pushed this month.</div>`;
+    return h + list.map((p) => {
+      const n = Object.values(p.ok || {}).reduce((a, b) => a + (+b || 0), 0);
+      const l = p.lot && S.lots[p.lot];
+      const skus = Object.entries(p.ok || {}).filter(([, q]) => +q > 0).map(([k, q]) => `<span class="chip line">${esc(uwSku(p.design, ...splitCK(k)))} <b>${q}</b></span>`).join("");
+      return `<div class="card list" style="gap:6px"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0">${p.lotNo || l ? `<span class="lotno">${esc(p.lotNo || l.lotNo)}</span> ` : ""}<span class="dname">${esc(p.design)}</span>
+      <ul class="tl small" style="margin:4px 0 0"><li>${p.fac === "B2B" ? "B2B merchant took" : "Pushed to: <b>" + esc(facName(p.fac)) + "</b>"}</li><li>By: ${esc(p.byName || (W(p.by) || { name: "?" }).name)} (${fmtDT(p.at)})</li>${p.failed ? `<li style="color:var(--bad)">${p.failed} SKU failed</li>` : ""}</ul></div>
+      <div><div class="left">${n}</div><div class="small muted" style="text-align:right">pcs</div></div></div><div class="row" style="gap:5px;flex-wrap:wrap">${skus}</div></div>`;
     }).join("");
   }
   function pendingByPerson() {
@@ -4332,6 +4567,14 @@ ${url}`;
         });
         if (!Object.keys(cells).length) return;
         giveSheet(d.tgive, cells, "ironing", null, tw);
+        return;
+      }
+      if (d.whsplit) {
+        whSplitSheet(d.whsplit);
+        return;
+      }
+      if (d.uwrec) {
+        if (canUwPush()) uwRecSheet(d.uwrec);
         return;
       }
       if (d.irsplit) {
