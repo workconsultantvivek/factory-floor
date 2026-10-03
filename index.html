@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1910";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1920";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -2699,7 +2699,7 @@ ${url}`;
         r.sub += q;
         if (v.rid) r.bundles.add(l.id + v.rid);
         const bk = l.id + "|" + (v.rid || eid);
-        const it = r.items[bk] || (r.items[bk] = { lot: l, rid: v.rid, sub: 0, got: 0, alt: 0, rej: 0, pay: 0, sz: {}, first: "", last: "", st: {} });
+        const it = r.items[bk] || (r.items[bk] = { lot: l, w: v.w, rid: v.rid, sub: 0, got: 0, alt: 0, rej: 0, pay: 0, sz: {}, first: "", last: "", st: {} });
         it.sub += q;
         for (const [k, n] of Object.entries(nz(v.sz))) it.sz[k] = (it.sz[k] || 0) + (+n || 0);
         const when = String(v.at || v.date || "");
@@ -2750,7 +2750,11 @@ ${url}`;
     h += `<div class="tablewrap"><table class="dtab"><thead><tr><th>Stitcher</th><th>Submitted</th><th>Received</th><th>Pay</th></tr></thead><tbody>
     ${rows.map((r) => `<tr><td><b>${esc(r.name)}</b><div class="small muted">${[`<button type="button" class="linkbtn" data-dashw="${r.w}">${Object.keys(r.items).length} bundle${Object.keys(r.items).length === 1 ? "" : "s"} ${dashOpen.has(r.w) ? "\u25B4" : "\u25BE"}</button>`, r.alt ? `<span class="warn">${r.alt} alter (${pct(r.alt, r.got)})</span>` : "", r.rej ? `<span style="color:var(--bad)">${r.rej} rej (${pct(r.rej, r.got)})</span>` : ""].filter(Boolean).join(" \xB7 ")}</div></td><td><b>${r.sub}</b></td><td>${r.got}</td><td><b>${inr(r.pay)}</b>${r.norate ? '<div class="small warn">rate missing</div>' : ""}</td></tr>${dashOpen.has(r.w) ? `<tr class="dsub"><td colspan="4">${Object.values(r.items).sort((a, b) => b.last.localeCompare(a.last)).map((it) => {
       const stt = it.st.pending ? `<span class="chip pending">${it.st.pending} with receiver</span>` : "";
-      return `<div class="dbun"><div class="row spread" style="flex-wrap:nowrap;gap:8px"><span style="min-width:0"><span class="lotno">${esc(it.lot.lotNo)}</span> <b>${lotLabel(it.lot)}</b><span class="small muted" style="display:block">${fmtCells(it.sz)} \xB7 ${fmtDT(it.first)}</span></span><span class="cksum"><span>Submitted <b>${it.sub}</b></span><span class="ok">Received <b>${it.got}</b></span>${it.alt ? `<span class="warn">Alter <b>${it.alt}</b></span>` : ""}${it.rej ? `<span style="color:var(--bad)">Reject <b>${it.rej}</b></span>` : ""}<span>Pay <b>${inr(it.pay)}</b></span></span></div>${stt}</div>`;
+      return `<div class="dbun"><div class="row spread" style="flex-wrap:nowrap;gap:8px"><span style="min-width:0"><span class="lotno">${esc(it.lot.lotNo)}</span> <b>${lotLabel(it.lot)}</b><span class="small muted" style="display:block">${fmtCells(it.sz)}</span>${(() => {
+        const a = it.rid && ((it.lot.recv || {}).stitching || {})[it.rid];
+        const al = a ? a.at || a.date : allocFor(it.lot, { sz: it.sz }, it.w);
+        return `<ul class="tl small" style="margin:4px 0 0"><li>Allocated: <b>${al ? fmtDT(al) : "\u2014"}</b></li><li>Submitted: <b>${fmtDT(it.first)}</b></li><li>Time taken: <b>${al ? dur(al, it.first) : "\u2014"}</b></li></ul>`;
+      })()}</span><span class="cksum"><span>Submitted <b>${it.sub}</b></span><span class="ok">Received <b>${it.got}</b></span>${it.alt ? `<span class="warn">Alter <b>${it.alt}</b></span>` : ""}${it.rej ? `<span style="color:var(--bad)">Reject <b>${it.rej}</b></span>` : ""}<span>Pay <b>${inr(it.pay)}</b></span></span></div>${stt}</div>`;
     }).join("")}</td></tr>` : ""}`).join("")}
     <tr class="dtot"><td><b>Total</b></td><td><b>${tot.sub}</b></td><td><b>${tot.got}</b></td><td><b>${inr(tot.pay)}</b></td></tr></tbody></table></div>
     <p class="small muted" style="margin:0">Submitted counts every piece a stitcher handed in on that date (alter pieces handed in again are counted again). Pay counts received pieces once, minus rejected, at the design's stitching rate${per === "h1" || per === "h2" ? " \u2013 this is the pay cycle total" : ""}.</p>`;
