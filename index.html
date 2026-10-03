@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2240";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2245";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -174,6 +174,7 @@ table.split input{width:64px;border:1px solid var(--line);background:var(--bg);b
 .dname{font-weight:700;font-size:1.12rem;color:var(--ink)}
 .cksum{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:.85rem;white-space:nowrap;flex:none}.cksum b{font-size:1rem;margin-left:4px}.cksum .ok{color:var(--ok)}
 .bunseg{display:grid;grid-template-columns:1fr 1fr;align-self:stretch}.bunseg button{padding:9px 6px;border-bottom:1px solid var(--line)}.bunseg button:nth-child(odd){border-right:1px solid var(--line)}.bunseg button:nth-child(n+3){border-bottom:0}
+.pipe{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;margin-top:4px;font-size:1.05rem}.pipe i{font-style:normal;color:var(--muted)}.pipe .lotno{font-size:1.05rem}
 .erow{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:7px;font-size:.85rem;flex-wrap:wrap}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}}}
 </style>
@@ -1390,14 +1391,23 @@ ${url}`;
   }
   function subCard(s, btns, extra) {
     const w = W(s.w) || { name: "?" };
+    const nm = (id) => id === "owner" ? "Owner" : (W(id) || { name: "?" }).name;
+    const a = s.rid && ((s.lot.recv || {}).stitching || {})[s.rid];
+    const by = {};
+    for (const [k, n] of Object.entries(nz(s.sz))) {
+      const [c, z] = splitCK(k);
+      (by[c] = by[c] || []).push([z, n]);
+    }
+    const lines = Object.entries(by).map(([c, zs]) => sortSizes(zs.map((x) => x[0])).map((z) => `<div class="pipe"><span class="lotno">${esc(s.lot.lotNo)}</span><i>|</i><span class="dname">${esc(s.lot.design)}</span><i>|</i><b>${esc(c || "\u2014")}</b><i>|</i><b>${esc(z)}</b><i>|</i><b>${zs.find((x) => x[0] === z)[1]}</b></div>`).join("")).join("");
     return `<div class="card list" style="gap:8px">
-    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><b>${esc(w.name)}</b> <span class="small muted">${extra}</span><div><span class="lotno" style="font-size:1.1rem">${esc(s.lot.lotNo)}</span> <span class="muted small">${lotLabel(s.lot)}</span></div></div>
+    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><b>${esc(w.name)}</b> <span class="small muted">${extra}</span>${lines}</div>
     <div><div class="left">${s.q}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
-    ${openRows(s.sz)}
+    <ul class="tl small" style="margin:0"><li>Allocated by: <b>${a && a.by ? esc(nm(a.by)) : "\u2014"}</b>${a ? ` (${fmtDT(a.at || a.date)})` : ""}</li><li>Received by: <b>${s.rby ? esc(nm(s.rby)) : "\u2014"}</b>${s.rat ? ` (${fmtDT(s.rat)})` : s.rby ? "" : " (not received yet)"}</li></ul>
     ${s.note ? `<div class="small">Stitcher note: ${esc(s.note)}</div>` : ""}
     ${s.rNote ? `<div class="small">Receiver note: ${esc(s.rNote)}</div>` : ""}
     <div class="row">${btns}</div></div>`;
   }
+
   function rinboxView() {
     const list = submissions("pending").sort((a, b) => String(a.at || a.date).localeCompare(String(b.at || b.date)));
     let h = `<div class="row spread"><h2>Receive work</h2><span class="small muted">${list.length} waiting</span></div>`;
@@ -1415,7 +1425,7 @@ ${url}`;
     let h = `<div class="row spread"><h2>Check work</h2><span class="small muted">${list.length} waiting</span></div>`;
     if (!list.length) return h + `<div class="empty"><h3>Nothing to check</h3>Work shows here after the lot receiver receives it from the stitcher.</div>`;
     list.sort((a, b) => (b.chkStart ? 1 : 0) - (a.chkStart ? 1 : 0));
-    return h + list.map((s) => subCard(s, s.chkStart ? `<span class="chip pending">Checking since ${fmtDT(s.chkStart)}${W(s.chkBy) ? " \xB7 " + esc(W(s.chkBy).name) : ""}</span><button class="btn accent" data-check="${s.lot.id}|${s.eid}">Check finished</button>` : `<button class="btn accent" data-chkstart="${s.lot.id}|${s.eid}">Start check</button>`, "received " + fmtDT(s.rat) + (W(s.rby) ? " by " + esc(W(s.rby).name) : ""))).join("");
+    return h + list.map((s) => subCard(s, s.chkStart ? `<span class="chip pending">Checking since ${fmtDT(s.chkStart)}${W(s.chkBy) ? " \xB7 " + esc(W(s.chkBy).name) : ""}</span><button class="btn accent" data-check="${s.lot.id}|${s.eid}">Check finished</button>` : `<button class="btn accent" data-chkstart="${s.lot.id}|${s.eid}">Start check</button>`, "")).join("");
   }
   function checkedView() {
     const list = submissions(["approved", "rejected"]).filter((s) => s.at2 && s.rat).sort((a, b) => String(b.at2).localeCompare(String(a.at2))).slice(0, 40);
