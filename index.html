@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2240b";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2300";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -469,11 +469,24 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     }
     return { cells: o, total: t };
   }
+  function irAltCells(lot, wid, st) {
+    const o = {};
+    let t = 0;
+    for (const v of Object.values(lot.irAlt || {})) {
+      if (!v || v.w !== wid || st && v.st !== st) continue;
+      for (const [k, n] of Object.entries(nz(v.sz))) {
+        o[k] = (o[k] || 0) + (+n || 0);
+        t += +n || 0;
+      }
+    }
+    return { cells: o, total: t };
+  }
   function myOpen(lot, stage, wid) {
     const got = sumCells(recvList(lot, stage).filter((v) => v.w === wid));
     const done = doneCells(stageEntries(lot, stage).filter((v) => v.w === wid));
     const aw = stage === "stitching" ? altWaiting(lot, wid).cells : {};
     for (const [k, n] of Object.entries(aw)) done[k] = (done[k] || 0) + n;
+    if (stage === "stitching") for (const [k, n] of Object.entries(irAltCells(lot, wid, "recv").cells)) done[k] = (done[k] || 0) - n;
     const left = {};
     let total = 0, rec = 0, fin = 0;
     for (const k of Object.keys(lotCells(lot))) {
@@ -653,7 +666,7 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     const nTh = () => activeWorkers().filter(isThreadW).reduce((a, w) => a + lotsSorted().filter((l) => threadPool(l, w.id).total > 0).length, 0);
     const nTask = () => tasksFor().filter((t) => t.st !== "done").length;
     const boss = [["alloc", "Allocate", ICON.add, nAlloc()], ["rinbox", "Receive", ICON.add, nRcv()], ["inbox", "Check", ICON.done, nInbox()], ["handover", "To thread cutter", ICON.lots, nHo()], ["mthread", "To ironing", ICON.lots, nTh()], ["bundles", "Report", ICON.team], ["otasks", "Tasks", ICON.done, nTask()], ["dash", "Dashboard", ICON.team, 0, true], ["duty", "Duty hours", ICON.done, 0, true], ["lots", "All lots", ICON.lots, 0, true], ["stock", "Stock", ICON.lots, 0, true]];
-    const tabs = m.id === "owner" ? boss.concat([["team", "Team", ICON.team, 0, true]]) : m.role === "Cutting master" ? [["add", "Add cut lot", ICON.add], ["lots", "All lots", ICON.lots], ["mtasks", "Tasks", ICON.done, tasksFor(m.id).filter((t) => t.st !== "done").length]] : m.role === "Lot allocator" ? [["alloc", "Allocate", ICON.add, nAlloc()], ["allocd", "Bundles", ICON.team], ["lots", "All lots", ICON.lots]] : m.role === "Lot receiver" ? [["rinbox", "Receive work", ICON.add, nRcv()], ["rhist", "Received", ICON.done], ["lots", "All lots", ICON.lots]] : m.role === "Warehouse receiver" || m.role === "Warehouse Receiver & Pusher" ? [["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["lots", "All lots", ICON.done]] : m.role === "Checker" ? [["inbox", "Check work", ICON.done, nInbox()], ["checked", "Checked", ICON.team]] : m.role === "Sub manager" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "Thread lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["tdone", "Completed", ICON.done]] : m.role === "Thread cutter" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "New lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["tdone", "Completed", ICON.done]] : m.role === "Ironing" ? [["inew", "New lots", ICON.lots, flowItems("ironing").filter((v) => v.w === m.id && v.st === "given").length], ["idone", "Completed", ICON.done]] : m.role === "Manager" ? boss.filter((t) => !["dash", "handover", "mthread"].includes(t[0])).concat([["links", "Team links", ICON.team, 0, true]]) : RECV_STAGES.includes(myStage()) ? [["add", "New lots", ICON.lots, myLots(m.id).reduce((n, l) => n + allocOpen(l, m.id).filter((a) => a.total > 0).length, 0)], ["alter", "Alter / Rejected", ICON.add, myLots(m.id).reduce((a, l) => a + altWaiting(l, m.id).total, 0)], ["done", "Completed", ICON.done]] : myStage() ? [["add", "Add entry", ICON.add], ["lots", "Cut lots", ICON.lots], ["done", "Completed", ICON.done]] : [["lots", "Cut lots", ICON.lots]];
+    const tabs = m.id === "owner" ? boss.concat([["team", "Team", ICON.team, 0, true]]) : m.role === "Cutting master" ? [["add", "Add cut lot", ICON.add], ["lots", "All lots", ICON.lots], ["mtasks", "Tasks", ICON.done, tasksFor(m.id).filter((t) => t.st !== "done").length]] : m.role === "Lot allocator" ? [["alloc", "Allocate", ICON.add, nAlloc()], ["allocd", "Bundles", ICON.team], ["lots", "All lots", ICON.lots]] : m.role === "Lot receiver" ? [["rinbox", "Receive work", ICON.add, nRcv()], ["rhist", "Received", ICON.done], ["lots", "All lots", ICON.lots]] : m.role === "Warehouse receiver" || m.role === "Warehouse Receiver & Pusher" ? [["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["lots", "All lots", ICON.done]] : m.role === "Checker" ? [["inbox", "Check work", ICON.done, nInbox()], ["checked", "Checked", ICON.team]] : m.role === "Sub manager" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "Thread lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["tdone", "Completed", ICON.done]] : m.role === "Thread cutter" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "New lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["tdone", "Completed", ICON.done]] : m.role === "Ironing" ? [["inew", "New lots", ICON.lots, flowItems("ironing").filter((v) => v.w === m.id && v.st === "given").length], ["idone", "Completed", ICON.done]] : m.role === "Manager" ? boss.filter((t) => !["dash", "handover", "mthread"].includes(t[0])).concat([["links", "Team links", ICON.team, 0, true]]) : RECV_STAGES.includes(myStage()) ? [["add", "New lots", ICON.lots, myLots(m.id).reduce((n, l) => n + allocOpen(l, m.id).filter((a) => a.total > 0).length, 0)], ["alter", "Alter / Rejected", ICON.add, myLots(m.id).reduce((a, l) => a + altWaiting(l, m.id).total + irAltCells(l, m.id, "sent").total, 0)], ["done", "Completed", ICON.done]] : myStage() ? [["add", "Add entry", ICON.add], ["lots", "Cut lots", ICON.lots], ["done", "Completed", ICON.done]] : [["lots", "Cut lots", ICON.lots]];
     if (!tabs.find((t) => t[0] === S.tab)) S.tab = tabs[0][0];
     const body = { add: addView, lots: lotsView, done: doneView, team: teamView, alter: alterView, alloc: allocView, allocd: bundlesView, duty: dutyView, trecv: threadRecvView, bundles: bundlesView, dash: dashView, inbox: inboxView, checked: checkedView, rinbox: rinboxView, rhist: rhistView, wh: whInboxView, stock: stockView, handover: handoverView, pending: pendingView, links: linksView, otasks: bossTasksView, mtasks: masterTasksView, mthread: mgrThreadView, tnew: threadNewView, tdone: threadDoneView, inew: () => flowNewView("ironing"), idone: () => flowDoneView("ironing") }[S.tab]();
     app.innerHTML = header() + `<main class="wrap">${["dash", "duty", "bundles", "lots", "stock", "team", "links"].includes(S.tab) ? bossLinks(S.tab) : ""}${body}</main>` + (tabs.length > 1 ? `<nav class="bottom ${tabs.filter((t) => !t[4]).length > 5 ? "many" : ""}"><div class="wrap">${tabs.filter((t) => !t[4]).map((t) => `<button data-tab="${t[0] === "bundles" && m.id === "owner" ? "dash" : t[0]}" aria-current="${S.tab === t[0] || t[0] === "bundles" && isBoss() && ["dash", "duty", "lots", "stock", "team", "links"].includes(S.tab)}"><span class="ico">${t[2]}${t[3] ? `<i class="badge">${t[3]}</i>` : ""}</span>${t[1]}</button>`).join("")}</div></nav>` : "");
@@ -850,6 +863,7 @@ ${url}`;
     const used = {};
     for (const [k, n] of Object.entries(done)) used[k] = n;
     for (const [k, n] of Object.entries(aw)) used[k] = (used[k] || 0) + n;
+    for (const [k, n] of Object.entries(irAltCells(lot, wid, "recv").cells)) used[k] = Math.max(0, (used[k] || 0) - n);
     return allocs.map((a) => {
       const left = {};
       let total = 0, touched = 0;
@@ -937,9 +951,29 @@ ${url}`;
     const list = [];
     for (const l of lotsSorted()) for (const [eid, v] of Object.entries((l.prog || {}).stitching || {})) if (v && v.w === m.id && (v.st === "approved" && (+v.alt || 0) + (+v.rej || 0) > 0 || v.st === "rejected" || (+v.short || 0) > 0) && !alterResolved(l, v, m.id)) list.push(__spreadValues({ lot: l, eid }, v));
     list.sort((a, b) => String(b.at2 || b.rat || "").localeCompare(String(a.at2 || a.rat || "")));
-    let h = `<div><h2>Alter / Rejected</h2><p class="small muted" style="margin:4px 0 0">Pieces the lot receiver found short, and pieces the checker marked alter or reject. Tap Receive when the alter pieces come back to you. They then show in New lots to submit again.</p></div>`;
-    if (!list.length) return h + `<div class="empty"><h3>Nothing sent back</h3>When the checker marks pieces alter or reject, they show here.</div>`;
-    return h + list.map((s) => {
+    let h = `<div><h2>Alter / Rejected</h2><p class="small muted" style="margin:4px 0 0">Pieces the lot receiver found short, and pieces the checker or ironing marked alter or reject. Tap Receive when the alter pieces come back to you. They then show in New lots to submit again.</p></div>`;
+    const irl = [];
+    for (const l of lotsSorted()) for (const [id, v] of Object.entries(l.irAlt || {})) {
+      if (!v || v.w !== m.id || !Object.keys(nz(v.sz)).length) continue;
+      if (v.st === "recv") {
+        const open = myOpen(l, "stitching", m.id).left;
+        const ks = Object.keys(nz(v.sz));
+        const busy = Object.values((l.prog || {}).stitching || {}).some((e) => e && e.w === m.id && (e.st === "pending" || e.st === "received") && String(e.at || "") > String(v.rat || "") && Object.keys(nz(e.sz)).some((k) => ks.includes(k)));
+        if (!ks.some((k) => (open[k] || 0) > 0) && !busy) continue;
+      }
+      irl.push(__spreadValues({ lot: l, id }, v));
+    }
+    irl.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+    const irH = irl.map((v) => {
+      const by = W(v.by);
+      return `<div class="card list" style="gap:8px">
+      <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.15rem">${esc(v.lot.lotNo)}</span> ${bunTitle(v.lot, v.sz)}<div class="small muted">sent back from ironing ${fmtDT(v.at)}${by ? " by " + esc(by.name) : ""}</div></div><div style="text-align:right"><div class="left">${v.q}</div><div class="small muted">alter</div></div></div>
+      ${v.note ? `<div class="small">Note: ${esc(v.note)}</div>` : ""}
+      ${v.st === "sent" ? `<button class="btn accent" data-iralt="${v.lot.id}|${v.id}" style="align-self:flex-start">Receive ${v.q} alter pcs</button>` : `<div class="small"><span class="chip approved">Received ${fmtDT(v.rat)}</span> Fix them and submit from <b>New lots</b>.</div>`}
+    </div>`;
+    }).join("");
+    if (!list.length && !irl.length) return h + `<div class="empty"><h3>Nothing sent back</h3>When the checker or ironing marks pieces alter or reject, they show here.</div>`;
+    return h + irH + list.map((s) => {
       const l = s.lot;
       const open = myOpen(l, "stitching", m.id).total;
       const ck = W(s.by2);
@@ -1911,7 +1945,7 @@ ${url}`;
       const from = W(v.fromW || v.by);
       return `<div class="card list" style="gap:8px">
     <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(v.lot.lotNo)}</span> ${bunTitle(v.lot, cells)}<div class="small muted ell">from ${from ? esc(from.name) : "?"} \xB7 ${fmtDate(String(v.at).slice(0, 10))}</div></div><div><div class="left">${q}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
-    <button class="btn accent" data-flowdone="${v.lot.id}|${v.fid}${key ? "|" + esc(key) : ""}" style="align-self:flex-start">${stage === "thread" ? "Done \u2013 hand over to ironing" : "Done \u2013 send to warehouse"}</button></div>`;
+    <div class="row" style="gap:8px"><button class="btn accent" data-flowdone="${v.lot.id}|${v.fid}${key ? "|" + esc(key) : ""}">${stage === "thread" ? "Done \u2013 hand over to ironing" : "Done \u2013 send to warehouse"}</button>${stage === "ironing" ? `<button class="btn" data-irsplit="${v.lot.id}|${v.fid}${key ? "|" + esc(key) : ""}">Split \u2013 warehouse / alter</button>` : ""}</div></div>`;
     };
     return h + items.map((v) => {
       const cells = Object.entries(nz(v.sz));
@@ -1919,6 +1953,123 @@ ${url}`;
       const ord = (k) => { const [c, z] = splitCK(k); return c + "\u0000" + String(sortSizes([z, ...Object.keys(nz(v.sz)).map((x) => splitCK(x)[1])]).indexOf(z)).padStart(3, "0"); };
       return cells.sort((a, b) => ord(a[0]).localeCompare(ord(b[0]))).map(([k, n]) => card(v, { [k]: n }, n, k)).join("");
     }).join("");
+  }
+  function irSplitSheet(lid, fid, ck) {
+    const l = S.lots[lid];
+    const v = l.flow[fid];
+    const all = nz(v.sz);
+    const cells = ck && all[ck] != null ? { [ck]: +all[ck] } : all;
+    const keys = Object.keys(cells);
+    const q = keys.reduce((a, k) => a + cells[k], 0);
+    const sts = activeWorkers().filter((w) => w.role === "Stitcher");
+    const makers = [...new Set(Object.values((l.prog || {}).stitching || {}).filter((e) => e && e.st === "approved" && Object.keys(nz(e.sz)).some((k) => keys.includes(k))).map((e) => e.w))].filter((id) => sts.some((w) => w.id === id));
+    let picked = makers.slice(0, 1);
+    const sh = sheet("Split " + l.lotNo, `<div class="list">
+    <div class="card list" style="gap:6px"><div>${bunTitle(l, cells)}</div><b>${q} pcs</b></div>
+    <div class="card list" style="gap:10px"><b>Alter goes back to</b><div class="small muted">Stitcher who made these pieces${makers.length ? "" : " (none found \u2013 pick one)"}</div><div class="colchips" id="irPick"></div></div>
+    <div id="irTab"></div>
+    <label class="f">Note for stitcher (optional)<input id="irNote" maxlength="120" placeholder="e.g. side seam open"></label>
+    <div id="irErr" class="err"></div>
+    <button type="button" class="btn accent big" id="irGo">Save split</button></div>`);
+    const keep = () => {
+      const o = {};
+      sh.querySelectorAll("[data-irc]").forEach((i) => {
+        if (i.value) o[i.dataset.irc + "#" + i.dataset.who] = i.value;
+      });
+      return o;
+    };
+    const read = () => {
+      const per = {}, used = {};
+      sh.querySelectorAll("[data-irc]").forEach((i) => {
+        const n = Math.round(Math.max(0, +i.value || 0));
+        if (!n) return;
+        (per[i.dataset.who] = per[i.dataset.who] || {})[i.dataset.irc] = n;
+        used[i.dataset.irc] = (used[i.dataset.irc] || 0) + n;
+      });
+      return { per, used };
+    };
+    const upd = () => {
+      const { used } = read();
+      let wh = 0, alt = 0, bad = "";
+      for (const k of keys) {
+        const a = used[k] || 0;
+        if (a > cells[k]) bad = "Alter for " + splitCK(k).filter(Boolean).join(" ") + " is more than " + cells[k] + ".";
+        const w = Math.max(0, cells[k] - a);
+        const c = sh.querySelector(`.irwh-${safeId(k)}`);
+        if (c) c.textContent = w;
+        wh += w;
+        alt += Math.min(a, cells[k]);
+      }
+      $("#irErr", sh).textContent = bad;
+      $("#irGo", sh).textContent = alt ? `Send ${wh} to warehouse \u00B7 ${alt} to alter` : "Enter alter pieces";
+      $("#irGo", sh).disabled = !!bad || !alt;
+    };
+    const draw = () => {
+      $("#irPick", sh).innerHTML = (sts.length ? sts : []).slice().sort((a, b) => makers.indexOf(b.id) - makers.indexOf(a.id)).map((w) => `<button type="button" class="colchip ${picked.includes(w.id) ? "on" : ""}" data-irpk="${w.id}">${picked.includes(w.id) ? "\u2713 " : ""}${esc(w.name)}${makers.includes(w.id) ? "" : ' <span class="small" style="opacity:.6">other</span>'}</button>`).join("") || `<span class="small muted">Add stitchers in Team first.</span>`;
+      const k0 = keep();
+      $("#irTab", sh).innerHTML = picked.length ? `<div class="tablewrap"><table class="split"><thead><tr><th>Size</th><th>Pcs</th><th>Warehouse</th>${picked.map((id) => `<th>Alter \u00B7 ${esc(W(id).name)}</th>`).join("")}</tr></thead><tbody>${keys.map((k) => `<tr><td><b>${esc(splitCK(k).filter(Boolean).join(" "))}</b></td><td>${cells[k]}</td><td class="irwh-${safeId(k)}">${cells[k]}</td>${picked.map((id) => `<td><input type="number" inputmode="numeric" min="0" max="${cells[k]}" data-irc="${esc(k)}" data-who="${id}" placeholder="0"></td>`).join("")}</tr>`).join("")}</tbody></table></div>` : `<div class="small muted">Pick the stitcher first.</div>`;
+      sh.querySelectorAll("[data-irc]").forEach((i) => {
+        const x = k0[i.dataset.irc + "#" + i.dataset.who];
+        if (x) i.value = x;
+      });
+      upd();
+    };
+    sh.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-irpk]");
+      if (!b) return;
+      const id = b.dataset.irpk;
+      picked = picked.includes(id) ? picked.filter((x) => x !== id) : picked.concat(id);
+      draw();
+    });
+    sh.addEventListener("input", (e) => {
+      if (e.target.matches("[data-irc]")) upd();
+    });
+    draw();
+    $("#irGo", sh).onclick = async () => {
+      const cur = nz((S.lots[lid].flow[fid] || {}).sz);
+      if ((S.lots[lid].flow[fid] || {}).st !== "given" || keys.some((k) => (cur[k] || 0) < cells[k])) return $("#irErr", sh).textContent = "These pieces were already sent. Close and try again.";
+      const { per, used } = read();
+      const altQ = Object.values(used).reduce((a, b) => a + b, 0);
+      if (!altQ) return;
+      const now = (/* @__PURE__ */ new Date()).toISOString();
+      const whCells = {};
+      let whQ = 0;
+      for (const k of keys) {
+        whCells[k] = Math.max(0, cells[k] - (used[k] || 0));
+        whQ += whCells[k];
+      }
+      const rest = Object.keys(cur).filter((k) => !keys.includes(k));
+      const flow = {};
+      const szPatch = Object.fromEntries(keys.map((k) => [k, 0]));
+      let whFid = fid;
+      if (!rest.length) {
+        flow[fid] = whQ ? { sz: whCells, q: whQ, st: "done", doneAt: now, irAltQ: altQ } : { sz: szPatch, q: 0, st: "cancelled", doneAt: now, irAltQ: altQ };
+        if (!whQ) whFid = null;
+      } else {
+        flow[fid] = { sz: szPatch, q: (+v.q || 0) - q };
+        if (whQ) {
+          whFid = uid("f");
+          const copy = Object.assign({}, v);
+          Object.assign(copy, { sz: whCells, q: whQ, st: "done", doneAt: now, splitOf: fid, irAltQ: altQ });
+          flow[whFid] = copy;
+        } else whFid = null;
+      }
+      const irAlt = {};
+      const note = $("#irNote", sh).value.trim();
+      for (const [w, sz] of Object.entries(per)) {
+        const n = Object.values(sz).reduce((a, b) => a + b, 0);
+        irAlt[uid("ia")] = { w, sz, q: n, st: "sent", by: me().id, at: now, fid, whFid, note };
+      }
+      $("#irGo", sh).disabled = true;
+      try {
+        await S.db.doc("lots/" + lid).update({ flow, irAlt });
+        closeSheet();
+        toast((whQ ? whQ + " pcs to warehouse \u00B7 " : "") + altQ + " pcs back to alter");
+      } catch (x) {
+        $("#irGo", sh).disabled = false;
+        writeErr(x);
+      }
+    };
   }
   function threadDoneView() {
     const m = me();
@@ -1966,7 +2117,7 @@ ${url}`;
         }
         return o;
       })() : null;
-      return `<div class="card list" style="gap:6px"><div class="row spread" style="align-items:flex-start"><span><span class="lotno">${esc(v.lot.lotNo)}</span> ${bunTitle(v.lot, v.sz)} <span class="small muted" style="display:block">sent ${fmtDT(v.doneAt)}${(() => {
+      return `<div class="card list" style="gap:6px"><div class="row spread" style="align-items:flex-start"><span><span class="lotno">${esc(v.lot.lotNo)}</span> ${bunTitle(v.lot, v.sz)} <span class="small muted" style="display:block">sent ${fmtDT(v.doneAt)}${v.irAltQ ? " \xB7 " + v.irAltQ + " alter back to stitcher" : ""}${(() => {
         const r = rateOf(v.lot), g = v.wh ? Math.min(+v.wh.q || 0, +v.q || 0) : 0;
         return r != null && g ? " \xB7 <b>" + inr(g * r) + "</b>" : "";
       })()}</span></span><b>${v.q} pcs</b></div>
@@ -4177,6 +4328,23 @@ ${url}`;
         });
         if (!Object.keys(cells).length) return;
         giveSheet(d.tgive, cells, "ironing", null, tw);
+        return;
+      }
+      if (d.irsplit) {
+        const [lid, fid, ...ckp] = d.irsplit.split("|");
+        irSplitSheet(lid, fid, ckp.join("|"));
+        return;
+      }
+      if (d.iralt) {
+        const [lid, id] = d.iralt.split("|");
+        if (!t.dataset.sure) {
+          t.dataset.sure = "1";
+          t.textContent = "Tap again to confirm";
+          return;
+        }
+        t.disabled = true;
+        await S.db.doc("lots/" + lid).update({ irAlt: { [id]: { st: "recv", rat: (/* @__PURE__ */ new Date()).toISOString() } } });
+        toast("Alter pieces received. Submit them again from New lots.");
         return;
       }
       if (d.flowdone) {
