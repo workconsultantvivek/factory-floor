@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1940";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1950";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -1677,6 +1677,7 @@ ${url}`;
         const on = mine && tSel.keys.has(k);
         return `<button type="button" class="chip line pick ${on ? "on" : ""}" data-tsel="${l.id}|${esc(k)}" data-twid="${m.id}">${on ? "\u2713 " : ""}${esc(z)} <b>${pl.left[k]}</b></button>`;
       }).join("")}</span></div>`).join("")}</div>
+      ${!(mine && n) ? `<button type="button" class="btn alt sm" data-tundo="${l.id}" data-twid="${m.id}" style="align-self:flex-start">Undo receive</button>` : ""}
       ${mine && n ? `<div class="subbar"><span><b>${n} pcs selected</b></span><span class="row" style="gap:8px"><button type="button" class="btn accent" data-tgive="${l.id}" data-twid="${m.id}">Hand over to ironing</button><button type="button" class="btn alt sm" data-tclear="1">Clear</button></span></div>` : ""}
     </div>`;
     }).join("") || `<div class="empty">No lot in hand.</div>`;
@@ -3860,6 +3861,43 @@ ${url}`;
       if (d.lotfilter) {
         lotFilter = d.lotfilter;
         render();
+        return;
+      }
+      if (d.tundo) {
+        if (!t.dataset.sure) {
+          t.dataset.sure = "1";
+          t.textContent = "Tap again to send back to To receive";
+          setTimeout(() => {
+            if (t.isConnected && !t.disabled) {
+              delete t.dataset.sure;
+              t.textContent = "Undo receive";
+            }
+          }, 4e3);
+          return;
+        }
+        const lid = d.tundo, wid = d.twid, l = S.lots[lid];
+        const pl = threadPool(l, wid);
+        if (!pl.total) return;
+        const rem = Object.assign({}, pl.left);
+        const patch = {};
+        const fl = Object.entries(l.flow || {}).filter(([, v]) => v && v.st !== "cancelled" && v.stage === "thread" && v.w === wid).sort((a, b) => String(b[1].at || "").localeCompare(String(a[1].at || "")));
+        for (const [fid, v] of fl) {
+          const sz = Object.assign({}, v.sz || {});
+          let ch = false;
+          for (const k of Object.keys(rem)) {
+            const take = Math.min(rem[k], +sz[k] || 0);
+            if (!take) continue;
+            sz[k] = (+sz[k] || 0) - take;
+            rem[k] -= take;
+            ch = true;
+          }
+          if (!ch) continue;
+          const q = Object.values(sz).reduce((a, b) => a + (+b || 0), 0);
+          patch[fid] = q ? { sz, q, undoneAt: (/* @__PURE__ */ new Date()).toISOString() } : { st: "cancelled", undoneAt: (/* @__PURE__ */ new Date()).toISOString(), undoneBy: me().id };
+        }
+        t.disabled = true;
+        await S.db.doc("lots/" + lid).update({ flow: patch });
+        toast(pl.total + " pcs of " + l.lotNo + " moved back to To receive");
         return;
       }
       if (d.trecv) {
