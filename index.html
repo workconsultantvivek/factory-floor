@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1930";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1940";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -1575,8 +1575,70 @@ ${url}`;
       const cw = ck && W(ck.by2);
       return `<div class="card list" style="gap:8px"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> <span class="dname">${esc(l.design)}</span><div class="small muted ell">${ck ? "passed " + fmtDT(ck.at2) + (cw ? " by " + esc(cw.name) : "") : ""}</div></div><div><div class="left">${wc.total}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
       ${openRows(wc.left)}
-      <button class="btn accent" data-trecv="${l.id}" style="align-self:flex-start">Receive ${wc.total} pcs</button></div>`;
+      <button class="btn accent" data-trecv="${l.id}" style="align-self:flex-start">Receive</button></div>`;
     }).join("");
+  }
+  function threadRecvSheet(lid) {
+    const l = S.lots[lid];
+    const wc = l ? withChecker(l) : { total: 0, left: {} };
+    if (!wc.total) return toast("Already received.");
+    const keys = Object.keys(wc.left).sort((a, b) => {
+      const [ca, za] = splitCK(a), [cb, zb] = splitCK(b);
+      return ca.localeCompare(cb) || (SIZE_ORDER.indexOf(za) + 1 || 99) - (SIZE_ORDER.indexOf(zb) + 1 || 99);
+    });
+    const by = {};
+    keys.forEach((k) => (by[splitCK(k)[0]] = by[splitCK(k)[0]] || []).push(k));
+    const sh = sheet("Receive " + l.lotNo, `<form id="trForm" class="list" novalidate>
+    <div class="hint">Count the pieces you collected from the checker. If a size is short, lower it. The rest stays in <b>To receive</b>.</div>
+    <div class="card list" style="gap:12px">${Object.entries(by).map(([c, ks]) => `<div class="cblock"><b>${esc(c || "Pieces")}</b><div class="sizes">${ks.map((k) => {
+      const id = "tr_" + safeId(k);
+      return `<label class="sizebox" for="${id}"><span class="top"><b>${esc(splitCK(k)[1])}</b><span class="muted small">of ${wc.left[k]}</span></span><input type="number" inputmode="numeric" min="0" max="${wc.left[k]}" id="${id}" data-trk="${esc(k)}" value="${wc.left[k]}"></label>`;
+    }).join("")}</div></div>`).join("")}
+    <div class="row spread"><span class="small" id="trShort"></span><b id="trTotal" style="font-family:var(--display);font-size:1.3rem">${wc.total} pcs</b></div></div>
+    <div id="trErr" class="err"></div>
+    <button class="btn accent big" type="submit">Confirm receive</button></form>`, { short: true });
+    const read = () => {
+      const o = {};
+      let t = 0, bad = "";
+      sh.querySelectorAll("[data-trk]").forEach((i) => {
+        const k = i.dataset.trk, v = Math.round(Math.max(0, +i.value || 0));
+        const over = v > wc.left[k];
+        i.closest(".sizebox").classList.toggle("over", over);
+        if (over) bad = splitCK(k)[1] + ": only " + wc.left[k] + " pcs passed.";
+        if (v) o[k] = v;
+        t += v;
+      });
+      return { o, t, bad };
+    };
+    const upd = () => {
+      const r = read();
+      $("#trTotal", sh).textContent = r.t + " pcs";
+      $("#trShort", sh).innerHTML = wc.total - r.t > 0 ? `<span class="warn">${wc.total - r.t} pcs short</span>` : "";
+      $("#trErr", sh).textContent = r.bad;
+    };
+    sh.addEventListener("input", (e) => {
+      if (e.target.dataset.trk != null) upd();
+    });
+    $("#trForm", sh).addEventListener("submit", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const r = read();
+      if (r.bad) return $("#trErr", sh).textContent = r.bad;
+      if (!r.t) return $("#trErr", sh).textContent = "Enter the pieces you received.";
+      const now2 = withChecker(S.lots[lid]);
+      for (const [k, n] of Object.entries(r.o)) if (n > (now2.left[k] || 0)) return $("#trErr", sh).textContent = "Some of these were just received. Close and try again.";
+      const ck = Object.values((l.prog || {}).stitching || {}).filter((v) => v && v.st === "approved" && v.by2).sort((a, b) => String(b.at2 || "").localeCompare(String(a.at2 || "")))[0];
+      const btn = e.target.querySelector("[type=submit]");
+      btn.disabled = true;
+      try {
+        await S.db.doc("lots/" + lid).update({ flow: { [uid("f")]: { stage: "thread", w: me().id, sz: r.o, q: r.t, by: ck && ck.by2 || me().id, at: (/* @__PURE__ */ new Date()).toISOString(), st: "given", self: true, short: wc.total - r.t } } });
+        closeSheet();
+        toast(r.t + " pcs of " + l.lotNo + " received" + (wc.total - r.t ? " \xB7 " + (wc.total - r.t) + " still to receive" : ""));
+      } catch (x) {
+        btn.disabled = false;
+        writeErr(x);
+      }
+    });
   }
   function threadNewView() {
     const m = me();
@@ -3801,14 +3863,7 @@ ${url}`;
         return;
       }
       if (d.trecv) {
-        const lid = d.trecv, l = S.lots[lid];
-        const wc = l ? withChecker(l) : { total: 0, left: {} };
-        if (!wc.total) return toast("Already received.");
-        const ck = Object.values((l.prog || {}).stitching || {}).filter((v) => v && v.st === "approved" && v.by2).sort((a, b) => String(b.at2 || "").localeCompare(String(a.at2 || "")))[0];
-        t.disabled = true;
-        const fid = uid("f");
-        await S.db.doc("lots/" + lid).update({ flow: { [fid]: { stage: "thread", w: me().id, sz: wc.left, q: wc.total, by: ck && ck.by2 || me().id, at: (/* @__PURE__ */ new Date()).toISOString(), st: "given", self: true } } });
-        toast(wc.total + " pcs of " + l.lotNo + " received");
+        threadRecvSheet(d.trecv);
         return;
       }
       if (d.dashw) {
