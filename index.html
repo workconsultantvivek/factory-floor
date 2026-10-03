@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2300";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2310";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -175,6 +175,7 @@ table.split input{width:64px;border:1px solid var(--line);background:var(--bg);b
 .cksum{display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-size:.85rem;white-space:nowrap;flex:none}.cksum b{font-size:1rem;margin-left:4px}.cksum .ok{color:var(--ok)}
 .bunseg{display:grid;grid-template-columns:1fr 1fr;align-self:stretch}.bunseg button{padding:9px 6px;border-bottom:1px solid var(--line)}.bunseg button:nth-child(odd){border-right:1px solid var(--line)}.bunseg button:nth-child(n+3){border-bottom:0}
 .pipe{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px;margin-top:4px;font-size:1.05rem}.pipe i{font-style:normal;color:var(--muted)}.pipe .lotno{font-size:1.05rem}
+.uwtab th,.uwtab td{padding:8px 6px!important;font-size:.85rem}.uwtab td:first-child{word-break:break-all}
 .erow{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:7px;font-size:.85rem;flex-wrap:wrap}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}}}
 </style>
@@ -2060,6 +2061,116 @@ ${url}`;
     h += `<section class="list"><h3>Latest received</h3>${recent.slice(0, 15).map((r) => `<div class="card"><div class="row spread"><span><span class="lotno">${esc(r.lot.lotNo)}</span> <span class="dname">${esc(r.lot.design)}</span> <span class="small muted">${fmtDate(String(r.wh.at).slice(0, 10))}${W(r.wh.by) ? " \xB7 " + esc(W(r.wh.by).name) : ""}</span></span><b>${r.wh.q}</b></div><div class="small muted">${fmtCells(nz(r.wh.sz))}</div>${r.wh.short ? `<div class="small warn">${r.wh.short} short</div>` : ""}</div>`).join("")}</section>`;
     return h;
   }
+  const UW_URL = "https://vivekshingala707.app.n8n.cloud/webhook/factory-uniware-push-9f0c42", UW_KEY = "9f0c423ae2fd359b84ea99ad";
+  const UW_FAC = [["THE_MUSK", "The Musk"], ["clothinco", "Clothinco"]];
+  function uwPushed(design) {
+    const o = {};
+    for (const p of Object.values((S.cfg || {}).uwPush || {})) {
+      if (!p || p.design !== design) continue;
+      for (const [k, n] of Object.entries(p.ok || {})) o[k] = (o[k] || 0) + (+n || 0);
+    }
+    return o;
+  }
+  function uwSku(design, c, z) {
+    return [design, c, z].filter(Boolean).join("_");
+  }
+  function uwPushSheet(design) {
+    const cs = stockAgg().agg[design] || {};
+    const pushed = uwPushed(design);
+    const rows = [];
+    for (const [c, zs] of Object.entries(cs)) for (const z of sortSizes(Object.keys(zs))) {
+      const k = CK(c, z), left = zs[z] - (pushed[k] || 0);
+      if (left > 0) rows.push({ k, c, z, left, sku: uwSku(design, c, z) });
+    }
+    if (!rows.length) return toast("Everything is already pushed.");
+    const hist = Object.values((S.cfg || {}).uwPush || {}).filter((p) => p && p.design === design).sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 8);
+    const sh = sheet("Push " + design + " to Uniware", `<form id="uwForm" class="list" novalidate>
+    <div class="hint">Enter how many pieces of each SKU go to each Uniware warehouse. You can split between warehouses or push only part now; the rest stays here to push later.</div>
+    <div class="tablewrap"><table class="dtab uwtab"><thead><tr><th>SKU</th><th>Left</th>${UW_FAC.map(([, n]) => `<th>${esc(n)}</th>`).join("")}</tr></thead><tbody>
+    ${rows.map((r) => `<tr><td><b>${esc(r.sku)}</b></td><td>${r.left}</td>${UW_FAC.map(([f]) => `<td><input type="number" inputmode="numeric" min="0" max="${r.left}" data-uwk="${esc(r.k)}" data-uwf="${f}" placeholder="0" style="width:52px;text-align:right;padding:6px 4px"></td>`).join("")}</tr>`).join("")}
+    </tbody></table></div>
+    <div class="row" style="gap:8px">${UW_FAC.map(([f, n]) => `<button type="button" class="btn alt sm" data-uwall="${f}">All left \u2192 ${esc(n)}</button>`).join("")}</div>
+    <div class="row spread"><span class="small" id="uwSum"></span></div>
+    <div id="uwErr" class="err"></div><div id="uwRes" class="small"></div>
+    <button class="btn accent big" type="submit">Push to Uniware</button>
+    ${hist.length ? `<div class="list" style="gap:4px"><b class="small">Earlier pushes</b>${hist.map((p) => `<div class="small muted">${fmtDT(p.at)} \xB7 ${esc((UW_FAC.find((x) => x[0] === p.fac) || [0, p.fac])[1])} \xB7 ${Object.values(p.ok || {}).reduce((a, b) => a + b, 0)} pcs${p.failed ? ` \xB7 <span style="color:var(--bad)">${p.failed} failed</span>` : ""}${p.byName ? " \xB7 " + esc(p.byName) : ""}</div>`).join("")}</div>` : ""}
+    </form>`);
+    const read = () => {
+      const per = {}, tot = {};
+      let bad = "", all = 0;
+      for (const r of rows) tot[r.k] = 0;
+      sh.querySelectorAll("[data-uwk]").forEach((i) => {
+        const v = Math.round(Math.max(0, +i.value || 0));
+        if (!v) return;
+        ((per[i.dataset.uwf] = per[i.dataset.uwf] || {})[i.dataset.uwk] = v);
+        tot[i.dataset.uwk] += v;
+        all += v;
+      });
+      for (const r of rows) if (tot[r.k] > r.left) bad = r.sku + ": only " + r.left + " left to push.";
+      return { per, all, bad };
+    };
+    const upd = () => {
+      const r = read();
+      $("#uwSum", sh).innerHTML = r.all ? `<b>${r.all} pcs</b> to push \xB7 ${UW_FAC.map(([f, n]) => n + " " + Object.values(r.per[f] || {}).reduce((a, b) => a + b, 0)).join(" \xB7 ")}` : "";
+      $("#uwErr", sh).textContent = r.bad;
+    };
+    sh.addEventListener("input", upd);
+    sh.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-uwall]");
+      if (!b) return;
+      sh.querySelectorAll("[data-uwk]").forEach((i) => {
+        const r = rows.find((x) => x.k === i.dataset.uwk);
+        i.value = i.dataset.uwf === b.dataset.uwall ? r.left : "";
+      });
+      upd();
+    });
+    $("#uwForm", sh).addEventListener("submit", async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const r = read();
+      if (r.bad) return $("#uwErr", sh).textContent = r.bad;
+      if (!r.all) return $("#uwErr", sh).textContent = "Enter the pieces to push.";
+      const btn = e.target.querySelector("[type=submit]");
+      btn.disabled = true;
+      btn.textContent = "Pushing\u2026";
+      const out = [];
+      for (const [f, cells] of Object.entries(r.per)) {
+        const adj = Object.entries(cells).map(([k, q]) => ({ sku: uwSku(design, ...splitCK(k)), qty: q, k }));
+        let res = null, err = "";
+        try {
+          const resp = await fetch(UW_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ k: UW_KEY, facility: f, adjustments: adj.map(({ sku, qty }) => ({ sku, qty })) }) });
+          res = await resp.json().catch(() => null);
+          if (!resp.ok || !res || res.error) err = res && res.error || "Server error " + resp.status;
+        } catch (x) {
+          err = "No connection to Uniware push. Try again.";
+        }
+        const ok = {}, fails = [];
+        if (res && res.results) for (const x of res.results) {
+          const a = adj.find((y) => y.sku === x.sku);
+          if (!a) continue;
+          if (x.status === "OK") ok[a.k] = (ok[a.k] || 0) + a.qty;
+          else fails.push(x.sku + ": " + x.error);
+        }
+        if (err) fails.push(err);
+        if (Object.keys(ok).length) {
+          try {
+            await S.db.doc("config/main").update({ uwPush: { [uid("u")]: { design, fac: f, ok, failed: fails.length, at: (/* @__PURE__ */ new Date()).toISOString(), by: me().id, byName: me().name } } });
+          } catch (x) {
+            fails.push("Pushed to Uniware but could not save the record here: " + (x && x.message || x));
+          }
+        }
+        out.push({ f, n: Object.values(ok).reduce((a, b) => a + b, 0), fails });
+      }
+      const allOk = out.every((o) => !o.fails.length);
+      $("#uwRes", sh).innerHTML = out.map((o) => `<div><b>${esc((UW_FAC.find((x) => x[0] === o.f) || [0, o.f])[1])}:</b> ${o.n} pcs pushed${o.fails.length ? `<div style="color:var(--bad)">${o.fails.map(esc).join("<br>")}</div>` : " \u2713"}</div>`).join("");
+      btn.disabled = false;
+      btn.textContent = "Push to Uniware";
+      if (allOk) {
+        toast(out.reduce((a, o) => a + o.n, 0) + " pcs pushed to Uniware");
+        closeSheet();
+      }
+    });
+  }
   function stockListHtml(agg) {
     if (!agg) agg = stockAgg().agg;
     const q = stockQ.trim().toLowerCase();
@@ -2067,7 +2178,14 @@ ${url}`;
     if (!rows.length) return `<div class="empty">No stock matches.</div>`;
     return rows.map(([d, cs]) => {
       const t = Object.values(cs).reduce((a, zs) => a + Object.values(zs).reduce((x, y) => x + y, 0), 0);
-      return `<div class="card list" style="gap:8px"><div class="row spread"><b class="lotno" style="font-size:1.15rem">${esc(d)}</b><b>${t} pcs</b></div><div class="crows">${Object.entries(cs).map(([c, zs]) => `<div class="crow"><span class="cname">${esc(c)}</span><span class="row" style="gap:5px">${sortSizes(Object.keys(zs)).map((z) => `<span class="chip line">${esc(z)} <b>${zs[z]}</b></span>`).join("")}</span></div>`).join("")}</div></div>`;
+      const pushed = uwPushed(d);
+      const pt = Object.values(pushed).reduce((a, b) => a + b, 0);
+      const left = t - pt;
+      return `<div class="card list" style="gap:8px"><div class="row spread"><span class="dname" style="font-size:1.15rem">${esc(d)}</span><b>${t} pcs</b></div><div class="crows">${Object.entries(cs).map(([c, zs]) => `<div class="crow"><span class="cname">${esc(c)}</span><span class="row" style="gap:5px">${sortSizes(Object.keys(zs)).map((z) => {
+        const pz = pushed[CK(c, z)] || 0;
+        return `<span class="chip line ${pz >= zs[z] ? "approved" : ""}" title="${pz} pushed to Uniware">${esc(z)} <b>${zs[z]}</b>${pz ? ` <span class="small">(${pz} \u2191)</span>` : ""}</span>`;
+      }).join("")}</span></div>`).join("")}</div>
+      <div class="row spread"><span class="small muted">Uniware: <b>${pt}</b> pushed \xB7 <b>${Math.max(0, left)}</b> left</span>${left > 0 ? `<button class="btn accent sm" data-uwpush="${esc(d)}">Push to Uniware</button>` : `<span class="chip approved">All pushed</span>`}</div></div>`;
     }).join("");
   }
   function pendingByPerson() {
@@ -4177,6 +4295,10 @@ ${url}`;
         t.disabled = true;
         await S.db.doc("config/main").update({ overtime: { [d.otdel]: null } });
         toast("Overtime turned off for " + fmtDate(d.otdel));
+        return;
+      }
+      if (d.uwpush) {
+        uwPushSheet(d.uwpush);
         return;
       }
       if (d.dashw) {
