@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1735";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1745";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -1344,10 +1344,11 @@ ${url}`;
     const list = submissions(["approved", "rejected"]).filter((s) => s.at2 && s.rat).sort((a, b) => String(b.at2).localeCompare(String(a.at2))).slice(0, 40);
     let h = `<div><h2>Checked</h2><p class="small muted" style="margin:4px 0 0">Your latest accepted and sent-back work.</p></div>`;
     if (!list.length) return h + `<div class="empty">Nothing checked yet.</div>`;
-    return h + `<div class="list">${list.map((s) => `<div class="card"><div class="row spread"><span><b>${esc((W(s.w) || { name: "?" }).name)}</b> \xB7 <span class="lotno">${esc(s.lot.lotNo)}</span> <span class="small muted">${fmtDT(s.at2)}</span></span><span class="row" style="gap:6px"><b>${s.q}</b><span class="chip ${s.st}">${s.st === "approved" ? "Checked" : "All sent back"}</span></span></div>${+s.alt ? `<div class="small warn">${s.alt} alter</div>` : ""}${+s.rej ? `<div class="small" style="color:var(--bad)">${s.rej} rejected</div>` : ""}<div class="small muted">${fmtCells(s.sz)}${s.by2 ? " \xB7 by " + esc((W(s.by2) || { name: s.by2 === "owner" ? "Owner" : "?" }).name) : ""}</div>${s.st === "approved" ? canEditCheck(s.lot, s) ? `<button class="btn alt sm" data-editchk="${s.lot.id}|${s.eid}" style="margin-top:8px">Edit check</button>` : `<div class="small muted" style="margin-top:6px">${s.altRecv ? "Alter already taken back by the stitcher" : "Already handed over"} \xB7 can't edit</div>` : ""}</div>`).join("")}</div>`;
+    return h + `<div class="list">${list.map((s) => `<div class="card"><div class="row spread"><span><b>${esc((W(s.w) || { name: "?" }).name)}</b> \xB7 <span class="lotno">${esc(s.lot.lotNo)}</span> <span class="small muted">${fmtDT(s.at2)}</span></span><span class="row" style="gap:6px"><b>${s.q}</b><span class="chip ${s.st}">${s.st === "approved" ? "Checked" : "All sent back"}</span></span></div>${+s.alt ? `<div class="small warn">${s.alt} alter</div>` : ""}${+s.rej ? `<div class="small" style="color:var(--bad)">${s.rej} rejected</div>` : ""}<div class="small muted">${fmtCells(s.sz)}${s.by2 ? " \xB7 by " + esc((W(s.by2) || { name: s.by2 === "owner" ? "Owner" : "?" }).name) : ""}</div>${s.st === "approved" || s.st === "rejected" && s.back === "checker" ? canEditCheck(s.lot, s) ? `<button class="btn alt sm" data-editchk="${s.lot.id}|${s.eid}" style="margin-top:8px">Edit check</button>` : `<div class="small muted" style="margin-top:6px">${s.altRecv ? "Alter already taken back by the stitcher" : "Already handed over"} \xB7 can't edit</div>` : ""}</div>`).join("")}</div>`;
   }
   function canEditCheck(l, v) {
     if (v.altRecv || v.wh) return false;
+    if (v.st === "rejected") return v.back === "checker";
     const wc = withChecker(l);
     return Object.entries(v.sz || {}).every(([k, n]) => (wc.left[k] || 0) >= (+n || 0));
   }
@@ -1358,7 +1359,7 @@ ${url}`;
     const w = W(s0.w) || { name: "?" };
     const rcv = mode === "receive";
     const edit = mode === "edit";
-    const s = edit ? __spreadProps(__spreadValues({}, s0), { sz: Object.fromEntries(Object.keys(__spreadValues(__spreadValues(__spreadValues({}, s0.sz), s0.altSz || {}), s0.rejSz || {})).map((k) => [k, (+(s0.sz || {})[k] || 0) + (+(s0.altSz || {})[k] || 0) + (+(s0.rejSz || {})[k] || 0)])), q: (+s0.q || 0) + (+s0.alt || 0) + (+s0.rej || 0) }) : s0;
+    const s = edit && s0.st !== "rejected" ? __spreadProps(__spreadValues({}, s0), { sz: Object.fromEntries(Object.keys(__spreadValues(__spreadValues(__spreadValues({}, s0.sz), s0.altSz || {}), s0.rejSz || {})).map((k) => [k, (+(s0.sz || {})[k] || 0) + (+(s0.altSz || {})[k] || 0) + (+(s0.rejSz || {})[k] || 0)])), q: (+s0.q || 0) + (+s0.alt || 0) + (+s0.rej || 0) }) : s0;
     const keys = Object.keys(s.sz || {}).filter((k) => +s.sz[k] > 0).sort((a, b) => {
       const [ca, za] = splitCK(a), [cb, zb] = splitCK(b);
       return ca.localeCompare(cb) || (SIZE_ORDER.indexOf(za) + 1 || 99) - (SIZE_ORDER.indexOf(zb) + 1 || 99);
