@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1800";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1810";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -1339,7 +1339,8 @@ ${url}`;
     const list = submissions("received").sort((a, b) => String(a.rat).localeCompare(String(b.rat)));
     let h = `<div class="row spread"><h2>Check work</h2><span class="small muted">${list.length} waiting</span></div>`;
     if (!list.length) return h + `<div class="empty"><h3>Nothing to check</h3>Work shows here after the lot receiver receives it from the stitcher.</div>`;
-    return h + list.map((s) => subCard(s, `<button class="btn accent" data-check="${s.lot.id}|${s.eid}">Check</button><button class="btn alt sm" data-rejectsub="${s.lot.id}|${s.eid}">All alter</button>`, "received " + fmtDT(s.rat) + (W(s.rby) ? " by " + esc(W(s.rby).name) : ""))).join("");
+    list.sort((a, b) => (b.chkStart ? 1 : 0) - (a.chkStart ? 1 : 0));
+    return h + list.map((s) => subCard(s, s.chkStart ? `<span class="chip pending">Checking since ${fmtDT(s.chkStart)}${W(s.chkBy) ? " \xB7 " + esc(W(s.chkBy).name) : ""}</span><button class="btn accent" data-check="${s.lot.id}|${s.eid}">Check finished</button>` : `<button class="btn accent" data-chkstart="${s.lot.id}|${s.eid}">Start check</button>`, "received " + fmtDT(s.rat) + (W(s.rby) ? " by " + esc(W(s.rby).name) : ""))).join("");
   }
   function checkedView() {
     const list = submissions(["approved", "rejected"]).filter((s) => s.at2 && s.rat).sort((a, b) => String(b.at2).localeCompare(String(a.at2))).slice(0, 40);
@@ -1394,7 +1395,7 @@ ${url}`;
       <div class="row spread"><span class="small" id="kAlt"></span><b id="kTotal" style="font-family:var(--display);font-size:1.3rem">${s.q} pcs ${rcv ? "received" : "OK"}</b></div></div>
     <label class="f">Note for ${esc(w.name)} (optional)<input id="kNote" placeholder="${rcv ? "e.g. 2 pcs M missing" : "e.g. collar uneven on alter pieces"}"></label>
     <div id="kErr" class="err"></div>
-    <button class="btn accent big" type="submit">${rcv ? "Receive and send to checker" : "Save check"}</button></form>`);
+    <button class="btn accent big" type="submit">${rcv ? "Receive and send to checker" : edit ? "Save check" : "Check finished"}</button></form>`);
     const read = () => {
       let ok = 0, alt = 0, rej = 0, bad = "";
       const okSz = {}, altSz = {}, rejSz = {};
@@ -3554,6 +3555,24 @@ ${url}`;
       }
       if (d.alloc) {
         allocSheet(d.alloc);
+        return;
+      }
+      if (d.chkstart) {
+        if (!t.dataset.sure) {
+          t.dataset.sure = "1";
+          t.textContent = "Tap again to start";
+          setTimeout(() => {
+            if (t.isConnected && !t.disabled) {
+              delete t.dataset.sure;
+              t.textContent = "Start check";
+            }
+          }, 4e3);
+          return;
+        }
+        const [l, e] = d.chkstart.split("|");
+        t.disabled = true;
+        await S.db.doc("lots/" + l).update({ prog: { stitching: { [e]: { chkStart: (/* @__PURE__ */ new Date()).toISOString(), chkBy: me().id } } } });
+        toast("Check started");
         return;
       }
       if (d.check) {
