@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2010";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2020";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -1673,9 +1673,9 @@ ${url}`;
     const m = me();
     const ls = lotsSorted().filter((l) => threadPool(l, m.id).total > 0);
     const tot = ls.reduce((a, l) => a + threadPool(l, m.id).total, 0);
-    let h = `<div class="row spread"><h2>New lots</h2><span class="small muted">${tot} pcs in hand</span></div>`;
+    let h = `<div class="row spread"><h2>Thread lots</h2><span class="small muted">${tot} pcs in hand</span></div>`;
     if (!ls.length) return h + `<div class="empty"><h3>No lot in hand</h3>Lots the checker hands over to you appear here.</div>`;
-    return h + `<p class="small muted" style="margin:0">Tap the sizes (or a colour), then hand them over to ironing or give them to a thread cutter.</p><div class="list" id="tList">${threadListHtml()}</div>`;
+    return h + `<p class="small muted" style="margin:0">Each card is one bundle you received. Give it to ironing when the thread cutting is done.</p><div class="list" id="tList">${threadListHtml()}</div>`;
   }
   function mgrThreadView() {
     const tcs = activeWorkers().filter(isThreadW);
@@ -1687,29 +1687,49 @@ ${url}`;
   function mgrThreadListHtml() {
     return activeWorkers().filter(isThreadW).map((w) => threadListHtml(w.id)).join("") || `<div class="empty">Nothing with thread cutters.</div>`;
   }
+  function threadBundles(l, wid) {
+    const fl = Object.entries(l.flow || {}).filter(([, v]) => v && v.st !== "cancelled" && v.stage === "thread" && v.w === wid).sort((a, b) => String(a[1].at || "").localeCompare(String(b[1].at || "")));
+    const ids = new Set(fl.map(([f]) => f));
+    const used = {}, legacy = {};
+    for (const v of Object.values(l.flow || {})) {
+      if (!v || v.st === "cancelled" || v.stage !== "ironing" || v.fromW !== wid) continue;
+      const tgt = v.from && ids.has(v.from) ? used[v.from] = used[v.from] || {} : legacy;
+      for (const [k, n] of Object.entries(v.sz || {})) tgt[k] = (tgt[k] || 0) + (+n || 0);
+    }
+    const out = [];
+    for (const [fid, v] of fl) {
+      const left = {};
+      let total = 0;
+      for (const [k, n] of Object.entries(nz(v.sz))) {
+        let x = Math.max(0, (+n || 0) - ((used[fid] || {})[k] || 0));
+        const take = Math.min(x, legacy[k] || 0);
+        legacy[k] = (legacy[k] || 0) - take;
+        x -= take;
+        if (x > 0) {
+          left[k] = x;
+          total += x;
+        }
+      }
+      if (total) out.push({ lot: l, fid, v, left, total, used: (+v.q || Object.values(nz(v.sz)).reduce((a, b) => a + b, 0)) - total });
+    }
+    return out;
+  }
   function threadListHtml(forWid) {
     const m = forWid ? { id: forWid } : me();
-    return lotsSorted().filter((l) => threadPool(l, m.id).total > 0).map((l) => {
-      const pl = threadPool(l, m.id);
-      const mine = tSel.lid === l.id && tSel.wid === m.id;
-      const n = mine ? [...tSel.keys].reduce((a, k) => a + (pl.left[k] || 0), 0) : 0;
-      const from = Object.values(l.flow || {}).filter((v) => v && v.stage === "thread" && v.w === m.id).map((v) => W(v.by)).filter(Boolean).map((w) => w.name).filter((x, i, a) => a.indexOf(x) === i).join(", ");
-      const by = {};
-      Object.keys(pl.left).forEach((k) => {
-        const [c] = splitCK(k);
-        (by[c] = by[c] || []).push(k);
-      });
-      return `<div class="card list ${mine && n ? "selcard" : ""}" style="gap:8px">
-      <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> <span class="dname">${esc(l.design)}</span><div class="small muted ell">${forWid ? "with <b>" + esc((W(m.id) || {}).name || "?") + "</b> \xB7 " : ""}${from ? "from " + esc(from) : ""}</div></div><div><div class="left">${pl.total}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
-      <div class="crows">${Object.entries(by).map(([c, ks]) => `<div class="crow"><button type="button" class="cname linkish" data-tcol="${l.id}|${esc(c)}" data-twid="${m.id}">${esc(c)}</button><span class="row" style="gap:5px">${sortSizes(ks.map((k) => splitCK(k)[1])).map((z) => {
-        const k = CK(c, z);
-        const on = mine && tSel.keys.has(k);
-        return `<button type="button" class="chip line pick ${on ? "on" : ""}" data-tsel="${l.id}|${esc(k)}" data-twid="${m.id}">${on ? "\u2713 " : ""}${esc(z)} <b>${pl.left[k]}</b></button>`;
-      }).join("")}</span></div>`).join("")}</div>
-      ${!(mine && n) ? `<div class="row" style="gap:8px"><button type="button" class="btn accent" data-tgiveall="${l.id}" data-twid="${m.id}">Give ${pl.total} pcs to ironing</button><button type="button" class="btn alt sm" data-tundo="${l.id}" data-twid="${m.id}">Undo receive</button></div><div class="small muted">Giving only some sizes? Tap those sizes above first.</div>` : ""}
-      ${mine && n ? `<div class="subbar"><span><b>${n} pcs selected</b></span><span class="row" style="gap:8px"><button type="button" class="btn accent" data-tgive="${l.id}" data-twid="${m.id}">Hand over to ironing</button>${activeWorkers().some((w) => isThreadW(w) && w.id !== m.id) ? `<button type="button" class="btn alt" data-tsub="${l.id}" data-twid="${m.id}">Give to thread cutter</button>` : ""}<button type="button" class="btn alt sm" data-tclear="1">Clear</button></span></div>` : ""}
+    const bs = [];
+    for (const l of lotsSorted()) bs.push(...threadBundles(l, m.id));
+    bs.sort((a, b) => String(a.v.at || "").localeCompare(String(b.v.at || "")));
+    const others = activeWorkers().some((w) => isThreadW(w) && w.id !== m.id);
+    return bs.map((b) => {
+      const src = b.v.eid && ((b.lot.prog || {}).stitching || {})[b.v.eid];
+      const st = src && W(src.w), ck = W(b.v.by);
+      return `<div class="card list" style="gap:8px">
+      <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(b.lot.lotNo)}</span> <span class="dname">${esc(b.lot.design)}</span>${forWid ? `<div class="small muted">with <b>${esc((W(m.id) || {}).name || "?")}</b></div>` : ""}</div><div><div class="left">${b.total}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
+      ${openRows(b.left)}
+      <ul class="tl small" style="margin:0">${st ? `<li>Stitcher: <b>${esc(st.name)}</b></li>` : ""}<li>Checker: <b>${ck ? esc(ck.name) : b.v.by === "owner" ? "Owner" : "\u2014"}</b></li><li>Received: <b>${fmtDT(b.v.at)}</b></li>${b.used ? `<li>Already given to ironing: <b>${b.used}</b></li>` : ""}</ul>
+      <div class="row" style="gap:8px"><button type="button" class="btn accent" data-tgivef="${b.lot.id}|${b.fid}" data-twid="${m.id}">Give ${b.total} pcs to ironing</button>${others ? `<button type="button" class="btn alt sm" data-tsubf="${b.lot.id}|${b.fid}" data-twid="${m.id}">Give to thread cutter</button>` : ""}<button type="button" class="btn alt sm" data-tundof="${b.lot.id}|${b.fid}" data-twid="${m.id}">Undo receive</button></div>
     </div>`;
-    }).join("") || `<div class="empty">No lot in hand.</div>`;
+    }).join("") || `<div class="empty">No bundle in hand.</div>`;
   }
   function handoverView() {
     const ls = lotsSorted().filter((l) => withChecker(l).total > 0);
@@ -3781,6 +3801,40 @@ ${url}`;
         });
         if (!Object.keys(cells).length) return;
         giveSheet(d.tsub, cells, "thread", null, tw);
+        return;
+      }
+      if (d.tgivef || d.tsubf) {
+        const [lid, fid] = (d.tgivef || d.tsubf).split("|");
+        const tw = d.twid || me().id;
+        const b = threadBundles(S.lots[lid], tw).find((x) => x.fid === fid);
+        if (!b) return;
+        if (d.tgivef) giveSheet(lid, Object.assign({}, b.left), "ironing", fid, tw);
+        else giveSheet(lid, Object.assign({}, b.left), "thread", null, tw);
+        return;
+      }
+      if (d.tundof) {
+        if (!t.dataset.sure) {
+          t.dataset.sure = "1";
+          t.textContent = "Tap again to send back";
+          setTimeout(() => {
+            if (t.isConnected && !t.disabled) {
+              delete t.dataset.sure;
+              t.textContent = "Undo receive";
+            }
+          }, 4e3);
+          return;
+        }
+        const [lid, fid] = d.tundof.split("|");
+        const tw = d.twid || me().id, l = S.lots[lid];
+        const b = threadBundles(l, tw).find((x) => x.fid === fid);
+        if (!b) return;
+        const sz = Object.assign({}, l.flow[fid].sz || {});
+        for (const [k, n] of Object.entries(b.left)) sz[k] = Math.max(0, (+sz[k] || 0) - n);
+        const q = Object.values(sz).reduce((a, c) => a + (+c || 0), 0);
+        const now = (/* @__PURE__ */ new Date()).toISOString();
+        t.disabled = true;
+        await S.db.doc("lots/" + lid).update({ flow: { [fid]: q ? { sz, q, undoneAt: now } : { st: "cancelled", undoneAt: now, undoneBy: me().id } } });
+        toast(b.total + " pcs of " + l.lotNo + " moved back to To receive");
         return;
       }
       if (d.tgiveall) {
