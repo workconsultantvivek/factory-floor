@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1600";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1615";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -625,11 +625,11 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     const nHo = () => lotsSorted().filter((l) => withChecker(l).total > 0).length;
     const nTh = () => activeWorkers().filter((w) => w.role === "Thread cutter").reduce((a, w) => a + lotsSorted().filter((l) => threadPool(l, w.id).total > 0).length, 0);
     const nTask = () => tasksFor().filter((t) => t.st !== "done").length;
-    const boss = [["alloc", "Allocate", ICON.add, nAlloc()], ["rinbox", "Receive", ICON.add, nRcv()], ["inbox", "Check", ICON.done, nInbox()], ["handover", "Hand over", ICON.lots, nHo()], ["mthread", "To ironing", ICON.lots, nTh()], ["pending", "Report", ICON.team], ["otasks", "Tasks", ICON.done, nTask()], ["lots", "All lots", ICON.lots, 0, true], ["stock", "Stock", ICON.lots, 0, true]];
-    const tabs = m.id === "owner" ? boss.concat([["team", "Team", ICON.team, 0, true]]) : m.role === "Cutting master" ? [["add", "Add cut lot", ICON.add], ["lots", "All lots", ICON.lots], ["mtasks", "Tasks", ICON.done, tasksFor(m.id).filter((t) => t.st !== "done").length]] : m.role === "Lot allocator" ? [["alloc", "Allocate", ICON.add, nAlloc()], ["allocd", "Allocated", ICON.team], ["lots", "All lots", ICON.lots]] : m.role === "Lot receiver" ? [["rinbox", "Receive work", ICON.add, nRcv()], ["rhist", "Received", ICON.done], ["lots", "All lots", ICON.lots]] : m.role === "Warehouse receiver" ? [["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["lots", "All lots", ICON.done]] : m.role === "Checker" ? [["inbox", "Check work", ICON.done, nInbox()], ["handover", "Hand over", ICON.lots, lotsSorted().filter((l) => withChecker(l).total > 0).length], ["checked", "Checked", ICON.team]] : m.role === "Thread cutter" ? [["tnew", "New lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["tdone", "Completed", ICON.done]] : m.role === "Ironing" ? [["inew", "New lots", ICON.lots, flowItems("ironing").filter((v) => v.w === m.id && v.st === "given").length], ["idone", "Completed", ICON.done]] : m.role === "Manager" ? boss.concat([["links", "Team links", ICON.team, 0, true]]) : RECV_STAGES.includes(myStage()) ? [["add", "New lots", ICON.lots, myLots(m.id).reduce((n, l) => n + allocOpen(l, m.id).filter((a) => a.total > 0).length, 0)], ["alter", "Alter / Rejected", ICON.add, myLots(m.id).reduce((a, l) => a + altWaiting(l, m.id).total, 0)], ["done", "Completed", ICON.done]] : myStage() ? [["add", "Add entry", ICON.add], ["lots", "Cut lots", ICON.lots], ["done", "Completed", ICON.done]] : [["lots", "Cut lots", ICON.lots]];
+    const boss = [["alloc", "Allocate", ICON.add, nAlloc()], ["rinbox", "Receive", ICON.add, nRcv()], ["inbox", "Check", ICON.done, nInbox()], ["handover", "Hand over", ICON.lots, nHo()], ["mthread", "To ironing", ICON.lots, nTh()], ["pending", "Report", ICON.team], ["otasks", "Tasks", ICON.done, nTask()], ["bundles", "Bundles", ICON.team, 0, true], ["lots", "All lots", ICON.lots, 0, true], ["stock", "Stock", ICON.lots, 0, true]];
+    const tabs = m.id === "owner" ? boss.concat([["team", "Team", ICON.team, 0, true]]) : m.role === "Cutting master" ? [["add", "Add cut lot", ICON.add], ["lots", "All lots", ICON.lots], ["mtasks", "Tasks", ICON.done, tasksFor(m.id).filter((t) => t.st !== "done").length]] : m.role === "Lot allocator" ? [["alloc", "Allocate", ICON.add, nAlloc()], ["allocd", "Bundles", ICON.team], ["lots", "All lots", ICON.lots]] : m.role === "Lot receiver" ? [["rinbox", "Receive work", ICON.add, nRcv()], ["rhist", "Received", ICON.done], ["lots", "All lots", ICON.lots]] : m.role === "Warehouse receiver" ? [["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["lots", "All lots", ICON.done]] : m.role === "Checker" ? [["inbox", "Check work", ICON.done, nInbox()], ["handover", "Hand over", ICON.lots, lotsSorted().filter((l) => withChecker(l).total > 0).length], ["checked", "Checked", ICON.team]] : m.role === "Thread cutter" ? [["tnew", "New lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["tdone", "Completed", ICON.done]] : m.role === "Ironing" ? [["inew", "New lots", ICON.lots, flowItems("ironing").filter((v) => v.w === m.id && v.st === "given").length], ["idone", "Completed", ICON.done]] : m.role === "Manager" ? boss.concat([["links", "Team links", ICON.team, 0, true]]) : RECV_STAGES.includes(myStage()) ? [["add", "New lots", ICON.lots, myLots(m.id).reduce((n, l) => n + allocOpen(l, m.id).filter((a) => a.total > 0).length, 0)], ["alter", "Alter / Rejected", ICON.add, myLots(m.id).reduce((a, l) => a + altWaiting(l, m.id).total, 0)], ["done", "Completed", ICON.done]] : myStage() ? [["add", "Add entry", ICON.add], ["lots", "Cut lots", ICON.lots], ["done", "Completed", ICON.done]] : [["lots", "Cut lots", ICON.lots]];
     if (!tabs.find((t) => t[0] === S.tab)) S.tab = tabs[0][0];
-    const body = { add: addView, lots: lotsView, done: doneView, team: teamView, alter: alterView, alloc: allocView, allocd: allocdView, inbox: inboxView, checked: checkedView, rinbox: rinboxView, rhist: rhistView, wh: whInboxView, stock: stockView, handover: handoverView, pending: pendingView, links: linksView, otasks: bossTasksView, mtasks: masterTasksView, mthread: mgrThreadView, tnew: threadNewView, tdone: threadDoneView, inew: () => flowNewView("ironing"), idone: () => flowDoneView("ironing") }[S.tab]();
-    app.innerHTML = header() + `<main class="wrap">${["pending", "lots", "stock", "team", "links"].includes(S.tab) ? bossLinks(S.tab) : ""}${body}</main>` + (tabs.length > 1 ? `<nav class="bottom ${tabs.filter((t) => !t[4]).length > 5 ? "many" : ""}"><div class="wrap">${tabs.filter((t) => !t[4]).map((t) => `<button data-tab="${t[0]}" aria-current="${S.tab === t[0] || t[0] === "pending" && isBoss() && ["lots", "stock", "team", "links"].includes(S.tab)}"><span class="ico">${t[2]}${t[3] ? `<i class="badge">${t[3]}</i>` : ""}</span>${t[1]}</button>`).join("")}</div></nav>` : "");
+    const body = { add: addView, lots: lotsView, done: doneView, team: teamView, alter: alterView, alloc: allocView, allocd: bundlesView, bundles: bundlesView, inbox: inboxView, checked: checkedView, rinbox: rinboxView, rhist: rhistView, wh: whInboxView, stock: stockView, handover: handoverView, pending: pendingView, links: linksView, otasks: bossTasksView, mtasks: masterTasksView, mthread: mgrThreadView, tnew: threadNewView, tdone: threadDoneView, inew: () => flowNewView("ironing"), idone: () => flowDoneView("ironing") }[S.tab]();
+    app.innerHTML = header() + `<main class="wrap">${["pending", "bundles", "lots", "stock", "team", "links"].includes(S.tab) ? bossLinks(S.tab) : ""}${body}</main>` + (tabs.length > 1 ? `<nav class="bottom ${tabs.filter((t) => !t[4]).length > 5 ? "many" : ""}"><div class="wrap">${tabs.filter((t) => !t[4]).map((t) => `<button data-tab="${t[0]}" aria-current="${S.tab === t[0] || t[0] === "pending" && isBoss() && ["lots", "stock", "team", "links"].includes(S.tab)}"><span class="ico">${t[2]}${t[3] ? `<i class="badge">${t[3]}</i>` : ""}</span>${t[1]}</button>`).join("")}</div></nav>` : "");
     for (const [id, v] of Object.entries(draft)) {
       const el = document.getElementById(id);
       if (el && el.closest("form") && !el.disabled) el.value = v;
@@ -1249,6 +1249,58 @@ ${url}`;
     ${rs.sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 12).map((r) => {
         const o = myOpen(r.lot, "stitching", wid);
         return `<div class="erow"><span style="min-width:0"><b class="lotno">${esc(r.lot.lotNo)}</b> <span class="muted">${lotLabel(r.lot)}</span><span class="small muted" style="display:block">${fmtDT(r.at || r.date)} \xB7 ${fmtCells(r.sz)}</span></span><span class="row" style="gap:6px"><b>${r.q}</b>${o.total ? '<span class="chip line">In work</span>' : '<span class="chip approved">Submitted</span>'}${!stageEntries(r.lot, "stitching").some((v) => v.w === wid) ? `<button class="btn alt sm" data-cancelalloc="${r.lot.id}|${r.rid}">Cancel</button>` : ""}<button class="btn alt sm" data-editalloc="${r.lot.id}|${r.rid}">Edit pcs</button><button class="btn alt sm" data-editsize="${r.lot.id}|${wid}">Edit size</button></span></div>`;
+      }).join("")}</section>`;
+    }).join("");
+  }
+  let bunQ = "", bunFilter = "open";
+  function bundleRows() {
+    const out = [];
+    for (const l of lotsSorted()) {
+      const recs = recvList(l, "stitching");
+      if (!recs.length) continue;
+      const ents = stageEntries(l, "stitching");
+      const open = {};
+      for (const w of [...new Set(recs.map((v) => v.w))]) for (const a of allocOpen(l, w)) open[a.rid] = a;
+      for (const a of recs) {
+        const mine = ents.filter((v) => v.rid === a.rid);
+        const sum = (st) => mine.filter((v) => v.st === st).reduce((x, v) => x + (+v.q || 0), 0);
+        const o = open[a.rid] || { total: 0, touched: 0 };
+        out.push({ lot: l, a, left: o.total, sub: sum("pending"), chk: sum("received"), ok: sum("approved"), alt: mine.filter((v) => v.st === "approved").reduce((x, v) => x + (+v.alt || 0), 0), rej: mine.filter((v) => v.st === "approved").reduce((x, v) => x + (+v.rej || 0), 0), started: mine.length > 0 });
+      }
+    }
+    return out;
+  }
+  function bundlesView() {
+    const rows = bundleRows();
+    const live = rows.filter((r) => r.left > 0 || r.sub > 0 || r.chk > 0);
+    let h = `<div class="row spread"><h2>Bundles</h2><span class="small muted">${live.reduce((a, r) => a + r.left, 0)} pcs with stitchers</span></div>
+    <p class="small muted" style="margin:0">Every bundle given to a stitcher. Tap <b>Edit bundle</b> to fix pieces or size.</p>`;
+    if (!rows.length) return h + `<div class="empty"><h3>No bundles yet</h3>Bundles show here once lots are allocated to stitchers.</div>`;
+    h += `<input class="search" type="search" id="bunQ" placeholder="Search stitcher, lot no., design or colour" value="${esc(bunQ)}" autocomplete="off">
+    <div class="seg">${[["open", "In work"], ["all", "All bundles"]].map(([k, n]) => `<button data-bunfilter="${k}" class="${bunFilter === k ? "on" : ""}">${n}</button>`).join("")}</div>`;
+    return h + `<div class="list" id="bunList">${bundleListHtml()}</div>`;
+  }
+  function bundleListHtml() {
+    const q = bunQ.trim().toLowerCase();
+    let rows = bundleRows();
+    if (bunFilter === "open") rows = rows.filter((r) => r.left > 0 || r.sub > 0 || r.chk > 0);
+    const nm = (w) => (W(w) || { name: "?" }).name;
+    if (q) rows = rows.filter((r) => [nm(r.a.w), r.lot.lotNo, r.lot.design, r.lot.colour, r.lot.designName].some((x) => String(x || "").toLowerCase().includes(q)));
+    if (!rows.length) return `<div class="empty">${q ? "No bundle matches." : "No bundle in work. Tap <b>All bundles</b> to see finished ones."}</div>`;
+    const by = {};
+    rows.forEach((r) => (by[r.a.w] = by[r.a.w] || []).push(r));
+    const canEdit = canEditSize();
+    return Object.entries(by).sort((x, y) => nm(x[0]).localeCompare(nm(y[0]))).map(([wid, rs]) => {
+      const hand = rs.reduce((a, r) => a + r.left, 0);
+      return `<section class="card list" style="gap:10px"><div class="row spread"><h3>${esc(nm(wid))}</h3><span class="small muted">${rs.length} bundle${rs.length > 1 ? "s" : ""} \xB7 <b>${hand}</b> pcs to make</span></div>
+      ${rs.sort((a, b) => String(b.a.at || b.a.date).localeCompare(String(a.a.at || a.a.date))).map((r) => {
+        const by2 = W(r.a.by);
+        const st = [r.left ? `<span class="chip line ph-st">${r.left} to make</span>` : "", r.sub ? `<span class="chip pending">${r.sub} submitted</span>` : "", r.chk ? `<span class="chip pending">${r.chk} with checker</span>` : "", r.ok ? `<span class="chip approved">${r.ok} passed</span>` : "", r.alt ? `<span class="chip line">${r.alt} alter</span>` : "", r.rej ? `<span class="chip line" style="color:var(--bad)">${r.rej} rejected</span>` : ""].filter(Boolean).join("");
+        return `<div class="erow" style="align-items:flex-start"><span style="min-width:0;flex:1"><b class="lotno">${esc(r.lot.lotNo)}</b> <span class="muted">${lotLabel(r.lot)}</span>
+        <span class="small muted" style="display:block">given ${fmtDT(r.a.at || r.a.date)}${by2 ? " by " + esc(by2.name) : ""}${r.lot.designName ? " \xB7 " + esc(r.lot.designName) : ""}</span>
+        <span class="small" style="display:block;margin-top:4px"><b>${r.a.q}</b> pcs \xB7 ${fmtCells(r.a.sz)}</span>
+        <span class="row" style="gap:5px;margin-top:6px">${st}</span></span>
+        ${canEdit ? `<span class="row" style="gap:6px;flex-direction:column;align-items:flex-end"><button class="btn alt sm" data-editalloc="${r.lot.id}|${r.a.rid}">Edit bundle</button>${!r.started ? `<button class="btn alt sm" data-cancelalloc="${r.lot.id}|${r.a.rid}">Cancel</button>` : ""}</span>` : ""}</div>`;
       }).join("")}</section>`;
     }).join("");
   }
@@ -2154,7 +2206,7 @@ ${url}`;
     <div><span class="muted">${lotLabel(l)}</span><div class="small muted">${l.designName ? esc(l.designName) + " \xB7 " : ""}cut ${fmtDate(l.date)}${cutter ? " by " + esc(cutter.name) : ""} \xB7 <b>${r.total} pcs</b></div></div>
     ${whereBar(r.grp, r.total)}${whereChips(r.grp)}
     ${body || `<div class="empty">No pieces in this lot.</div>`}
-    ${canFix || canEditCut(l) ? `<div class="row" style="gap:8px">${canEditCut(l) ? `<button type="button" class="btn alt" id="lwEditCut">Edit cut lot</button>` : ""}${canFix ? `<button type="button" class="btn alt" id="lwEditAlloc">Edit given pcs</button><button type="button" class="btn alt" id="lwEditSize">Edit size</button>` : ""}</div>` : ""}</div>`);
+    ${canFix || canEditCut(l) ? `<div class="row" style="gap:8px">${canEditCut(l) ? `<button type="button" class="btn alt" id="lwEditCut">Edit cut lot</button>` : ""}${canFix ? `<button type="button" class="btn alt" id="lwEditAlloc">Edit bundle</button><button type="button" class="btn alt" id="lwEditSize">Edit size</button>` : ""}</div>` : ""}</div>`);
     if (canFix) $("#lwEditSize", sh).onclick = () => editSizeSheet(lid, null);
     if (canEditCut(l)) $("#lwEditCut", sh).onclick = () => editCutSheet(lid);
     if (canFix) $("#lwEditAlloc", sh).onclick = () => editAllocSheet(lid, null);
@@ -2255,13 +2307,15 @@ ${url}`;
     const allocs = recvList(l, "stitching").sort((a, b) => String(a.at || a.date).localeCompare(String(b.at || b.date)));
     if (!allocs.length) return toast("Nothing from this lot is given to a stitcher yet.");
     const nm = (w) => (W(w) || { name: "?" }).name;
-    const sh = sheet("Edit given pcs \xB7 " + l.lotNo, `<form id="eaForm" class="list" novalidate>
-    <div class="hint">Change how many pieces a stitcher was given, e.g. when one extra piece was handed over.</div>
+    const sh = sheet("Edit bundle \xB7 " + l.lotNo, `<form id="eaForm" class="list" novalidate>
+    <div class="hint">Change how many pieces a stitcher was given, e.g. when one extra piece was handed over. Wrong size? Use <b>Change size</b> below.</div>
     <label class="f">Given to<select id="eaR">${allocs.map((a) => `<option value="${a.rid}" ${a.rid === rid0 ? "selected" : ""}>${esc(nm(a.w))} \xB7 ${fmtDT(a.at || a.date)} \xB7 ${fmtCells(a.sz)}</option>`).join("")}</select></label>
     <div class="card list" style="gap:12px" id="eaBox"></div>
     <label class="row small" id="eaCutWrap" style="gap:8px;display:none;flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="eaCut" checked> <span id="eaCutTxt"></span></label>
     <div id="eaErr" class="err"></div>
-    <button class="btn accent big" type="submit">Save</button></form>`, { short: true });
+    <button class="btn accent big" type="submit">Save</button>
+    <button class="btn alt" type="button" id="eaSize">Change size instead</button></form>`, { short: true });
+    $("#eaSize", sh).onclick = () => editSizeSheet(lid, a.w);
     let a, used, free, keys;
     const load = () => {
       const lot = S.lots[lid];
@@ -2506,7 +2560,7 @@ ${url}`;
   function bossLinks(cur) {
     if (!isBoss()) return "";
     const own = me().id === "owner";
-    const ls = [["pending", "Pending"], ["lots", "All lots"], ["stock", "Stock"], own ? ["team", "Team"] : S.live ? ["links", "Team links"] : null].filter(Boolean);
+    const ls = [["pending", "Pending"], ["bundles", "Bundles"], ["lots", "Lots"], ["stock", "Stock"], own ? ["team", "Team"] : S.live ? ["links", "Team links"] : null].filter(Boolean);
     return `<div class="seg navseg">${ls.map(([k, n]) => `<button type="button" data-tab="${k}" class="${k === cur ? "on" : ""}">${n}</button>`).join("")}</div>`;
   }
   function lotsOverview(ls) {
@@ -2889,6 +2943,12 @@ ${url}`;
       stockQ = t.value;
       const el = $("#stockList");
       if (el) el.innerHTML = stockListHtml();
+      return;
+    }
+    if (t.id === "bunQ") {
+      bunQ = t.value;
+      const el = $("#bunList");
+      if (el) el.innerHTML = bundleListHtml();
       return;
     }
     if (t.id === "allocQ") {
@@ -3429,6 +3489,11 @@ ${url}`;
         S.tab = "add";
         render();
         window.scrollTo(0, 0);
+        return;
+      }
+      if (d.bunfilter) {
+        bunFilter = d.bunfilter;
+        render();
         return;
       }
       if (d.lotfilter) {
