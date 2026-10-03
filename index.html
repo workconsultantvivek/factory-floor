@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2235";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2240";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -1377,7 +1377,7 @@ ${url}`;
         const by2 = W(r.a.by);
         const st = [r.left ? `<span class="chip line ph-st">${r.left} to make</span>` : "", r.sub ? `<span class="chip pending">${r.sub} submitted</span>` : "", r.chk ? `<span class="chip pending">${r.chk} with checker</span>` : "", r.ok ? `<span class="chip approved">${r.ok} passed</span>` : "", r.alt ? `<span class="chip line">${r.alt} alter</span>` : "", r.rej ? `<span class="chip line" style="color:var(--bad)">${r.rej} rejected</span>` : ""].filter(Boolean).join("");
         return `<div class="erow" style="align-items:flex-start"><span style="min-width:0;flex:1"><b class="lotno">${esc(r.lot.lotNo)}</b> ${bunTitle(r.lot, r.a.sz)}
-        <span class="small muted" style="display:block">given ${fmtDT(r.a.at || r.a.date)}${by2 ? " by " + esc(by2.name) : ""}</span>
+        <ul class="tl small" style="margin:4px 0 0"><li>Allocated by: <b>${by2 ? esc(by2.name) : r.a.by === "owner" ? "Owner" : "\u2014"}</b></li><li>Allocated time: <b>${fmtDT(r.a.at || r.a.date)}</b></li></ul>
         <span class="row" style="gap:5px;margin-top:6px">${st}</span></span>
         ${canEdit ? `<span class="row" style="gap:6px;flex-direction:column;align-items:flex-end"><button class="btn alt sm" data-editalloc="${r.lot.id}|${r.a.rid}">Edit bundle</button>${!r.started ? `<button class="btn alt sm" data-cancelalloc="${r.lot.id}|${r.a.rid}">Cancel</button>` : ""}</span>` : ""}</div>`;
       }).join("")}</section>`;
