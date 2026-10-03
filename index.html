@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1715";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1735";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -107,7 +107,7 @@ label.f input,label.f select,label.f textarea{border:1px solid var(--line);backg
 .seg button{border:0;background:transparent;padding:8px 14px;font-weight:600;color:var(--muted)}
 .seg button+button{border-left:1px solid var(--line)}
 .seg button.on{background:var(--btn);color:var(--btn-ink)}
-.seg.navseg{display:flex;align-self:stretch}.seg.navseg button{flex:1;padding:9px 4px;white-space:nowrap}
+.seg.navseg{display:flex;align-self:stretch;overflow-x:auto;scrollbar-width:none}.seg.navseg::-webkit-scrollbar{display:none}.seg.navseg button{flex:1 0 auto;padding:9px 8px;white-space:nowrap}
 .search{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:11px 12px;font-size:1rem;width:100%;color:var(--ink)}
 .entry{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:start}
 .qty{font-family:var(--display);font-size:1.35rem;font-weight:700;text-align:right;line-height:1.1}
@@ -126,6 +126,7 @@ label.f input,label.f select,label.f textarea{border:1px solid var(--line);backg
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--btn);color:var(--btn-ink);padding:10px 16px;border-radius:10px;z-index:30;font-weight:500;max-width:calc(100% - 32px)}
 .tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--surface)}
 table{border-collapse:collapse;width:100%}
+.dtab th,.dtab td{text-align:right;white-space:nowrap}.dtab th:first-child,.dtab td:first-child{text-align:left;white-space:normal}.dtab .dtot td{border-top:2px solid var(--line)}
 th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
 th{font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;background:var(--sunk)}
 .crows{display:flex;flex-direction:column;gap:6px}
@@ -627,11 +628,11 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     const nHo = () => lotsSorted().filter((l) => withChecker(l).total > 0).length;
     const nTh = () => activeWorkers().filter((w) => w.role === "Thread cutter").reduce((a, w) => a + lotsSorted().filter((l) => threadPool(l, w.id).total > 0).length, 0);
     const nTask = () => tasksFor().filter((t) => t.st !== "done").length;
-    const boss = [["alloc", "Allocate", ICON.add, nAlloc()], ["rinbox", "Receive", ICON.add, nRcv()], ["inbox", "Check", ICON.done, nInbox()], ["handover", "Hand over", ICON.lots, nHo()], ["mthread", "To ironing", ICON.lots, nTh()], ["pending", "Report", ICON.team], ["otasks", "Tasks", ICON.done, nTask()], ["bundles", "Bundles", ICON.team, 0, true], ["lots", "All lots", ICON.lots, 0, true], ["stock", "Stock", ICON.lots, 0, true]];
+    const boss = [["alloc", "Allocate", ICON.add, nAlloc()], ["rinbox", "Receive", ICON.add, nRcv()], ["inbox", "Check", ICON.done, nInbox()], ["handover", "Hand over", ICON.lots, nHo()], ["mthread", "To ironing", ICON.lots, nTh()], ["pending", "Report", ICON.team], ["otasks", "Tasks", ICON.done, nTask()], ["dash", "Dashboard", ICON.team, 0, true], ["bundles", "Bundles", ICON.team, 0, true], ["lots", "All lots", ICON.lots, 0, true], ["stock", "Stock", ICON.lots, 0, true]];
     const tabs = m.id === "owner" ? boss.concat([["team", "Team", ICON.team, 0, true]]) : m.role === "Cutting master" ? [["add", "Add cut lot", ICON.add], ["lots", "All lots", ICON.lots], ["mtasks", "Tasks", ICON.done, tasksFor(m.id).filter((t) => t.st !== "done").length]] : m.role === "Lot allocator" ? [["alloc", "Allocate", ICON.add, nAlloc()], ["allocd", "Bundles", ICON.team], ["lots", "All lots", ICON.lots]] : m.role === "Lot receiver" ? [["rinbox", "Receive work", ICON.add, nRcv()], ["rhist", "Received", ICON.done], ["lots", "All lots", ICON.lots]] : m.role === "Warehouse receiver" ? [["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["lots", "All lots", ICON.done]] : m.role === "Checker" ? [["inbox", "Check work", ICON.done, nInbox()], ["handover", "Hand over", ICON.lots, lotsSorted().filter((l) => withChecker(l).total > 0).length], ["checked", "Checked", ICON.team]] : m.role === "Thread cutter" ? [["tnew", "New lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["tdone", "Completed", ICON.done]] : m.role === "Ironing" ? [["inew", "New lots", ICON.lots, flowItems("ironing").filter((v) => v.w === m.id && v.st === "given").length], ["idone", "Completed", ICON.done]] : m.role === "Manager" ? boss.concat([["links", "Team links", ICON.team, 0, true]]) : RECV_STAGES.includes(myStage()) ? [["add", "New lots", ICON.lots, myLots(m.id).reduce((n, l) => n + allocOpen(l, m.id).filter((a) => a.total > 0).length, 0)], ["alter", "Alter / Rejected", ICON.add, myLots(m.id).reduce((a, l) => a + altWaiting(l, m.id).total, 0)], ["done", "Completed", ICON.done]] : myStage() ? [["add", "Add entry", ICON.add], ["lots", "Cut lots", ICON.lots], ["done", "Completed", ICON.done]] : [["lots", "Cut lots", ICON.lots]];
     if (!tabs.find((t) => t[0] === S.tab)) S.tab = tabs[0][0];
-    const body = { add: addView, lots: lotsView, done: doneView, team: teamView, alter: alterView, alloc: allocView, allocd: bundlesView, bundles: bundlesView, inbox: inboxView, checked: checkedView, rinbox: rinboxView, rhist: rhistView, wh: whInboxView, stock: stockView, handover: handoverView, pending: pendingView, links: linksView, otasks: bossTasksView, mtasks: masterTasksView, mthread: mgrThreadView, tnew: threadNewView, tdone: threadDoneView, inew: () => flowNewView("ironing"), idone: () => flowDoneView("ironing") }[S.tab]();
-    app.innerHTML = header() + `<main class="wrap">${["pending", "bundles", "lots", "stock", "team", "links"].includes(S.tab) ? bossLinks(S.tab) : ""}${body}</main>` + (tabs.length > 1 ? `<nav class="bottom ${tabs.filter((t) => !t[4]).length > 5 ? "many" : ""}"><div class="wrap">${tabs.filter((t) => !t[4]).map((t) => `<button data-tab="${t[0]}" aria-current="${S.tab === t[0] || t[0] === "pending" && isBoss() && ["lots", "stock", "team", "links"].includes(S.tab)}"><span class="ico">${t[2]}${t[3] ? `<i class="badge">${t[3]}</i>` : ""}</span>${t[1]}</button>`).join("")}</div></nav>` : "");
+    const body = { add: addView, lots: lotsView, done: doneView, team: teamView, alter: alterView, alloc: allocView, allocd: bundlesView, bundles: bundlesView, dash: dashView, inbox: inboxView, checked: checkedView, rinbox: rinboxView, rhist: rhistView, wh: whInboxView, stock: stockView, handover: handoverView, pending: pendingView, links: linksView, otasks: bossTasksView, mtasks: masterTasksView, mthread: mgrThreadView, tnew: threadNewView, tdone: threadDoneView, inew: () => flowNewView("ironing"), idone: () => flowDoneView("ironing") }[S.tab]();
+    app.innerHTML = header() + `<main class="wrap">${["dash", "pending", "bundles", "lots", "stock", "team", "links"].includes(S.tab) ? bossLinks(S.tab) : ""}${body}</main>` + (tabs.length > 1 ? `<nav class="bottom ${tabs.filter((t) => !t[4]).length > 5 ? "many" : ""}"><div class="wrap">${tabs.filter((t) => !t[4]).map((t) => `<button data-tab="${t[0]}" aria-current="${S.tab === t[0] || t[0] === "pending" && isBoss() && ["lots", "stock", "team", "links"].includes(S.tab)}"><span class="ico">${t[2]}${t[3] ? `<i class="badge">${t[3]}</i>` : ""}</span>${t[1]}</button>`).join("")}</div></nav>` : "");
     for (const [id, v] of Object.entries(draft)) {
       const el = document.getElementById(id);
       if (el && el.closest("form") && !el.disabled) el.value = v;
@@ -874,7 +875,7 @@ ${url}`;
     const rate = lot.rates && lot.rates[st] != null ? +lot.rates[st] : null;
     const now = (/* @__PURE__ */ new Date()).toISOString();
     await upsert("work/" + m.id + "_" + month, { entries: { [eid]: { date, lotId: lid, stage: st, qty: a.total, sz, rej: 0, note: a.touched ? "alter/short pieces" : "", status: "pending", rate, at: now, by: m.name, rid } } }, { workerId: m.id, month });
-    await S.db.doc("lots/" + lid).update({ prog: { [st]: { [eid]: { w: m.id, q: a.total, sz, st: "pending", date, at: now, rid } } } });
+    await S.db.doc("lots/" + lid).update({ prog: { [st]: { [eid]: { w: m.id, q: a.total, sz, st: "pending", date, at: now, rid, rate } } } });
     return a.total;
   }
   async function submitAll(lid) {
@@ -2587,7 +2588,7 @@ ${url}`;
   function bossLinks(cur) {
     if (!isBoss()) return "";
     const own = me().id === "owner";
-    const ls = [["pending", "Pending"], ["bundles", "Bundles"], ["lots", "Lots"], ["stock", "Stock"], own ? ["team", "Team"] : S.live ? ["links", "Team links"] : null].filter(Boolean);
+    const ls = [["dash", "Dashboard"], ["pending", "Pending"], ["bundles", "Bundles"], ["lots", "Lots"], ["stock", "Stock"], own ? ["team", "Team"] : S.live ? ["links", "Team links"] : null].filter(Boolean);
     return `<div class="seg navseg">${ls.map(([k, n]) => `<button type="button" data-tab="${k}" class="${k === cur ? "on" : ""}">${n}</button>`).join("")}</div>`;
   }
   function lotsOverview(ls) {
@@ -2640,6 +2641,80 @@ ${url}`;
     const d = lot && allDesigns()[lot.design];
     const r = d ? designRates(d).stitching : null;
     return r != null ? r : null;
+  }
+  let dashP = null;
+  function subQty(v) {
+    if (v.st === "pending") return +v.q || 0;
+    if (v.st === "received") return (+v.q || 0) + (+v.short || 0);
+    if (v.st === "approved") return (+v.q || 0) + (+v.alt || 0) + (+v.rej || 0) + (+v.short || 0);
+    if (v.st === "rejected") return +v.alt || +v.q || 0;
+    return 0;
+  }
+  function dashView() {
+    const cur = ym(/* @__PURE__ */ new Date()), td = today();
+    const dim = daysIn(S.month);
+    const isCur = S.month === cur;
+    const P = dashP || (isCur ? "today" : "month");
+    const per = isCur ? P : P === "today" ? "month" : P;
+    const inP = (d) => {
+      d = String(d || "");
+      if (d.slice(0, 7) !== S.month) return false;
+      const day = +d.slice(8, 10);
+      return per === "today" ? d.slice(0, 10) === td : per === "h1" ? day <= 15 : per === "h2" ? day >= 16 : true;
+    };
+    const label = per === "today" ? "Today" : per === "h1" ? "1 \u2013 15 " + monthLabel(S.month) : per === "h2" ? "16 \u2013 " + dim + " " + monthLabel(S.month) : monthLabel(S.month);
+    let cut = 0, sub = 0, got = 0, pass = 0, alt = 0, rej = 0, wh = 0;
+    const by = {};
+    const row = (w) => by[w] || (by[w] = { sub: 0, got: 0, alt: 0, rej: 0, pay: 0, pcsPaid: 0, bundles: new Set(), norate: false });
+    for (const l of lotsSorted()) {
+      if (inP(l.date)) cut += +l.total || 0;
+      const pays = {};
+      for (const [eid, v] of Object.entries((l.prog || {}).stitching || {})) {
+        if (!v || v.st === "withdrawn" || !v.w) continue;
+        if (!inP(v.date)) continue;
+        const r = row(v.w);
+        const q = subQty(v);
+        sub += q;
+        r.sub += q;
+        if (v.rid) r.bundles.add(l.id + v.rid);
+        if (v.st === "received" || v.st === "approved") {
+          const g = (+v.q || 0) + (v.st === "approved" ? (+v.alt || 0) + (+v.rej || 0) : 0);
+          got += g;
+          r.got += g;
+          const pm = pays[v.w] || (pays[v.w] = stitchPay(l, v.w));
+          const n = Object.values(pm[eid] || {}).reduce((a, b) => a + b, 0);
+          const rate = stitchRate(l, v);
+          r.pcsPaid += n;
+          if (rate != null) r.pay += n * rate;
+          else if (n) r.norate = true;
+        }
+        if (v.st === "approved") {
+          pass += +v.q || 0;
+          alt += +v.alt || 0;
+          rej += +v.rej || 0;
+          r.alt += +v.alt || 0;
+          r.rej += +v.rej || 0;
+        }
+      }
+      for (const v of Object.values((l.prog || {}).stitching || {})) if (v && v.wh && inP(String(v.wh.at || "").slice(0, 10))) wh += +v.wh.q || 0;
+      for (const v of Object.values(l.flow || {})) if (v && v.wh && inP(String(v.wh.at || "").slice(0, 10))) wh += +v.wh.q || 0;
+    }
+    const segs = (isCur ? [["today", "Today"]] : []).concat([["h1", "1 \u2013 15"], ["h2", "16 \u2013 " + dim], ["month", "Full month"]]);
+    let h = `<div class="row spread"><h2>Dashboard</h2><div class="row" style="gap:6px"><button class="btn alt sm" data-month="-1" aria-label="Previous month">\u2039</button><b>${monthLabel(S.month)}</b><button class="btn alt sm" data-month="1" aria-label="Next month" ${isCur ? "disabled" : ""}>\u203A</button></div></div>
+    <div class="seg">${segs.map(([k, n]) => `<button data-dashp="${k}" class="${per === k ? "on" : ""}">${n}</button>`).join("")}</div>
+    <div class="card list" style="gap:10px"><div class="row spread"><b>Production \xB7 ${esc(label)}</b></div>
+    <div class="stats"><div class="stat"><span>Submitted</span><b>${sub}</b></div><div class="stat"><span>Received</span><b>${got}</b></div><div class="stat"><span>Cut</span><b>${cut}</b></div></div>
+    <div class="stats"><div class="stat"><span>Passed check</span><b>${pass}</b></div><div class="stat"><span>Alter / reject</span><b>${alt} / ${rej}</b></div><div class="stat"><span>Into warehouse</span><b>${wh}</b></div></div></div>`;
+    const rows = Object.entries(by).map(([w, r]) => __spreadValues({ w, name: (W(w) || { name: "?" }).name }, r)).sort((a, b) => b.sub - a.sub || a.name.localeCompare(b.name));
+    const tot = rows.reduce((a, r) => ({ sub: a.sub + r.sub, got: a.got + r.got, alt: a.alt + r.alt, rej: a.rej + r.rej, pay: a.pay + r.pay }), { sub: 0, got: 0, alt: 0, rej: 0, pay: 0 });
+    h += `<div class="row spread"><h3>Stitcher performance</h3><span class="small muted">${esc(label)}</span></div>`;
+    if (!rows.length) return h + `<div class="empty">No pieces submitted in this period.</div>`;
+    const pct = (n, d) => d ? Math.round(n / d * 100) + "%" : "\u2014";
+    h += `<div class="tablewrap"><table class="dtab"><thead><tr><th>Stitcher</th><th>Submitted</th><th>Received</th><th>Pay</th></tr></thead><tbody>
+    ${rows.map((r) => `<tr><td><b>${esc(r.name)}</b><div class="small muted">${[r.bundles.size ? r.bundles.size + " bundle" + (r.bundles.size === 1 ? "" : "s") : "", r.alt ? `<span class="warn">${r.alt} alter (${pct(r.alt, r.got)})</span>` : "", r.rej ? `<span style="color:var(--bad)">${r.rej} rej (${pct(r.rej, r.got)})</span>` : ""].filter(Boolean).join(" \xB7 ")}</div></td><td><b>${r.sub}</b></td><td>${r.got}</td><td><b>${inr(r.pay)}</b>${r.norate ? '<div class="small warn">rate missing</div>' : ""}</td></tr>`).join("")}
+    <tr class="dtot"><td><b>Total</b></td><td><b>${tot.sub}</b></td><td><b>${tot.got}</b></td><td><b>${inr(tot.pay)}</b></td></tr></tbody></table></div>
+    <p class="small muted" style="margin:0">Submitted counts every piece a stitcher handed in on that date (alter pieces handed in again are counted again). Pay counts received pieces once, minus rejected, at the design's stitching rate${per === "h1" || per === "h2" ? " \u2013 this is the pay cycle total" : ""}.</p>`;
+    return h;
   }
   function doneView() {
     const m = me();
@@ -3645,6 +3720,11 @@ ${url}`;
       }
       if (d.lotfilter) {
         lotFilter = d.lotfilter;
+        render();
+        return;
+      }
+      if (d.dashp) {
+        dashP = d.dashp;
         render();
         return;
       }
