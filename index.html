@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1615";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1620";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -2308,8 +2308,9 @@ ${url}`;
     if (!allocs.length) return toast("Nothing from this lot is given to a stitcher yet.");
     const nm = (w) => (W(w) || { name: "?" }).name;
     const sh = sheet("Edit bundle \xB7 " + l.lotNo, `<form id="eaForm" class="list" novalidate>
-    <div class="hint">Change how many pieces a stitcher was given, e.g. when one extra piece was handed over. Wrong size? Use <b>Change size</b> below.</div>
-    <label class="f">Given to<select id="eaR">${allocs.map((a) => `<option value="${a.rid}" ${a.rid === rid0 ? "selected" : ""}>${esc(nm(a.w))} \xB7 ${fmtDT(a.at || a.date)} \xB7 ${fmtCells(a.sz)}</option>`).join("")}</select></label>
+    <div class="hint">Fix who got the bundle or how many pieces were given. Work already submitted from this bundle moves with it. Wrong size? Use <b>Change size</b> below.</div>
+    <label class="f">Bundle<select id="eaR">${allocs.map((a) => `<option value="${a.rid}" ${a.rid === rid0 ? "selected" : ""}>${esc(nm(a.w))} \xB7 ${fmtDT(a.at || a.date)} \xB7 ${fmtCells(a.sz)}</option>`).join("")}</select></label>
+    <label class="f">Stitcher (who actually got this bundle)<select id="eaW"></select></label>
     <div class="card list" style="gap:12px" id="eaBox"></div>
     <label class="row small" id="eaCutWrap" style="gap:8px;display:none;flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="eaCut" checked> <span id="eaCutTxt"></span></label>
     <div id="eaErr" class="err"></div>
@@ -2320,6 +2321,8 @@ ${url}`;
     const load = () => {
       const lot = S.lots[lid];
       a = recvList(lot, "stitching").find((x) => x.rid === $("#eaR", sh).value);
+      const sts = activeWorkers().filter((w) => w.role === "Stitcher" || w.id === a.w);
+      $("#eaW", sh).innerHTML = sts.map((w) => `<option value="${w.id}" ${w.id === a.w ? "selected" : ""}>${esc(w.name)}${w.id === a.w ? " (now)" : ""}</option>`).join("");
       const oa = allocOpen(lot, a.w).find((x) => x.rid === a.rid) || { left: {} };
       used = {};
       for (const [k, q] of Object.entries(a.sz || {})) used[k] = Math.max(0, (+q || 0) - (+oa.left[k] || 0));
@@ -2367,12 +2370,22 @@ ${url}`;
       if (ex.length && !$("#eaCut", sh).checked) return $("#eaErr", sh).textContent = "The lot doesn't have that many pieces left. Tick the box to add them to the cut lot, or lower the number.";
       const q = Object.values(r.o).reduce((x, y) => x + y, 0);
       if (!q) return $("#eaErr", sh).textContent = "To take back the whole lot, use Cancel in Allocated.";
-      if (keys.every((k) => r.o[k] === (+a.sz[k] || 0))) return closeSheet();
+      const nw = $("#eaW", sh).value || a.w, moveW = nw !== a.w;
+      if (!moveW && keys.every((k) => r.o[k] === (+a.sz[k] || 0))) return closeSheet();
       const lot = S.lots[lid];
-      const patch = { recv: { stitching: { [a.rid]: { sz: r.o, q } } } };
+      const patch = { recv: { stitching: { [a.rid]: moveW ? { sz: r.o, q, w: nw } : { sz: r.o, q } } } };
+      const moves = [];
+      if (moveW) {
+        for (const [eid, v] of Object.entries((lot.prog || {}).stitching || {})) {
+          if (!v || v.rid !== a.rid || v.w !== a.w) continue;
+          ((patch.prog = patch.prog || {}).stitching = patch.prog.stitching || {})[eid] = { w: nw };
+          moves.push([eid, String(v.date || "").slice(0, 7)]);
+        }
+      }
       const before = {};
       keys.forEach((k) => before[k] = +a.sz[k] || 0);
       const fix = { type: "given", w: a.w, rid: a.rid, before, after: r.o, by: me().id, at: (/* @__PURE__ */ new Date()).toISOString() };
+      if (moveW) fix.toW = nw;
       if (ex.length) {
         const cells = lotCells(lot), ch = {};
         for (const [k, n] of ex) ch[k] = (+cells[k] || 0) + n;
@@ -2392,8 +2405,20 @@ ${url}`;
       btn.disabled = true;
       try {
         await S.db.doc("lots/" + lid).update(patch);
+        for (const [eid, mon] of moves) {
+          try {
+            const from = await S.db.doc("work/" + a.w + "_" + mon).get();
+            const ent = from.exists ? (from.data().entries || {})[eid] : null;
+            if (ent) {
+              await upsert("work/" + nw + "_" + mon, { entries: { [eid]: Object.assign({}, ent, { movedFrom: a.w }) } }, { workerId: nw, month: mon });
+              await S.db.doc("work/" + a.w + "_" + mon).update({ entries: { [eid]: { status: "withdrawn", movedTo: nw } } });
+            }
+          } catch (x) {
+            console.warn("work move", x);
+          }
+        }
         closeSheet();
-        toast(nm(a.w) + " now has " + q + " pcs from " + l.lotNo + (ex.length ? " \xB7 cut lot updated" : ""));
+        toast((moveW ? "Bundle moved from " + nm(a.w) + " to " + nm(nw) + " \xB7 " : "") + nm(nw) + " now has " + q + " pcs from " + l.lotNo + (ex.length ? " \xB7 cut lot updated" : ""));
         render();
       } catch (x) {
         btn.disabled = false;
