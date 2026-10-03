@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2140";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2200";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -261,16 +261,28 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     const h = d.getHours(), mi = pad(d.getMinutes());
     return d.getDate() + " " + ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][d.getMonth()] + ", " + (h % 12 || 12) + ":" + mi + " " + (h < 12 ? "AM" : "PM");
   }
+  const DUTY_START = 9, DUTY_END = 21;
+  function dutyMs(a, b) {
+    const s0 = new Date(a), e0 = new Date(b);
+    if (!(e0 - s0 >= 0)) return NaN;
+    let ms = 0;
+    const d = new Date(s0.getFullYear(), s0.getMonth(), s0.getDate());
+    for (let i = 0; i < 400 && d <= e0; i++) {
+      const ds = new Date(d.getFullYear(), d.getMonth(), d.getDate(), DUTY_START), de = new Date(d.getFullYear(), d.getMonth(), d.getDate(), DUTY_END);
+      const lo = Math.max(ds, s0), hi = Math.min(de, e0);
+      if (hi > lo) ms += hi - lo;
+      d.setDate(d.getDate() + 1);
+    }
+    return ms;
+  }
   function dur(a, b) {
-    const ms = new Date(b) - new Date(a);
+    const ms = dutyMs(a, b);
     if (!(ms >= 0)) return "\u2014";
     const m = Math.round(ms / 6e4);
     if (m < 1) return "under 1 min";
     if (m < 60) return m + " min";
     const h = Math.floor(m / 60), mm = m % 60;
-    if (h < 24) return h + " h" + (mm ? " " + mm + " min" : "");
-    const d = Math.floor(h / 24), hh = h % 24;
-    return d + (d > 1 ? " days" : " day") + (hh ? " " + hh + " h" : "");
+    return h + " h" + (mm ? " " + mm + " min" : "");
   }
   function fmtDate(d) {
     if (!d) return "";
@@ -1393,7 +1405,7 @@ ${url}`;
     const list = submissions(["approved", "rejected"]).filter((s) => s.at2 && s.rat).sort((a, b) => String(b.at2).localeCompare(String(a.at2))).slice(0, 40);
     let h = `<div><h2>Checked</h2><p class="small muted" style="margin:4px 0 0">Your latest accepted and sent-back work.</p></div>`;
     if (!list.length) return h + `<div class="empty">Nothing checked yet.</div>`;
-    return h + `<div class="list">${list.map((s) => `<div class="card"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px"><span style="min-width:0"><b>${esc((W(s.w) || { name: "?" }).name)}</b> \xB7 <span class="lotno">${esc(s.lot.lotNo)}</span> <span class="small muted">${fmtDT(s.at2)}</span><span style="display:block;margin-top:4px"><span class="chip ${s.st}">${s.st === "approved" ? "Checked" : "All sent back"}</span></span></span>${(() => {
+    return h + `<div class="list">${list.map((s) => `<div class="card"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px"><span style="min-width:0"><b>${esc((W(s.w) || { name: "?" }).name)}</b> \xB7 <span class="lotno">${esc(s.lot.lotNo)}</span> <span class="small muted">${fmtDT(s.at2)}</span><span style="display:block;margin-top:4px"><span class="chip ${s.st}">${s.st === "approved" ? "Checked" : "All sent back"}</span></span><ul class="tl small" style="margin:6px 0 0"><li>Check started: <b>${s.chkStart ? fmtDT(s.chkStart) : "\u2014"}</b></li><li>Check finished: <b>${s.at2 ? fmtDT(s.at2) : "\u2014"}</b></li><li>Total time: <b>${s.chkStart && s.at2 ? dur(s.chkStart, s.at2) : "\u2014"}</b></li></ul></span>${(() => {
       const ap = s.st === "approved";
       const alt = ap ? +s.alt || 0 : +s.alt || +s.q || 0, rej = ap ? +s.rej || 0 : 0, pass = ap ? +s.q || 0 : 0;
       const tot = pass + alt + rej;
