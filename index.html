@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1640";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1650";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -169,6 +169,7 @@ table.split input{width:64px;border:1px solid var(--line);background:var(--bg);b
 .lotph-stitch{border-left:5px solid #E2B93B}.lotph-qc{border-left:5px solid #3FA36B}.lotph-wh{opacity:.6;background:var(--sunk)}
 .tl{margin:0;padding-left:18px;font-size:.88rem;display:flex;flex-direction:column;gap:2px}
 .tl li::marker{color:var(--muted)}
+.dname{font-weight:700;font-size:1.12rem;color:var(--ink)}
 .erow{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:7px;font-size:.85rem;flex-wrap:wrap}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}}}
 </style>
@@ -761,7 +762,7 @@ ${url}`;
     const rs = RECV_STAGES.includes(st);
     if (rs && !lot) return stitchNewView(todays);
     let h = rs ? `<div class="row spread"><h2>Ready to submit</h2><button class="btn alt sm" data-act="backMine">\u2039 New lots</button></div>` : `<div><h2>Add ${stageName(st).toLowerCase()} entry</h2><p class="small muted" style="margin:4px 0 0">Pick a lot the cutting master cut, then enter the pieces you finished.</p></div>`;
-    h += `<button type="button" class="picker ${lot ? "set" : ""}" data-act="pickLot">${lot ? `<span><span class="lotno" style="font-size:1.25rem">${esc(lot.lotNo)}</span> <span class="muted">${lotLabel(lot)}</span><span class="small muted ell" style="display:block">${lot.designName ? esc(lot.designName) + " \xB7 " : ""}${rs ? (() => {
+    h += `<button type="button" class="picker ${lot ? "set" : ""}" data-act="pickLot">${lot ? `<span><span class="lotno" style="font-size:1.25rem">${esc(lot.lotNo)}</span> <span class="dname">${lotLabel(lot)}</span><span class="small muted ell" style="display:block">${rs ? (() => {
       const o = myOpen(lot, st, m.id);
       return `given to you ${o.received} \xB7 submitted ${o.done}`;
     })() : lot.total + " pcs \xB7 cut " + fmtDate(lot.date)}</span></span><span class="small">Change</span>` : `<span><b>Select lot</b><span class="small muted" style="display:block">${openLotsFor(st).length} lots have pieces left for ${stageName(st).toLowerCase()}</span></span><span class="small">\u25BE</span>`}</button>`;
@@ -848,7 +849,7 @@ ${url}`;
       const by = W(a.by);
       const isAlt = a.touched > 0;
       return `<div class="card list" style="gap:8px">
-    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> <span class="muted">${esc(l.design)}</span><div class="small muted ell">${isAlt ? "" : "given " + fmtDT(a.at || a.date) + (by ? " by " + esc(by.name) : "") + " \xB7 "}${l.designName ? esc(l.designName) : ""}</div></div>
+    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> <span class="dname">${esc(l.design)}</span><div class="small muted ell">${isAlt ? "" : "given " + fmtDT(a.at || a.date) + (by ? " by " + esc(by.name) : "")}</div></div>
     <div><div class="left">${a.total}</div><div class="small muted" style="text-align:right;white-space:nowrap">to make</div></div></div>
     ${isAlt ? `<div class="small"><span class="chip pending">Alter / short pieces</span> sent back to you from this lot</div>` : ""}
     ${openRows(a.left)}
@@ -919,7 +920,7 @@ ${url}`;
       const ck = W(s.by2);
       const allBack = s.st === "rejected";
       return `<div class="card list" style="gap:8px">
-      <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.15rem">${esc(l.lotNo)}</span> <span class="muted">${lotLabel(l)}</span><div class="small muted">submitted ${fmtDT(s.at || s.date)}${s.at2 ? " \xB7 checked " + fmtDT(s.at2) : ""}${ck ? " by " + esc(ck.name) : ""}</div></div>
+      <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.15rem">${esc(l.lotNo)}</span> <span class="dname">${lotLabel(l)}</span><div class="small muted">submitted ${fmtDT(s.at || s.date)}${s.at2 ? " \xB7 checked " + fmtDT(s.at2) : ""}${ck ? " by " + esc(ck.name) : ""}</div></div>
       ${s.st === "approved" ? `<div style="text-align:right"><div class="left">${s.q}</div><div class="small muted">passed</div></div>` : ""}</div>
       ${allBack ? `<div class="small"><span class="chip rejected">${s.back === "checker" ? "All alter" : "Not received by lot receiver"}</span> ${s.q} pcs ${s.back === "checker" ? "to redo" : "still with you"}</div>` : ""}
       ${+s.short ? `<div class="small"><span class="chip pending">Short ${s.short}</span> not handed over at receiving</div>` : ""}
@@ -975,7 +976,7 @@ ${url}`;
       }).join("");
       const t = ph.tot;
       return `<div class="card list ${mine && selN ? "selcard" : ""} ${ph.tot.st ? "lotph-stitch" : ph.tot.qc ? "lotph-qc" : ""}" style="gap:8px">
-      <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> <span class="muted">${lotLabel(l)}</span><div class="small muted ell">${l.designName ? esc(l.designName) + " \xB7 " : ""}cut ${fmtDate(l.date)}${cutter ? " by " + esc(cutter.name) : ""}</div></div>
+      <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> <span class="dname">${lotLabel(l)}</span><div class="small muted ell">cut ${fmtDate(l.date)}${cutter ? " by " + esc(cutter.name) : ""}</div></div>
       <div><div class="left">${tr.total}</div><div class="small muted" style="text-align:right;white-space:nowrap">of ${l.total} to give</div></div></div>
       <div class="crows">${rows}</div>
       ${t.st || t.qc || t.wh ? `<div class="row small" style="gap:6px"><span class="chip line">Not allocated ${t.na}</span>${t.st ? `<span class="chip line ph-st">With stitcher ${t.st}</span>` : ""}${t.qc ? `<span class="chip line ph-qc">Checking \u2192 ironing ${t.qc}</span>` : ""}${t.wh ? `<span class="chip line ph-wh">Warehouse ${t.wh}</span>` : ""}</div>` : ""}
@@ -1001,7 +1002,7 @@ ${url}`;
     const sel = new Set(preset || []);
     let mode = presetMode || "", picked = [], wholeTo = "";
     const sh = sheet("Allocate from " + l.lotNo, `<div class="list">
-    <div class="row spread"><span class="muted">${lotLabel(l)}</span><b>${tr.total} pcs not given</b></div>
+    <div class="row spread"><span class="dname">${lotLabel(l)}</span><b>${tr.total} pcs not given</b></div>
     <div class="card list" style="gap:10px" ${preset ? "hidden" : ""}><b>1. Select colour and size for the sub-lot</b><div id="aSel"></div><div class="row spread"><span class="small muted" id="aSelSum">Nothing selected</span><button type="button" class="btn alt sm" data-clear="1">Clear</button></div></div>
     ${preset ? `<div class="card list" style="gap:6px"><b>Sub-lot \xB7 ${[...preset].reduce((a, k) => a + (tr.left[k] || 0), 0)} pcs</b>${openRows(Object.fromEntries([...preset].map((k) => [k, tr.left[k]])))}</div>` : ""}
     <div id="aStep2"></div>
@@ -1249,7 +1250,7 @@ ${url}`;
       return `<section class="card list" style="gap:8px"><div class="row spread"><h3>${esc(w.name)}</h3><span class="small muted">${inHand} to finish${waiting ? " \xB7 " + waiting + " not received" : ""}</span></div>
     ${rs.sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 12).map((r) => {
         const o = myOpen(r.lot, "stitching", wid);
-        return `<div class="erow"><span style="min-width:0"><b class="lotno">${esc(r.lot.lotNo)}</b> <span class="muted">${lotLabel(r.lot)}</span><span class="small muted" style="display:block">${fmtDT(r.at || r.date)} \xB7 ${fmtCells(r.sz)}</span></span><span class="row" style="gap:6px"><b>${r.q}</b>${o.total ? '<span class="chip line">In work</span>' : '<span class="chip approved">Submitted</span>'}${!stageEntries(r.lot, "stitching").some((v) => v.w === wid) ? `<button class="btn alt sm" data-cancelalloc="${r.lot.id}|${r.rid}">Cancel</button>` : ""}<button class="btn alt sm" data-editalloc="${r.lot.id}|${r.rid}">Edit pcs</button><button class="btn alt sm" data-editsize="${r.lot.id}|${wid}">Edit size</button></span></div>`;
+        return `<div class="erow"><span style="min-width:0"><b class="lotno">${esc(r.lot.lotNo)}</b> <span class="dname">${lotLabel(r.lot)}</span><span class="small muted" style="display:block">${fmtDT(r.at || r.date)} \xB7 ${fmtCells(r.sz)}</span></span><span class="row" style="gap:6px"><b>${r.q}</b>${o.total ? '<span class="chip line">In work</span>' : '<span class="chip approved">Submitted</span>'}${!stageEntries(r.lot, "stitching").some((v) => v.w === wid) ? `<button class="btn alt sm" data-cancelalloc="${r.lot.id}|${r.rid}">Cancel</button>` : ""}<button class="btn alt sm" data-editalloc="${r.lot.id}|${r.rid}">Edit pcs</button><button class="btn alt sm" data-editsize="${r.lot.id}|${wid}">Edit size</button></span></div>`;
       }).join("")}</section>`;
     }).join("");
   }
@@ -1297,8 +1298,8 @@ ${url}`;
       ${rs.sort((a, b) => String(b.a.at || b.a.date).localeCompare(String(a.a.at || a.a.date))).map((r) => {
         const by2 = W(r.a.by);
         const st = [r.left ? `<span class="chip line ph-st">${r.left} to make</span>` : "", r.sub ? `<span class="chip pending">${r.sub} submitted</span>` : "", r.chk ? `<span class="chip pending">${r.chk} with checker</span>` : "", r.ok ? `<span class="chip approved">${r.ok} passed</span>` : "", r.alt ? `<span class="chip line">${r.alt} alter</span>` : "", r.rej ? `<span class="chip line" style="color:var(--bad)">${r.rej} rejected</span>` : ""].filter(Boolean).join("");
-        return `<div class="erow" style="align-items:flex-start"><span style="min-width:0;flex:1"><b class="lotno">${esc(r.lot.lotNo)}</b> <span class="muted">${lotLabel(r.lot)}</span>
-        <span class="small muted" style="display:block">given ${fmtDT(r.a.at || r.a.date)}${by2 ? " by " + esc(by2.name) : ""}${r.lot.designName ? " \xB7 " + esc(r.lot.designName) : ""}</span>
+        return `<div class="erow" style="align-items:flex-start"><span style="min-width:0;flex:1"><b class="lotno">${esc(r.lot.lotNo)}</b> <span class="dname">${lotLabel(r.lot)}</span>
+        <span class="small muted" style="display:block">given ${fmtDT(r.a.at || r.a.date)}${by2 ? " by " + esc(by2.name) : ""}</span>
         <span class="small" style="display:block;margin-top:4px"><b>${r.a.q}</b> pcs \xB7 ${fmtCells(r.a.sz)}</span>
         <span class="row" style="gap:5px;margin-top:6px">${st}</span></span>
         ${canEdit ? `<span class="row" style="gap:6px;flex-direction:column;align-items:flex-end"><button class="btn alt sm" data-editalloc="${r.lot.id}|${r.a.rid}">Edit bundle</button>${!r.started ? `<button class="btn alt sm" data-cancelalloc="${r.lot.id}|${r.a.rid}">Cancel</button>` : ""}</span>` : ""}</div>`;
@@ -1572,7 +1573,7 @@ ${url}`;
         (by[c] = by[c] || []).push(k);
       });
       return `<div class="card list ${mine && n ? "selcard" : ""}" style="gap:8px">
-      <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> <span class="muted">${esc(l.design)}</span><div class="small muted ell">${forWid ? "with <b>" + esc((W(m.id) || {}).name || "?") + "</b> \xB7 " : ""}${from ? "from " + esc(from) : ""}</div></div><div><div class="left">${pl.total}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
+      <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> <span class="dname">${esc(l.design)}</span><div class="small muted ell">${forWid ? "with <b>" + esc((W(m.id) || {}).name || "?") + "</b> \xB7 " : ""}${from ? "from " + esc(from) : ""}</div></div><div><div class="left">${pl.total}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
       <div class="crows">${Object.entries(by).map(([c, ks]) => `<div class="crow"><button type="button" class="cname linkish" data-tcol="${l.id}|${esc(c)}" data-twid="${m.id}">${esc(c)}</button><span class="row" style="gap:5px">${sortSizes(ks.map((k) => splitCK(k)[1])).map((z) => {
         const k = CK(c, z);
         const on = mine && tSel.keys.has(k);
@@ -1599,7 +1600,7 @@ ${url}`;
         (by[c] = by[c] || []).push(k);
       });
       return `<div class="card list ${mine && n ? "selcard" : ""}" style="gap:8px">
-      <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> <span class="muted">${esc(l.design)}</span><div class="small muted ell">${esc(l.designName || "")}</div></div><div><div class="left">${wc.total}</div><div class="small muted" style="text-align:right">passed</div></div></div>
+      <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> <span class="dname">${esc(l.design)}</span><div class="small muted ell"></div></div><div><div class="left">${wc.total}</div><div class="small muted" style="text-align:right">passed</div></div></div>
       <div class="crows">${Object.entries(by).map(([c, ks]) => `<div class="crow"><button type="button" class="cname linkish" data-hocol="${l.id}|${esc(c)}">${esc(c)}</button><span class="row" style="gap:5px">${sortSizes(ks.map((k) => splitCK(k)[1])).map((z) => {
         const k = CK(c, z);
         const on = mine && hoSel.keys.has(k);
@@ -1813,7 +1814,7 @@ ${url}`;
     let h = `<div class="row spread"><h2>Warehouse stock</h2><span class="small muted">${total} pcs received</span></div>`;
     if (!total) return h + `<div class="empty"><h3>No stock received yet</h3>Pieces appear here once they are received in the warehouse.</div>`;
     h += `<input class="search" type="search" id="stockQ" placeholder="Search design or colour" value="${esc(stockQ)}" autocomplete="off"><div class="list" id="stockList">${stockListHtml(agg)}</div>`;
-    h += `<section class="list"><h3>Latest received</h3>${recent.slice(0, 15).map((r) => `<div class="card"><div class="row spread"><span><span class="lotno">${esc(r.lot.lotNo)}</span> <span class="muted">${esc(r.lot.design)}</span> <span class="small muted">${fmtDate(String(r.wh.at).slice(0, 10))}${W(r.wh.by) ? " \xB7 " + esc(W(r.wh.by).name) : ""}</span></span><b>${r.wh.q}</b></div><div class="small muted">${fmtCells(nz(r.wh.sz))}</div>${r.wh.short ? `<div class="small warn">${r.wh.short} short</div>` : ""}</div>`).join("")}</section>`;
+    h += `<section class="list"><h3>Latest received</h3>${recent.slice(0, 15).map((r) => `<div class="card"><div class="row spread"><span><span class="lotno">${esc(r.lot.lotNo)}</span> <span class="dname">${esc(r.lot.design)}</span> <span class="small muted">${fmtDate(String(r.wh.at).slice(0, 10))}${W(r.wh.by) ? " \xB7 " + esc(W(r.wh.by).name) : ""}</span></span><b>${r.wh.q}</b></div><div class="small muted">${fmtCells(nz(r.wh.sz))}</div>${r.wh.short ? `<div class="small warn">${r.wh.short} short</div>` : ""}</div>`).join("")}</section>`;
     return h;
   }
   function stockListHtml(agg) {
@@ -2204,7 +2205,7 @@ ${url}`;
     }).join("");
     const canFix = canEditSize() && sizeFixStitchers(l).length > 0;
     const sh = sheet("Lot " + l.lotNo, `<div class="list">
-    <div><span class="muted">${lotLabel(l)}</span><div class="small muted">${l.designName ? esc(l.designName) + " \xB7 " : ""}cut ${fmtDate(l.date)}${cutter ? " by " + esc(cutter.name) : ""} \xB7 <b>${r.total} pcs</b></div></div>
+    <div><span class="dname">${lotLabel(l)}</span><div class="small muted">cut ${fmtDate(l.date)}${cutter ? " by " + esc(cutter.name) : ""} \xB7 <b>${r.total} pcs</b></div></div>
     ${whereBar(r.grp, r.total)}${whereChips(r.grp)}
     ${body || `<div class="empty">No pieces in this lot.</div>`}
     ${canFix || canEditCut(l) ? `<div class="row" style="gap:8px">${canEditCut(l) ? `<button type="button" class="btn alt" id="lwEditCut">Edit cut lot</button>` : ""}${canFix ? `<button type="button" class="btn alt" id="lwEditAlloc">Edit bundle</button><button type="button" class="btn alt" id="lwEditSize">Edit size</button>` : ""}</div>` : ""}</div>`);
@@ -2605,7 +2606,7 @@ ${url}`;
   function lotCard(l, o) {
     const cutter = W(l.cutBy);
     return `<div class="card list ${o && o.where ? "tapcard" : ""}" style="gap:8px" ${o && o.where ? `data-lotwhere="${l.id}" role="button" tabindex="0"` : ""}>
-    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> <span class="muted">${lotLabel(l)}</span><div class="small muted ell">${l.designName ? esc(l.designName) + " \xB7 " : ""}cut ${fmtDate(l.date)}${cutter ? " by " + esc(cutter.name) : ""}</div></div>
+    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> <span class="dname">${lotLabel(l)}</span><div class="small muted ell">cut ${fmtDate(l.date)}${cutter ? " by " + esc(cutter.name) : ""}</div></div>
     <div><div class="left">${l.total}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
     ${o && o.where ? (() => {
       const r = lotWhere(l);
@@ -2708,7 +2709,7 @@ ${url}`;
       if (q) ls = ls.filter((l) => [l.lotNo, l.design, l.colour, l.designName].some((x) => String(x || "").toLowerCase().includes(q)));
       $("#lpList", sh).innerHTML = ls.length ? ls.map((l) => {
         const lf = lotLeft(l, st);
-        return `<button type="button" class="lotcard ${lf.total ? "" : "dim"}" data-pick="${l.id}" ${lf.total ? "" : "disabled"}><span style="min-width:0"><span class="lotno" style="font-size:1.15rem">${esc(l.lotNo)}</span> <span class="muted">${lotLabel(l)}</span><span class="small muted ell" style="display:block">cut ${fmtDate(l.date)}${W(l.cutBy) ? " by " + esc(W(l.cutBy).name) : ""} \xB7 ${l.total} pcs</span></span><span><span class="left" style="display:block">${lf.total}</span><span class="small muted">left</span></span><span class="sz">${cellRows(l, lf.left)}</span></button>`;
+        return `<button type="button" class="lotcard ${lf.total ? "" : "dim"}" data-pick="${l.id}" ${lf.total ? "" : "disabled"}><span style="min-width:0"><span class="lotno" style="font-size:1.15rem">${esc(l.lotNo)}</span> <span class="dname">${lotLabel(l)}</span><span class="small muted ell" style="display:block">cut ${fmtDate(l.date)}${W(l.cutBy) ? " by " + esc(W(l.cutBy).name) : ""} \xB7 ${l.total} pcs</span></span><span><span class="left" style="display:block">${lf.total}</span><span class="small muted">left</span></span><span class="sz">${cellRows(l, lf.left)}</span></button>`;
       }).join("") : `<div class="empty">${q ? "No lot matches." : RECV_STAGES.includes(st) ? "No received lot has pieces left. Receive a lot first." : "No lots with pieces left for " + stageName(st).toLowerCase() + " right now."}</div>`;
     };
     $("#lpQ", sh).oninput = draw;
