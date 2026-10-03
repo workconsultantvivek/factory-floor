@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1820";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-1900";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -213,7 +213,8 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     { k: "thread", n: "Thread cutting", role: "Thread cutter" },
     { k: "ironing", n: "Ironing", role: "Ironing" }
   ];
-  const ROLES = ["Cutting master", "Stitcher", "Thread cutter", "Ironing", "Lot allocator", "Lot receiver", "Checker", "Warehouse receiver", "Manager"];
+  const ROLES = ["Cutting master", "Stitcher", "Thread cutter", "Ironing", "Lot allocator", "Lot receiver", "Checker", "Warehouse receiver", "Thread & Warehouse", "Manager"];
+  const isThreadW = (w) => !!w && (w.role === "Thread cutter" || w.role === "Thread & Warehouse");
   const STAGE_BY_ROLE = Object.fromEntries(STAGES.map((s) => [s.role, s.k]));
   const stageName = (k) => (STAGES.find((s) => s.k === k) || { n: k }).n;
   const SIZE_ORDER = ["XS", "S", "M", "L", "XL", "XXL", "3XL", "4XL"];
@@ -630,10 +631,10 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     const nInbox = () => submissions("received").length;
     const nWh = () => whPending().length;
     const nHo = () => lotsSorted().filter((l) => withChecker(l).total > 0).length;
-    const nTh = () => activeWorkers().filter((w) => w.role === "Thread cutter").reduce((a, w) => a + lotsSorted().filter((l) => threadPool(l, w.id).total > 0).length, 0);
+    const nTh = () => activeWorkers().filter(isThreadW).reduce((a, w) => a + lotsSorted().filter((l) => threadPool(l, w.id).total > 0).length, 0);
     const nTask = () => tasksFor().filter((t) => t.st !== "done").length;
     const boss = [["alloc", "Allocate", ICON.add, nAlloc()], ["rinbox", "Receive", ICON.add, nRcv()], ["inbox", "Check", ICON.done, nInbox()], ["handover", "Hand over", ICON.lots, nHo()], ["mthread", "To ironing", ICON.lots, nTh()], ["pending", "Report", ICON.team], ["otasks", "Tasks", ICON.done, nTask()], ["dash", "Dashboard", ICON.team, 0, true], ["bundles", "Bundles", ICON.team, 0, true], ["lots", "All lots", ICON.lots, 0, true], ["stock", "Stock", ICON.lots, 0, true]];
-    const tabs = m.id === "owner" ? boss.concat([["team", "Team", ICON.team, 0, true]]) : m.role === "Cutting master" ? [["add", "Add cut lot", ICON.add], ["lots", "All lots", ICON.lots], ["mtasks", "Tasks", ICON.done, tasksFor(m.id).filter((t) => t.st !== "done").length]] : m.role === "Lot allocator" ? [["alloc", "Allocate", ICON.add, nAlloc()], ["allocd", "Bundles", ICON.team], ["lots", "All lots", ICON.lots]] : m.role === "Lot receiver" ? [["rinbox", "Receive work", ICON.add, nRcv()], ["rhist", "Received", ICON.done], ["lots", "All lots", ICON.lots]] : m.role === "Warehouse receiver" ? [["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["lots", "All lots", ICON.done]] : m.role === "Checker" ? [["inbox", "Check work", ICON.done, nInbox()], ["handover", "Hand over", ICON.lots, lotsSorted().filter((l) => withChecker(l).total > 0).length], ["checked", "Checked", ICON.team]] : m.role === "Thread cutter" ? [["tnew", "New lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["tdone", "Completed", ICON.done]] : m.role === "Ironing" ? [["inew", "New lots", ICON.lots, flowItems("ironing").filter((v) => v.w === m.id && v.st === "given").length], ["idone", "Completed", ICON.done]] : m.role === "Manager" ? boss.concat([["links", "Team links", ICON.team, 0, true]]) : RECV_STAGES.includes(myStage()) ? [["add", "New lots", ICON.lots, myLots(m.id).reduce((n, l) => n + allocOpen(l, m.id).filter((a) => a.total > 0).length, 0)], ["alter", "Alter / Rejected", ICON.add, myLots(m.id).reduce((a, l) => a + altWaiting(l, m.id).total, 0)], ["done", "Completed", ICON.done]] : myStage() ? [["add", "Add entry", ICON.add], ["lots", "Cut lots", ICON.lots], ["done", "Completed", ICON.done]] : [["lots", "Cut lots", ICON.lots]];
+    const tabs = m.id === "owner" ? boss.concat([["team", "Team", ICON.team, 0, true]]) : m.role === "Cutting master" ? [["add", "Add cut lot", ICON.add], ["lots", "All lots", ICON.lots], ["mtasks", "Tasks", ICON.done, tasksFor(m.id).filter((t) => t.st !== "done").length]] : m.role === "Lot allocator" ? [["alloc", "Allocate", ICON.add, nAlloc()], ["allocd", "Bundles", ICON.team], ["lots", "All lots", ICON.lots]] : m.role === "Lot receiver" ? [["rinbox", "Receive work", ICON.add, nRcv()], ["rhist", "Received", ICON.done], ["lots", "All lots", ICON.lots]] : m.role === "Warehouse receiver" ? [["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["lots", "All lots", ICON.done]] : m.role === "Checker" ? [["inbox", "Check work", ICON.done, nInbox()], ["handover", "Hand over", ICON.lots, lotsSorted().filter((l) => withChecker(l).total > 0).length], ["checked", "Checked", ICON.team]] : m.role === "Thread & Warehouse" ? [["tnew", "Thread lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["tdone", "Completed", ICON.done]] : m.role === "Thread cutter" ? [["tnew", "New lots", ICON.lots, lotsSorted().filter((l) => threadPool(l, m.id).total > 0).length], ["tdone", "Completed", ICON.done]] : m.role === "Ironing" ? [["inew", "New lots", ICON.lots, flowItems("ironing").filter((v) => v.w === m.id && v.st === "given").length], ["idone", "Completed", ICON.done]] : m.role === "Manager" ? boss.concat([["links", "Team links", ICON.team, 0, true]]) : RECV_STAGES.includes(myStage()) ? [["add", "New lots", ICON.lots, myLots(m.id).reduce((n, l) => n + allocOpen(l, m.id).filter((a) => a.total > 0).length, 0)], ["alter", "Alter / Rejected", ICON.add, myLots(m.id).reduce((a, l) => a + altWaiting(l, m.id).total, 0)], ["done", "Completed", ICON.done]] : myStage() ? [["add", "Add entry", ICON.add], ["lots", "Cut lots", ICON.lots], ["done", "Completed", ICON.done]] : [["lots", "Cut lots", ICON.lots]];
     if (!tabs.find((t) => t[0] === S.tab)) S.tab = tabs[0][0];
     const body = { add: addView, lots: lotsView, done: doneView, team: teamView, alter: alterView, alloc: allocView, allocd: bundlesView, bundles: bundlesView, dash: dashView, inbox: inboxView, checked: checkedView, rinbox: rinboxView, rhist: rhistView, wh: whInboxView, stock: stockView, handover: handoverView, pending: pendingView, links: linksView, otasks: bossTasksView, mtasks: masterTasksView, mthread: mgrThreadView, tnew: threadNewView, tdone: threadDoneView, inew: () => flowNewView("ironing"), idone: () => flowDoneView("ironing") }[S.tab]();
     app.innerHTML = header() + `<main class="wrap">${["dash", "pending", "bundles", "lots", "stock", "team", "links"].includes(S.tab) ? bossLinks(S.tab) : ""}${body}</main>` + (tabs.length > 1 ? `<nav class="bottom ${tabs.filter((t) => !t[4]).length > 5 ? "many" : ""}"><div class="wrap">${tabs.filter((t) => !t[4]).map((t) => `<button data-tab="${t[0]}" aria-current="${S.tab === t[0] || t[0] === "pending" && isBoss() && ["lots", "stock", "team", "links"].includes(S.tab)}"><span class="ico">${t[2]}${t[3] ? `<i class="badge">${t[3]}</i>` : ""}</span>${t[1]}</button>`).join("")}</div></nav>` : "");
@@ -1570,14 +1571,14 @@ ${url}`;
     return h + `<p class="small muted" style="margin:0">Tap the sizes (or a colour) you have finished, then hand them over to ironing.</p><div class="list" id="tList">${threadListHtml()}</div>`;
   }
   function mgrThreadView() {
-    const tcs = activeWorkers().filter((w) => w.role === "Thread cutter");
+    const tcs = activeWorkers().filter(isThreadW);
     const tot = tcs.reduce((a, w) => a + lotsSorted().reduce((b, l) => b + threadPool(l, w.id).total, 0), 0);
     let h = `<div class="row spread"><h2>Thread cutter \u2192 ironing</h2><span class="small muted">${tot} pcs with thread cutters</span></div><p class="small muted" style="margin:0">Hand over finished pieces to ironing for any thread cutter. Tap sizes (or a colour) to choose.</p>`;
     if (!tot) return h + `<div class="empty"><h3>Nothing with thread cutters</h3>Pieces handed over by the checker show here.</div>`;
     return h + `<div class="list" id="tList">${mgrThreadListHtml()}</div>`;
   }
   function mgrThreadListHtml() {
-    return activeWorkers().filter((w) => w.role === "Thread cutter").map((w) => threadListHtml(w.id)).join("") || `<div class="empty">Nothing with thread cutters.</div>`;
+    return activeWorkers().filter(isThreadW).map((w) => threadListHtml(w.id)).join("") || `<div class="empty">Nothing with thread cutters.</div>`;
   }
   function threadListHtml(forWid) {
     const m = forWid ? { id: forWid } : me();
@@ -1633,7 +1634,7 @@ ${url}`;
     const fw = onBehalf || me().id;
     const l = S.lots[lid];
     const role = stage === "thread" ? "Thread cutter" : "Ironing";
-    const people = activeWorkers().filter((w) => w.role === role);
+    const people = activeWorkers().filter((w) => stage === "thread" ? isThreadW(w) : w.role === role);
     if (!people.length) {
       toast("Add a " + role.toLowerCase() + " in Team first.");
       return;
@@ -1875,7 +1876,7 @@ ${url}`;
         tasks.push(shared("To check", chk));
         tasks.push(shared("Passed, not handed to thread cutter", hand));
       }
-      if (w.role === "Thread cutter") tasks.push(shared("Thread cutting in hand", lots.map((l) => ({ lot: l, q: threadPool(l, w.id).total }))));
+      if (isThreadW(w)) tasks.push(shared("Thread cutting in hand", lots.map((l) => ({ lot: l, q: threadPool(l, w.id).total }))));
       if (w.role === "Ironing") tasks.push(shared("Ironing in hand", flowItems("ironing").filter((v) => v.w === w.id && v.st === "given").map((v) => ({ lot: v.lot, q: +v.q || 0 })))), tasks.push(shared("Sent, warehouse not counted", wh.filter((x) => x.who === w.id)));
       if (w.role === "Warehouse receiver") tasks.push(shared("To receive in warehouse", wh));
       const live = tasks.filter((t) => t.pairs.length);
@@ -3627,13 +3628,13 @@ ${url}`;
           ks.forEach((k) => on ? tSel.keys.delete(k) : tSel.keys.add(k));
         }
         const el = $("#tList");
-        if (el) el.innerHTML = me().role === "Thread cutter" ? threadListHtml() : mgrThreadListHtml();
+        if (el) el.innerHTML = isThreadW(me()) ? threadListHtml() : mgrThreadListHtml();
         return;
       }
       if (d.tclear) {
         tSel = { lid: null, wid: null, keys: /* @__PURE__ */ new Set() };
         const el = $("#tList");
-        if (el) el.innerHTML = me().role === "Thread cutter" ? threadListHtml() : mgrThreadListHtml();
+        if (el) el.innerHTML = isThreadW(me()) ? threadListHtml() : mgrThreadListHtml();
         return;
       }
       if (d.tgive) {
