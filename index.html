@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2020";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0310-2030";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -1675,7 +1675,7 @@ ${url}`;
     const tot = ls.reduce((a, l) => a + threadPool(l, m.id).total, 0);
     let h = `<div class="row spread"><h2>Thread lots</h2><span class="small muted">${tot} pcs in hand</span></div>`;
     if (!ls.length) return h + `<div class="empty"><h3>No lot in hand</h3>Lots the checker hands over to you appear here.</div>`;
-    return h + `<p class="small muted" style="margin:0">Each card is one bundle you received. Give it to ironing when the thread cutting is done.</p><div class="list" id="tList">${threadListHtml()}</div>`;
+    return h + `<p class="small muted" style="margin:0">Each card is one bundle you received. Give it to a thread cutter, then hand it over to ironing when the thread cutting is done.</p><div class="list" id="tList">${threadListHtml()}</div>`;
   }
   function mgrThreadView() {
     const tcs = activeWorkers().filter(isThreadW);
@@ -1719,15 +1719,14 @@ ${url}`;
     const bs = [];
     for (const l of lotsSorted()) bs.push(...threadBundles(l, m.id));
     bs.sort((a, b) => String(a.v.at || "").localeCompare(String(b.v.at || "")));
-    const others = activeWorkers().some((w) => isThreadW(w) && w.id !== m.id);
     return bs.map((b) => {
       const src = b.v.eid && ((b.lot.prog || {}).stitching || {})[b.v.eid];
       const st = src && W(src.w), ck = W(b.v.by);
       return `<div class="card list" style="gap:8px">
       <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(b.lot.lotNo)}</span> <span class="dname">${esc(b.lot.design)}</span>${forWid ? `<div class="small muted">with <b>${esc((W(m.id) || {}).name || "?")}</b></div>` : ""}</div><div><div class="left">${b.total}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
       ${openRows(b.left)}
-      <ul class="tl small" style="margin:0">${st ? `<li>Stitcher: <b>${esc(st.name)}</b></li>` : ""}<li>Checker: <b>${ck ? esc(ck.name) : b.v.by === "owner" ? "Owner" : "\u2014"}</b></li><li>Received: <b>${fmtDT(b.v.at)}</b></li>${b.used ? `<li>Already given to ironing: <b>${b.used}</b></li>` : ""}</ul>
-      <div class="row" style="gap:8px"><button type="button" class="btn accent" data-tgivef="${b.lot.id}|${b.fid}" data-twid="${m.id}">Give ${b.total} pcs to ironing</button>${others ? `<button type="button" class="btn alt sm" data-tsubf="${b.lot.id}|${b.fid}" data-twid="${m.id}">Give to thread cutter</button>` : ""}<button type="button" class="btn alt sm" data-tundof="${b.lot.id}|${b.fid}" data-twid="${m.id}">Undo receive</button></div>
+      <ul class="tl small" style="margin:0">${st ? `<li>Stitcher: <b>${esc(st.name)}</b></li>` : ""}<li>Checker: <b>${ck ? esc(ck.name) : b.v.by === "owner" ? "Owner" : "\u2014"}</b></li><li>Received: <b>${fmtDT(b.v.at)}</b></li>${b.v.tc ? `<li>Thread cutter: <b>${esc((W(b.v.tc) || { name: "?" }).name)}</b> \xB7 ${fmtDT(b.v.tcAt)}</li>` : ""}${b.used ? `<li>Already given to ironing: <b>${b.used}</b></li>` : ""}</ul>
+      <div class="row" style="gap:8px">${b.v.tc ? `<button type="button" class="btn accent" data-tgivef="${b.lot.id}|${b.fid}" data-twid="${m.id}">Hand over ${b.total} pcs to ironing</button>` : `<button type="button" class="btn accent" data-tcutf="${b.lot.id}|${b.fid}" data-twid="${m.id}">Give to thread cutter</button><button type="button" class="btn alt sm" data-tundof="${b.lot.id}|${b.fid}" data-twid="${m.id}">Undo receive</button>`}</div>
     </div>`;
     }).join("") || `<div class="empty">No bundle in hand.</div>`;
   }
@@ -3801,6 +3800,30 @@ ${url}`;
         });
         if (!Object.keys(cells).length) return;
         giveSheet(d.tsub, cells, "thread", null, tw);
+        return;
+      }
+      if (d.tcutf) {
+        const [lid, fid] = d.tcutf.split("|");
+        const l = S.lots[lid], tw = d.twid || me().id;
+        const b = threadBundles(l, tw).find((x) => x.fid === fid);
+        if (!b) return;
+        const people = activeWorkers().filter(isThreadW);
+        const sh = sheet("Give " + l.lotNo + " to thread cutter", `<div class="list"><div class="card list" style="gap:6px"><b>${b.total} pcs \xB7 ${esc(l.design)}</b>${openRows(b.left)}</div>
+        <label class="f">Thread cutter<select id="tcW"><option value="">Select</option>${people.map((w) => `<option value="${w.id}">${esc(w.name)}${w.id === tw ? " (myself)" : ""}</option>`).join("")}</select></label>
+        <div id="tcErr" class="err"></div><button type="button" class="btn accent big" id="tcGo">Give ${b.total} pcs</button></div>`, { short: true });
+        $("#tcGo", sh).onclick = async () => {
+          const w = $("#tcW", sh).value;
+          if (!w) return $("#tcErr", sh).textContent = "Select the thread cutter.";
+          $("#tcGo", sh).disabled = true;
+          try {
+            await S.db.doc("lots/" + lid).update({ flow: { [fid]: { tc: w, tcAt: (/* @__PURE__ */ new Date()).toISOString(), tcBy: me().id } } });
+            closeSheet();
+            toast(b.total + " pcs given to " + W(w).name);
+          } catch (x) {
+            $("#tcGo", sh).disabled = false;
+            writeErr(x);
+          }
+        };
         return;
       }
       if (d.tgivef || d.tsubf) {
