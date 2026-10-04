@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0410-1205";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0410-1305";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -2515,7 +2515,7 @@ ${url}`;
     return h + list.map((r) => {
       const sb = W(r.split.by);
       const b2 = Object.values(nz(r.split.b2b)).reduce((a, b) => a + +b, 0);
-      return whRecCard(r, r.uwLeft, r.uwLeftQ, `<li>Split by: ${sb ? esc(sb.name) : r.split.by === "owner" ? "Owner" : "?"} (${fmtDT(r.split.at)})${b2 ? " · " + b2 + " B2B taken" : ""}</li>`, canUwPush() ? `<button class="btn accent" data-uwrec="${esc(whRecKey(r))}" style="align-self:flex-start">Push to Uniware</button>` : "");
+      return whRecCard(r, r.uwLeft, r.uwLeftQ, `<li>Split by: ${sb ? esc(sb.name) : r.split.by === "owner" ? "Owner" : "?"} (${fmtDT(r.split.at)})${b2 ? " · " + b2 + " B2B taken" : ""}</li>`, canUwPush() ? `<div class="row" style="gap:8px"><button class="btn accent" data-uwrec="${esc(whRecKey(r))}">Push to Uniware</button>${whCanUndoSplit(whRecKey(r)) ? `<button class="btn alt sm" data-whundo="${esc(whRecKey(r))}">Undo split</button>` : ""}</div>` : "");
     }).join("");
   }
   function uwRecSheet(key) {
@@ -2610,6 +2610,20 @@ ${url}`;
       }
     });
   }
+  function whCanUndoSplit(key) {
+    if (!canUwPush()) return false;
+    const r = whRecFind(key);
+    return !!(r && r.split && !Object.values(r.wh.uwDone || {}).some((n) => +n > 0));
+  }
+  async function whUndoSplit(key) {
+    const r = whRecFind(key);
+    if (!r || !whCanUndoSplit(key)) return toast("Can't undo \u2013 some pieces are already pushed to Uniware.");
+    const kill = {};
+    for (const [id, p] of Object.entries((S.cfg || {}).uwPush || {})) if (p && p.rec === key && p.fac === "B2B") kill[id] = null;
+    if (Object.keys(kill).length) await S.db.doc("config/main").update({ uwPush: kill });
+    await S.db.doc("lots/" + r.lot.id).update(whRecPatch(r, { split: null }));
+    toast(r.lot.lotNo + " is back in Received in Warehouse");
+  }
   function uwHistView() {
     const cur = ym(/* @__PURE__ */ new Date());
     const facName = (f) => f === "B2B" ? "B2B merchant" : (UW_FAC.find((x) => x[0] === f) || [0, f])[1];
@@ -2627,9 +2641,10 @@ ${url}`;
       const n = Object.values(p.ok || {}).reduce((a, b) => a + (+b || 0), 0);
       const l = p.lot && S.lots[p.lot];
       const skus = Object.entries(p.ok || {}).filter(([, q]) => +q > 0).map(([k, q]) => `<span class="chip line">${esc(uwSku(p.design, ...splitCK(k)))} <b>${q}</b></span>`).join("");
+      const canUndo = p.rec && whCanUndoSplit(p.rec);
       return `<div class="card list" style="gap:6px"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0">${p.lotNo || l ? `<span class="lotno">${esc(p.lotNo || l.lotNo)}</span> ` : ""}<span class="dname">${esc(p.design)}</span>
       <ul class="tl small" style="margin:4px 0 0"><li>${p.fac === "B2B" ? "B2B merchant took" : "Pushed to: <b>" + esc(facName(p.fac)) + "</b>"}</li><li>By: ${esc(p.byName || (W(p.by) || { name: "?" }).name)} (${fmtDT(p.at)})</li>${p.failed ? `<li style="color:var(--bad)">${p.failed} SKU failed</li>` : ""}</ul></div>
-      <div><div class="left">${n}</div><div class="small muted" style="text-align:right">pcs</div></div></div><div class="row" style="gap:5px;flex-wrap:wrap">${skus}</div></div>`;
+      <div><div class="left">${n}</div><div class="small muted" style="text-align:right">pcs</div></div></div><div class="row" style="gap:5px;flex-wrap:wrap">${skus}</div>${canUndo ? `<button class="btn alt sm" data-whundo="${esc(p.rec)}" style="align-self:flex-start">Undo split</button>` : ""}</div>`;
     }).join("");
   }
   function pendingByPerson() {
@@ -4590,6 +4605,16 @@ ${url}`;
         });
         if (!Object.keys(cells).length) return;
         giveSheet(d.tgive, cells, "ironing", null, tw);
+        return;
+      }
+      if (d.whundo) {
+        if (!t.dataset.sure) {
+          t.dataset.sure = "1";
+          t.textContent = "Tap again to undo";
+          return;
+        }
+        t.disabled = true;
+        await whUndoSplit(d.whundo);
         return;
       }
       if (d.whsplit) {
