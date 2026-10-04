@@ -541,6 +541,9 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     }
     return out;
   }
+  function skuHay(design, cells) {
+    return Object.keys(nz(cells || {})).map((k) => skuOf(design, ...splitCK(k))).join(" ");
+  }
   function skuList(sz, design) {
     const o = nz(sz);
     return skuKeysSorted(Object.keys(o)).map((k) => esc(skuOf(design, ...splitCK(k))) + " " + o[k]).join(", ");
@@ -1030,7 +1033,7 @@ ${url}`;
   function allocListHtml() {
     const q = allocQ.trim().toLowerCase();
     let ls = lotsSorted().filter((l) => !l.closed && toReceive(l, "stitching").total > 0);
-    if (q) ls = ls.filter((l) => [l.lotNo, l.design, l.colour, l.designName].some((x) => String(x || "").toLowerCase().includes(q)));
+    if (q) ls = ls.filter((l) => [l.lotNo, l.design, l.colour, l.designName, skuHay(l.design, lotCells(l))].some((x) => String(x || "").toLowerCase().includes(q)));
     if (!ls.length) return `<div class="empty">No lot matches.</div>`;
     return ls.map((l) => {
       const tr = toReceive(l, "stitching");
@@ -1415,7 +1418,7 @@ ${url}`;
     const q = bunQ.trim().toLowerCase();
     if (bunFilter !== "st") {
       let cs = stageCards(bunFilter);
-      if (q) cs = cs.filter((c) => [c.who ? (W(c.who) || {}).name : "", c.lot.lotNo, c.lot.design, c.lot.colour, ...c.bullets.filter(Boolean).map((x) => x[1])].some((x) => String(x || "").toLowerCase().includes(q)));
+      if (q) cs = cs.filter((c) => [c.who ? (W(c.who) || {}).name : "", c.lot.lotNo, c.lot.design, c.lot.colour, skuHay(c.lot.design, c.cells), ...c.bullets.filter(Boolean).map((x) => x[1])].some((x) => String(x || "").toLowerCase().includes(q)));
       if (!cs.length) return `<div class="empty">${q ? "No bundle matches." : "No bundle here right now."}</div>`;
       const tot = cs.reduce((a, c) => a + c.total, 0);
       return `<div class="small muted">${cs.length} bundle${cs.length === 1 ? "" : "s"} \xB7 ${tot} pcs</div>` + cs.map((c) => `<div class="card list" style="gap:8px"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.15rem">${esc(c.lot.lotNo)}</span> ${bunTitle(c.lot, c.cells)}<div style="margin-top:4px"><span class="chip ${c.chip[0]}">${esc(c.chip[1])}</span></div></div><div><div class="left">${c.total}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
@@ -1424,7 +1427,7 @@ ${url}`;
     let rows = bundleRows();
     rows = rows.filter((r) => r.left > 0);
     const nm = (w) => (W(w) || { name: "?" }).name;
-    if (q) rows = rows.filter((r) => [nm(r.a.w), r.lot.lotNo, r.lot.design, r.lot.colour, r.lot.designName].some((x) => String(x || "").toLowerCase().includes(q)));
+    if (q) rows = rows.filter((r) => [nm(r.a.w), r.lot.lotNo, r.lot.design, r.lot.colour, r.lot.designName, skuHay(r.lot.design, r.a.sz)].some((x) => String(x || "").toLowerCase().includes(q)));
     if (!rows.length) return `<div class="empty">${q ? "No bundle matches." : "No bundle with stitchers right now."}</div>`;
     const by = {};
     rows.forEach((r) => (by[r.a.w] = by[r.a.w] || []).push(r));
@@ -1741,7 +1744,7 @@ ${url}`;
     if (q) bs = bs.filter((b) => {
       const st = W(b.v.w), ck = W(b.v.by2);
       const cells = Object.keys(nz(b.left)).map((k) => splitCK(k).join(" ")).join(" ");
-      const hay = [b.lot.lotNo, b.lot.design, b.lot.designName, cells, b.lot.design + "_" + cells, st && st.name, ck && ck.name].join(" ").toLowerCase();
+      const hay = [b.lot.lotNo, b.lot.design, b.lot.designName, cells, skuHay(b.lot.design, b.left), st && st.name, ck && ck.name].join(" ").toLowerCase();
       return q.split(/\s+/).every((w) => hay.includes(w));
     });
     if (!bs.length) return `<div class="empty">No bundle matches.</div>`;
@@ -2401,7 +2404,7 @@ ${url}`;
   function stockListHtml(agg) {
     if (!agg) agg = stockAgg().agg;
     const q = stockQ.trim().toLowerCase();
-    const rows = Object.entries(agg).sort((a, b) => a[0].localeCompare(b[0])).filter(([d, cs]) => !q || d.toLowerCase().includes(q) || Object.keys(cs).some((c) => c.toLowerCase().includes(q)));
+    const rows = Object.entries(agg).sort((a, b) => a[0].localeCompare(b[0])).filter(([d, cs]) => !q || d.toLowerCase().includes(q) || Object.keys(cs).some((c) => c.toLowerCase().includes(q) || Object.keys(cs[c] || {}).some((z) => skuOf(d, c, z).toLowerCase().includes(q))));
     if (!rows.length) return `<div class="empty">No stock matches.</div>`;
     return rows.map(([d, cs]) => {
       const t = Object.values(cs).reduce((a, zs) => a + Object.values(zs).reduce((x, y) => x + y, 0), 0);
@@ -2856,7 +2859,7 @@ ${url}`;
       const g = lotWhere(l).grp;
       return g.na + g.st + g.qc + g.fin > 0;
     });
-    if (q) ls = ls.filter((l) => [l.lotNo, l.design, l.colour, l.designName].some((x) => String(x || "").toLowerCase().includes(q)));
+    if (q) ls = ls.filter((l) => [l.lotNo, l.design, l.colour, l.designName, skuHay(l.design, lotCells(l))].some((x) => String(x || "").toLowerCase().includes(q)));
     if (st === "cutting") {
       ls = ls.filter((l) => String(l.date).slice(0, 7) === S.month);
       if (!ls.length) return `<div class="empty">${q ? "No lot matches." : "No lots cut in " + monthLabel(S.month) + "."}</div>`;
@@ -3693,7 +3696,7 @@ ${url}`;
       const q = $("#lpQ", sh).value.trim().toLowerCase();
       let ls = lotsSorted();
       if (f === "open") ls = ls.filter((l) => !l.closed && lotLeft(l, st).total > 0);
-      if (q) ls = ls.filter((l) => [l.lotNo, l.design, l.colour, l.designName].some((x) => String(x || "").toLowerCase().includes(q)));
+      if (q) ls = ls.filter((l) => [l.lotNo, l.design, l.colour, l.designName, skuHay(l.design, lotCells(l))].some((x) => String(x || "").toLowerCase().includes(q)));
       $("#lpList", sh).innerHTML = ls.length ? ls.map((l) => {
         const lf = lotLeft(l, st);
         return `<button type="button" class="lotcard ${lf.total ? "" : "dim"}" data-pick="${l.id}" ${lf.total ? "" : "disabled"}><span style="min-width:0"><span class="lotno" style="font-size:1.15rem">${esc(l.lotNo)}</span> <span class="dname">${lotLabel(l)}</span><span class="small muted ell" style="display:block">cut ${fmtDate(l.date)}${W(l.cutBy) ? " by " + esc(W(l.cutBy).name) : ""} \xB7 ${l.total} pcs</span></span><span><span class="left" style="display:block">${lf.total}</span><span class="small muted">left</span></span><span class="sz">${cellRows(l, lf.left)}</span></button>`;
