@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0410-1600b";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0410-1605";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -279,14 +279,24 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     }
     return ms;
   }
-  function dur(a, b) {
-    const ms = dutyMs(a, b);
-    if (!(ms >= 0)) return "\u2014";
-    const m = Math.round(ms / 6e4);
-    if (m < 1) return new Date(b) - new Date(a) >= 6e4 ? "0 min (outside duty hours)" : "under 1 min";
+  function fmtMins(m) {
+    if (m < 1) return "under 1 min";
     if (m < 60) return m + " min";
     const h = Math.floor(m / 60), mm = m % 60;
     return h + " h" + (mm ? " " + mm + " min" : "");
+  }
+  function offDuty(t) {
+    const d = new Date(t);
+    return !(dutyMs(d.toISOString(), new Date(+d + 6e4).toISOString()) > 0);
+  }
+  function dur(a, b) {
+    const ms = dutyMs(a, b);
+    if (!(ms >= 0)) return "\u2014";
+    const real = Math.round((new Date(b) - new Date(a)) / 6e4);
+    const m = Math.round(ms / 6e4);
+    if (m < 1 && real >= 1) return fmtMins(real) + " (off duty)";
+    const oa = offDuty(a), ob = offDuty(b);
+    return fmtMins(m) + (oa && ob ? " (started & finished off duty)" : oa ? " (started off duty)" : ob ? " (finished off duty)" : "");
   }
   function fmtDate(d) {
     if (!d) return "";
