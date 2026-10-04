@@ -3066,7 +3066,7 @@ ${url}`;
       return `<div class="crow">${c ? `<span class="cname">${esc(c)}</span>` : ""}<span class="row" style="gap:5px">${zs.map((z) => {
         const k = CK(c, z), g = r.cg[k] || {};
         const tip = WGRP.filter(([x]) => g[x]).map(([x, n]) => n + " " + g[x]).join(", ");
-        return `<span class="chip line ph-chip" style="${cellMarkStyle(g, +cells[k])}" title="${esc(tip)}">${esc(z)} <b>${cells[k]}</b></span>`;
+        return `<span class="chip line ph-chip" style="${cellMarkStyle(g, +cells[k])};cursor:pointer" title="${esc(tip)}" ${l.id ? `data-lotcell="${l.id}|${esc(k)}" role="button" tabindex="0"` : ""}>${esc(z)} <b>${cells[k]}</b></span>`;
       }).join("")}</span></div>`;
     }).join("")}</div>`;
   }
@@ -3095,6 +3095,60 @@ ${url}`;
     if (canFix) $("#lwEditSize", sh).onclick = () => editSizeSheet(lid, null);
     if (canEditCut(l)) $("#lwEditCut", sh).onclick = () => editCutSheet(lid);
     if (canFix) $("#lwEditAlloc", sh).onclick = () => editAllocSheet(lid, null);
+  }
+  function cellWhoSheet(lid, k) {
+    const l = __spreadValues({ id: lid }, S.lots[lid]);
+    if (!S.lots[lid]) return;
+    const [c, z] = splitCK(k);
+    const sku = skuOf(l.design, c, z);
+    const cut = +lotCells(l)[k] || 0;
+    const nm = (id) => (W(id) || { name: id === "owner" ? "Owner" : "Unknown" }).name;
+    const by = {};
+    const row = (w) => by[w] = by[w] || { w, alloc: 0, allocAt: [], pend: 0, recv: 0, pass: 0, alt: 0, rej: 0, sub: [] };
+    for (const v of recvList(l, "stitching")) {
+      if (v.st === "cancelled") continue;
+      const n = +(v.sz || {})[k] || 0;
+      if (!n || !v.w) continue;
+      const r = row(v.w);
+      r.alloc += n;
+      r.allocAt.push([v.at || v.date, n, v.by]);
+    }
+    for (const v of Object.values((l.prog || {}).stitching || {})) {
+      if (!v || !v.w || v.st === "withdrawn") continue;
+      const n = +(v.sz || {})[k] || 0, a = +(v.altSz || {})[k] || 0, j = +(v.rejSz || {})[k] || 0;
+      if (!n && !a && !j) continue;
+      const r = row(v.w);
+      if (v.st === "pending") r.pend += n;
+      else if (v.st === "received") r.recv += n;
+      else if (v.st === "approved") { r.pass += n; r.alt += a; r.rej += j; }
+      else if (v.st === "rejected") r.alt += n || a;
+      r.sub.push({ at: v.at || v.date, n: n + (v.st === "approved" ? a + j : 0), st: v.st, at2: v.at2, by2: v.by2 });
+    }
+    const ws = Object.values(by).sort((a, b) => (b.pass + b.recv + b.pend) - (a.pass + a.recv + a.pend) || b.alloc - a.alloc);
+    const stLbl = { pending: "submitted", received: "counted", approved: "checked", rejected: "sent back" };
+    const cards = ws.map((r) => {
+      const made = r.pend + r.recv + r.pass + r.alt + r.rej;
+      const open = Math.max(0, r.alloc - made);
+      const bits = [r.pass ? `<span class="chip approved">Passed ${r.pass}</span>` : "", r.recv ? `<span class="chip pending">Counted, to check ${r.recv}</span>` : "", r.pend ? `<span class="chip pending">Submitted ${r.pend}</span>` : "", r.alt ? `<span class="chip pending">Alter ${r.alt}</span>` : "", r.rej ? `<span class="chip rejected">Rejected ${r.rej}</span>` : "", open ? `<span class="chip line">Still stitching ${open}</span>` : ""].filter(Boolean).join("");
+      const allocs = r.allocAt.sort((a, b) => String(a[0] || "").localeCompare(String(b[0] || ""))).map(([at, n, b]) => `<li>Allocated <b>${n}</b> \xB7 ${fmtDT(at)}${b ? " by " + esc(nm(b)) : ""}</li>`).join("");
+      const subs = r.sub.sort((a, b) => String(a.at || "").localeCompare(String(b.at || ""))).map((x) => `<li>Submitted <b>${x.n}</b> \xB7 ${fmtDT(x.at)} \xB7 ${stLbl[x.st] || x.st}${x.at2 ? " " + fmtDT(x.at2) + (x.by2 ? " by " + esc(nm(x.by2)) : "") : ""}</li>`).join("");
+      return `<div class="card list" style="gap:6px;padding:10px"><div class="wrow"><b>${esc(nm(r.w))}</b><span><b>${made}</b><span class="small muted"> of ${r.alloc} made</span></span></div><div class="row" style="gap:5px;flex-wrap:wrap">${bits}</div><ul class="tl small" style="margin:0">${allocs}${subs}</ul></div>`;
+    }).join("");
+    const wr = lotWhere(l);
+    const now = WGRP.map(([g, n, cls]) => {
+      const rs = wr.rows.filter((x) => x.g === g && +x.cells[k] > 0);
+      if (!rs.length) return "";
+      const t = rs.reduce((a, x) => a + +x.cells[k], 0);
+      return `<div class="wrow"><span><span class="chip ${cls || "line"}">${n}</span> <span class="small muted">${rs.map((x) => esc(x.who || x.label) + " " + x.cells[k]).join(", ")}</span></span><b>${t}</b></div>`;
+    }).join("");
+    sheet(sku, `<div class="list">
+    <div><span class="lotno">${esc(l.lotNo)}</span> <span class="dname">${esc(sku)}</span><div class="small muted"><b>${cut} pcs</b> cut</div></div>
+    <h3 style="margin:4px 0 0">Stitchers</h3>
+    ${cards || `<div class="empty">Not given to any stitcher yet.</div>`}
+    ${now ? `<h3 style="margin:4px 0 0">Where these pieces are now</h3><div class="card list" style="gap:8px;padding:10px">${now}</div>` : ""}
+    <button type="button" class="btn alt" id="cwLot" style="align-self:flex-start">Open full lot ${esc(l.lotNo)}</button></div>`);
+    const b = document.getElementById("cwLot");
+    if (b) b.onclick = () => lotWhereSheet(lid);
   }
   function canEditCut(l) {
     const m = me();
@@ -4236,7 +4290,7 @@ ${url}`;
     }
   });
   document.addEventListener("click", async (ev) => {
-    const t = ev.target.closest("button") || ev.target.closest("[data-lotwhere]");
+    const t = ev.target.closest("button") || ev.target.closest("[data-lotcell]") || ev.target.closest("[data-lotwhere]");
     if (!t || t.closest(".sheet")) return;
     const d = t.dataset;
     try {
@@ -4244,6 +4298,11 @@ ${url}`;
         S.tab = d.tab;
         render();
         window.scrollTo(0, 0);
+        return;
+      }
+      if (d.lotcell) {
+        const i = d.lotcell.indexOf("|");
+        cellWhoSheet(d.lotcell.slice(0, i), d.lotcell.slice(i + 1));
         return;
       }
       if (d.lotwhere) {
