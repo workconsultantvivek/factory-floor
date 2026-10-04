@@ -1496,11 +1496,24 @@ ${url}`;
     list.sort((a, b) => (b.chkStart ? 1 : 0) - (a.chkStart ? 1 : 0));
     return h + list.map((s) => subCard(s, s.chkStart ? `<span class="chip pending">Checking since ${fmtDT(s.chkStart)}${W(s.chkBy) ? " \xB7 " + esc(W(s.chkBy).name) : ""}</span><button class="btn accent" data-check="${s.lot.id}|${s.eid}">Check finished</button>` : `<button class="btn accent" data-chkstart="${s.lot.id}|${s.eid}">Start check</button>`, "")).join("");
   }
+  let ckdQ = "";
   function checkedView() {
-    const list = submissions(["approved", "rejected"]).filter((s) => s.at2 && s.rat).sort((a, b) => String(b.at2).localeCompare(String(a.at2))).slice(0, 40);
+    const all = submissions(["approved", "rejected"]).filter((s) => s.at2 && s.rat);
     let h = `<div><h2>Checked</h2><p class="small muted" style="margin:4px 0 0">Your latest accepted and sent-back work.</p></div>`;
-    if (!list.length) return h + `<div class="empty">Nothing checked yet.</div>`;
-    return h + `<div class="list">${list.map((s) => `<div class="card"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px"><span style="min-width:0"><b>${esc((W(s.w) || { name: "?" }).name)}</b> \xB7 <span class="lotno">${esc(s.lot.lotNo)}</span> <span class="small muted">${fmtDT(s.at2)}</span><span style="display:block;margin-top:4px"><span class="chip ${s.st}">${s.st === "approved" ? "Checked" : "All sent back"}</span></span><ul class="tl small" style="margin:6px 0 0"><li>Check started: <b>${s.chkStart ? fmtDT(s.chkStart) : "\u2014"}</b></li><li>Check finished: <b>${s.at2 ? fmtDT(s.at2) : "\u2014"}</b></li><li>Total time: <b>${s.chkStart && s.at2 ? dur(s.chkStart, s.at2) : "\u2014"}</b></li></ul></span>${(() => {
+    if (!all.length) return h + `<div class="empty">Nothing checked yet.</div>`;
+    return h + `<input class="search" type="search" id="ckdQ" placeholder="Search stitcher name or no., lot no., SKU or size" value="${esc(ckdQ)}" autocomplete="off"><div id="ckdList">${checkedListHtml()}</div>`;
+  }
+  function checkedListHtml() {
+    const q = ckdQ.trim().toLowerCase();
+    let list = submissions(["approved", "rejected"]).filter((s) => s.at2 && s.rat).sort((a, b) => String(b.at2).localeCompare(String(a.at2)));
+    if (q) list = list.filter((s) => {
+      const cells = __spreadValues(__spreadValues(__spreadValues({}, s.sz || {}), s.altSz || {}), s.rejSz || {});
+      const names = [(W(s.w) || {}).name, (W(s.by2) || {}).name];
+      return qMatch(q, [s.lot.lotNo, s.lot.design, s.lot.designName, skuHay(s.lot.design, cells), Object.keys(nz(cells)).map((k) => splitCK(k).join(" ")).join(" "), ...names], names, Object.keys(nz(cells)).map((k) => splitCK(k)[1]));
+    });
+    list = list.slice(0, q ? 80 : 40);
+    if (!list.length) return `<div class="empty">No checked work matches.</div>`;
+    return `<div class="list">${list.map((s) => `<div class="card"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px"><span style="min-width:0"><b>${esc((W(s.w) || { name: "?" }).name)}</b> \xB7 <span class="lotno">${esc(s.lot.lotNo)}</span> <span class="small muted">${fmtDT(s.at2)}</span><span style="display:block;margin-top:4px"><span class="chip ${s.st}">${s.st === "approved" ? "Checked" : "All sent back"}</span></span><ul class="tl small" style="margin:6px 0 0"><li>Check started: <b>${s.chkStart ? fmtDT(s.chkStart) : "\u2014"}</b></li><li>Check finished: <b>${s.at2 ? fmtDT(s.at2) : "\u2014"}</b></li><li>Total time: <b>${s.chkStart && s.at2 ? dur(s.chkStart, s.at2) : "\u2014"}</b></li></ul></span>${(() => {
       const ap = s.st === "approved";
       const alt = ap ? +s.alt || 0 : +s.alt || +s.q || 0, rej = ap ? +s.rej || 0 : 0, pass = ap ? +s.q || 0 : 0;
       const tot = pass + alt + rej;
@@ -4159,6 +4172,12 @@ ${url}`;
       bunQ = t.value;
       const el = $("#bunList");
       if (el) el.innerHTML = bundleListHtml();
+      return;
+    }
+    if (t.id === "ckdQ") {
+      ckdQ = t.value;
+      const el = $("#ckdList");
+      if (el) el.innerHTML = checkedListHtml();
       return;
     }
     if (t.id === "trecvQ") {
