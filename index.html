@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0410-1600";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0410-1550";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -1089,15 +1089,11 @@ ${url}`;
     const made = {};
     for (const v of stageEntries(l, "stitching")) made[v.w] = (made[v.w] || 0) + (+v.q || 0);
     const load = (wid) => lotsSorted().reduce((a, x) => a + myOpen(x, "stitching", wid).total, 0);
-    let scope = sts.some((w) => given[w.id]) ? "lot" : "all";
     const sh = sheet("Who to allocate \u00B7 " + l.lotNo, `<div class="list">
     <div class="card list" style="gap:4px"><div class="dname">${esc(l.design)}</div><b>${R} pcs left to give</b><div class="small muted">Stitchers who got fewer pieces from this lot come first, so everyone gets a fair share.</div></div>
-    <div class="seg"><button type="button" data-wscope="lot">On this lot</button><button type="button" data-wscope="all">All stitchers</button></div>
     <div id="whoList"></div></div>`);
     const draw = () => {
-      sh.querySelectorAll("[data-wscope]").forEach((b) => b.classList.toggle("on", b.dataset.wscope === scope));
-      let pool = sts.filter((w) => scope === "all" || given[w.id]);
-      if (!pool.length) pool = sts;
+      const pool = sts;
       const g = (w) => given[w.id] || 0;
       const srt = pool.slice().sort((a, b) => g(a) - g(b) || load(a.id) - load(b.id));
       let T = 0;
@@ -1129,12 +1125,6 @@ ${url}`;
       <div class="small muted">Got = pieces given from this lot \u00B7 Made = pieces submitted from this lot \u00B7 In hand = pieces with them now from all lots \u00B7 Give = suggested pieces to make it even.</div>`;
     };
     sh.addEventListener("click", (e) => {
-      const sc = e.target.closest("[data-wscope]");
-      if (sc) {
-        scope = sc.dataset.wscope;
-        draw();
-        return;
-      }
       const b = e.target.closest("[data-wgo]");
       if (b) {
         closeSheet();
