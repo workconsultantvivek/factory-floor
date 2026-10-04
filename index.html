@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0410-1620";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0410-1630";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -1093,14 +1093,14 @@ ${url}`;
     const l = S.lots[lid];
     const tr = toReceive(l, "stitching");
     const R = tr.total;
-    const sts = activeWorkers().filter((w) => w.role === "Stitcher");
+    const sts = activeWorkers().filter((w) => w.role === "Stitcher" && !w.leave);
     if (!sts.length) return toast("Add stitchers in Team first.");
     const given = holders(l, "stitching");
     const made = {};
     for (const v of stageEntries(l, "stitching")) made[v.w] = (made[v.w] || 0) + (+v.q || 0);
     const load = (wid) => lotsSorted().reduce((a, x) => a + myOpen(x, "stitching", wid).total, 0);
     const sh = sheet("Who to allocate \u00B7 " + l.lotNo, `<div class="list">
-    <div class="card list" style="gap:4px"><div class="dname">${esc(l.design)}</div><b>${R} pcs left to give</b><div class="small muted">Stitchers who got fewer pieces from this lot come first, so everyone gets a fair share.</div></div>
+    <div class="card list" style="gap:4px"><div class="dname">${esc(l.design)}</div><b>${R} pcs left to give</b>${(() => { const n = activeWorkers().filter((w) => w.role === "Stitcher" && w.leave); return n.length ? `<div class="small muted">Not shown \u2013 at leave: ${n.map((w) => esc(w.name)).join(", ")}</div>` : ""; })()}<div class="small muted">Stitchers who got fewer pieces from this lot come first, so everyone gets a fair share.</div></div>
     <div id="whoList"></div></div>`);
     const draw = () => {
       const pool = sts;
@@ -1146,7 +1146,7 @@ ${url}`;
   function allocSheet(lid, preset, presetMode, presetW) {
     const l = __spreadValues({ id: lid }, S.lots[lid]);
     const tr = toReceive(l, "stitching");
-    const sts = activeWorkers().filter((w) => w.role === "Stitcher");
+    const sts = activeWorkers().filter((w) => w.role === "Stitcher").sort((a, b) => !!a.leave - !!b.leave);
     if (!sts.length) {
       toast("Add stitchers in Team first.");
       return;
@@ -1177,7 +1177,7 @@ ${url}`;
       $("#aSelSum", sh).textContent = n ? `Sub-lot: ${n} pcs \xB7 ${fmtCellsPlain([...sel], l.design)}` : "Nothing selected";
       drawStep2();
     };
-    const stOpt = () => sts.map((w) => `<option value="${w.id}" ${wholeTo === w.id ? "selected" : ""}>${esc(w.name)} \xB7 ${load(w.id)} in hand</option>`).join("");
+    const stOpt = () => sts.map((w) => `<option value="${w.id}" ${wholeTo === w.id ? "selected" : ""}>${esc(w.name)} \xB7 ${w.leave ? "AT LEAVE" : load(w.id) + " in hand"}</option>`).join("");
     const keys = () => all.filter((k) => sel.has(k));
     const drawStep2 = () => {
       const box = $("#aStep2", sh);
@@ -1191,7 +1191,7 @@ ${url}`;
       let h = `<div class="card list" style="gap:10px"><b>${preset ? "Give this sub-lot" : "2. How do you want to give this sub-lot?"}</b><div class="seg"><button type="button" data-mode="whole" class="${mode === "whole" ? "on" : ""}">Allocate whole</button><button type="button" data-mode="split" class="${mode === "split" ? "on" : ""}">Split</button></div>`;
       if (mode === "whole") h += `<label class="f">Give all ${selTotal()} pcs to<select id="aW"><option value="">Select stitcher</option>${stOpt()}</select></label>`;
       if (mode === "split") {
-        h += `<div class="small muted">Stitchers sharing this sub-lot</div><div class="colchips">${sts.map((w) => `<button type="button" class="colchip ${picked.includes(w.id) ? "on" : ""}" data-pickst="${w.id}">${picked.includes(w.id) ? "\u2713 " : ""}${esc(w.name)} <span class="small" style="opacity:.7">${load(w.id)}</span></button>`).join("")}</div>`;
+        h += `<div class="small muted">Stitchers sharing this sub-lot</div><div class="colchips">${sts.map((w) => `<button type="button" class="colchip ${picked.includes(w.id) ? "on" : ""}" data-pickst="${w.id}">${picked.includes(w.id) ? "\u2713 " : ""}${esc(w.name)} <span class="small" style="opacity:.7">${w.leave ? "at leave" : load(w.id)}</span></button>`).join("")}</div>`;
         if (picked.length) {
           const cs = [...new Set(keys().map((k) => splitCK(k)[0]))];
           h += `<div class="row"><button type="button" class="btn sm" data-even="1">Split equally</button><span class="small muted">or type pieces below</span></div>` + cs.map((c) => `<div class="list" style="gap:6px"><div class="row spread"><b>${esc(c || "Pieces")}</b><label class="small row" style="gap:6px">Whole colour to <select data-colto="${esc(c)}" style="border:1px solid var(--line);border-radius:8px;padding:5px;background:var(--surface)"><option value="">\u2014</option>${picked.map((id) => `<option value="${id}">${esc(W(id).name)}</option>`).join("")}</select></label></div>
@@ -3901,9 +3901,9 @@ ${url}`;
   function teamListHtml() {
     let ws = workers().sort((a, b) => (a.active === false) - (b.active === false) || ROLES.indexOf(a.role) - ROLES.indexOf(b.role));
     const q = teamQ.trim().toLowerCase();
-    if (q) ws = ws.filter((w) => q.split(/\s+/).filter(Boolean).every((t) => /^\d{1,3}$/.test(t) ? +wMno(w) === +t || String(w.phone || "").includes(t) : [w.name, w.role, w.phone, w.active === false ? "inactive" : "active"].join(" ").toLowerCase().includes(t)));
+    if (q) ws = ws.filter((w) => q.split(/\s+/).filter(Boolean).every((t) => /^\d{1,3}$/.test(t) ? +wMno(w) === +t || String(w.phone || "").includes(t) : [w.name, w.role, w.phone, w.active === false ? "inactive" : "active", w.leave ? "at leave" : ""].join(" ").toLowerCase().includes(t)));
     if (!ws.length) return `<div class="empty">No one matches.</div>`;
-    return `<div class="tablewrap"><table><thead><tr><th>Name</th><th></th></tr></thead><tbody>${ws.map((w) => `<tr style="${w.active === false ? "opacity:.5" : ""}"><td><b>${esc(w.name)}</b>${w.active === false ? ' <span class="chip">Inactive</span>' : ""}<div class="small muted">${esc(w.role)}${wMno(w) ? " \xB7 Machine " + esc(wMno(w)) : ""}${w.pin ? "" : ' \xB7 <span class="muted">PIN not set yet</span>'}</div></td><td style="white-space:nowrap;text-align:right">${w.active === false ? "" : `<button class="btn alt sm" data-openas="${w.id}">Open</button> `}${S.live ? `<button class="btn accent sm" data-wlink="${w.id}">Link</button> ` : ""}<button class="btn alt sm" data-editw="${w.id}">Edit</button></td></tr>`).join("")}</tbody></table></div>`;
+    return `<div class="tablewrap"><table><thead><tr><th>Name</th><th></th></tr></thead><tbody>${ws.map((w) => `<tr style="${w.active === false ? "opacity:.5" : ""}"><td><b>${esc(w.name)}</b>${w.active === false ? ' <span class="chip">Inactive</span>' : w.leave ? ` <span class="chip pending">At Leave${w.leaveAt ? " since " + fmtDate(String(w.leaveAt).slice(0, 10)) : ""}</span>` : ""}<div class="small muted">${esc(w.role)}${wMno(w) ? " \xB7 Machine " + esc(wMno(w)) : ""}${w.pin ? "" : ' \xB7 <span class="muted">PIN not set yet</span>'}</div></td><td style="white-space:nowrap;text-align:right">${w.active === false ? "" : `<button class="btn alt sm" data-openas="${w.id}">Open</button> `}${S.live ? `<button class="btn accent sm" data-wlink="${w.id}">Link</button> ` : ""}${w.active === false ? "" : `<button class="btn alt sm" data-leave="${w.id}">${w.leave ? "Back" : "Leave"}</button> `}<button class="btn alt sm" data-editw="${w.id}">Edit</button></td></tr>`).join("")}</tbody></table></div>`;
   }
   function teamView() {
     const ws = workers();
@@ -4683,6 +4683,14 @@ ${url}`;
         aSel = { lid: null, keys: /* @__PURE__ */ new Set() };
         const el = $("#allocList");
         if (el) el.innerHTML = allocListHtml();
+        return;
+      }
+      if (d.leave) {
+        const w = W(d.leave);
+        if (!w) return;
+        t.disabled = true;
+        await S.db.doc("config/main").update({ workers: { [d.leave]: w.leave ? { leave: false, leaveAt: null } : { leave: true, leaveAt: (/* @__PURE__ */ new Date()).toISOString() } } });
+        toast(w.name + (w.leave ? " is back from leave" : " marked At Leave"));
         return;
       }
       if (d.awho) {
