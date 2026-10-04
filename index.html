@@ -3801,11 +3801,12 @@ ${url}`;
       return per === "today" ? d.slice(0, 10) === td : per === "h1" ? day <= 15 : per === "h2" ? day >= 16 : true;
     };
     const label = per === "today" ? "Today" : per === "h1" ? "1 \u2013 15 " + monthLabel(S.month) : per === "h2" ? "16 \u2013 " + dim + " " + monthLabel(S.month) : monthLabel(S.month);
-    let cut = 0, sub = 0, got = 0, pass = 0, alt = 0, rej = 0, wh = 0;
+    let cut = 0, alloc = 0, sub = 0, got = 0, pass = 0, alt = 0, rej = 0, wh = 0;
     const by = {};
     const row = (w) => by[w] || (by[w] = { sub: 0, got: 0, alt: 0, rej: 0, pay: 0, pcsPaid: 0, bundles: new Set(), norate: false, items: {} });
     for (const l of lotsSorted()) {
       if (inP(l.date)) cut += +l.total || 0;
+      for (const v of recvList(l, "stitching")) if (v.w && inP(v.at || v.date)) alloc += +v.q || Object.values(nz(v.sz)).reduce((x, y) => x + (+y || 0), 0);
       const pays = {};
       for (const [eid, v] of Object.entries((l.prog || {}).stitching || {})) {
         if (!v || v.st === "withdrawn" || !v.w) continue;
@@ -3861,7 +3862,7 @@ ${url}`;
     let h = `<div class="row spread"><h2>Dashboard</h2><div class="row" style="gap:6px"><button class="btn alt sm" data-month="-1" aria-label="Previous month">\u2039</button><b>${monthLabel(S.month)}</b><button class="btn alt sm" data-month="1" aria-label="Next month" ${isCur ? "disabled" : ""}>\u203A</button></div></div>
     <div class="seg">${segs.map(([k, n]) => `<button data-dashp="${k}" class="${per === k ? "on" : ""}">${n}</button>`).join("")}</div>
     <div class="card list" style="gap:10px"><div class="row spread"><b>Production \xB7 ${esc(label)}</b></div>
-    <div class="stats"><div class="stat"><span>Submitted</span><b>${sub}</b></div><div class="stat"><span>Received</span><b>${got}</b></div><div class="stat"><span>Cut</span><b>${cut}</b></div></div>
+    <div class="stats"><div class="stat"><span>Allocated</span><b>${alloc}</b></div><div class="stat"><span>Received</span><b>${got}</b></div><div class="stat"><span>Cut</span><b>${cut}</b></div></div>
     <div class="stats"><div class="stat"><span>Passed check</span><b>${pass}</b></div><div class="stat"><span>Alter / reject</span><b>${alt} / ${rej}</b></div><div class="stat"><span>Into warehouse</span><b>${wh}</b></div></div></div>`;
     const rows = Object.entries(by).map(([w, r]) => __spreadValues({ w, name: (W(w) || { name: "?" }).name }, r)).sort((a, b) => b.sub - a.sub || a.name.localeCompare(b.name));
     const tot = rows.reduce((a, r) => ({ sub: a.sub + r.sub, got: a.got + r.got, alt: a.alt + r.alt, rej: a.rej + r.rej, pay: a.pay + r.pay }), { sub: 0, got: 0, alt: 0, rej: 0, pay: 0 });
