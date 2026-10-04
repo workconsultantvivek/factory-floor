@@ -3135,7 +3135,7 @@ ${url}`;
     const prefix = { ck: "", th: "Thread cutting \xB7 ", ir: "Ironing \xB7 " };
     for (const sk of ["ck", "th", "ir"]) for (const cd of stageCards(sk)) {
       if (cd.lot.id !== lid) continue;
-      addStg(cd.who, prefix[sk] + cd.chip[1], sk === "ck" ? "ph-qc" : "ph-fin", +(cd.cells || {})[k] || 0);
+      addStg(cd.who, sk === "ck" && /^Passed/.test(cd.chip[1]) ? "Checked & Yet To Receive" : prefix[sk] + cd.chip[1], sk === "ck" ? "ph-qc" : "ph-fin", +(cd.cells || {})[k] || 0);
     }
     const prog0 = (l.prog || {}).stitching || {};
     for (const v of Object.values(l.flow || {})) {
