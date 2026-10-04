@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0410-1635";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0410-1958";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -178,6 +178,7 @@ table.split input{width:64px;border:1px solid var(--line);background:var(--bg);b
 .uwtab th,.uwtab td{padding:8px 6px!important;font-size:.85rem}.uwtab td:first-child{word-break:break-all}
 .erow{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--line);padding-top:7px;font-size:.85rem;flex-wrap:wrap}
 @media (prefers-reduced-motion:no-preference){.sheet{animation:up .18s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}}}
+.skuimgs{display:flex;gap:6px;flex:none}.skuimg{width:64px;height:80px;object-fit:cover;border-radius:10px;border:1px solid var(--line);background:var(--surface);cursor:zoom-in;display:block}.zoomimg{width:100%;max-height:75vh;object-fit:contain;border-radius:12px;background:var(--surface)}
 </style>
 </head><body>
 
@@ -929,6 +930,54 @@ ${url}`;
       return __spreadProps(__spreadValues({}, a), { left, total, touched });
     });
   }
+  const IMG_URL = "https://vivekshingala707.app.n8n.cloud/webhook/factory-sku-images-7c41e9?k=7c41e9a2d05b4f3e";
+  let IMG = store("ffr.img");
+  let imgLoading = false;
+  function imgNorm(x) {
+    return String(x || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  }
+  function skuImg(design, c) {
+    if (!IMG) return "";
+    const d = imgNorm(design), cc = imgNorm(c);
+    return cc ? (IMG.map || {})[d + "|" + cc] || "" : (IMG.dmap || {})[d] || "";
+  }
+  function skuImgs(design, cols) {
+    const seen = new Set();
+    const out = [];
+    for (const c of cols) {
+      const u = skuImg(design, c);
+      if (u && !seen.has(u)) {
+        seen.add(u);
+        out.push(`<img class="skuimg" src="${esc(u)}" alt="${esc(skuOf(design, c))}" loading="lazy" data-zoomimg="${esc(u)}" data-zoomt="${esc(skuOf(design, c))}" onerror="this.remove()">`);
+      }
+      if (out.length >= 3) break;
+    }
+    return out.length ? `<div class="skuimgs">${out.join("")}</div>` : "";
+  }
+  async function loadImgs() {
+    if (imgLoading) return;
+    if (IMG && IMG.at && Date.now() - Date.parse(IMG.at) < 12 * 3600 * 1e3) return;
+    imgLoading = true;
+    try {
+      const r = await fetch(IMG_URL);
+      const j = await r.json();
+      if (j && j.map) {
+        IMG = { at: j.at || (/* @__PURE__ */ new Date()).toISOString(), map: j.map, dmap: j.dmap || {} };
+        store("ffr.img", IMG);
+        if (S.loaded) render(true);
+      }
+    } catch (e) {
+    }
+    imgLoading = false;
+  }
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest && e.target.closest("[data-zoomimg]");
+    if (!t) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const big = t.dataset.zoomimg.replace(/([?&])width=\d+/, "$1width=900");
+    sheet(t.dataset.zoomt || "Photo", `<img class="zoomimg" src="${esc(big)}" alt="">`, { short: true });
+  }, true);
   function stitchNewView(todays) {
     const m = me();
     const cards = [];
@@ -939,8 +988,9 @@ ${url}`;
     h += cards.map(({ lot: l, a }) => {
       const by = W(a.by);
       const isAlt = a.touched > 0;
+      const pics = skuImgs(l.design, [...new Set(Object.keys(a.left).filter((k) => a.left[k] > 0).map((k) => splitCK(k)[0]))]);
       return `<div class="card list" style="gap:8px">
-    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> ${bunTitle(l, a.left)}<div class="small muted ell">${isAlt ? "" : "given " + fmtDT(a.at || a.date) + (by ? " by " + esc(by.name) : "")}</div></div>
+    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${pics}<div style="min-width:0;flex:1"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> ${bunTitle(l, a.left)}<div class="small muted ell">${isAlt ? "" : "given " + fmtDT(a.at || a.date) + (by ? " by " + esc(by.name) : "")}</div></div>
     <div><div class="left">${a.total}</div><div class="small muted" style="text-align:right;white-space:nowrap">to make</div></div></div>
     ${isAlt ? `<div class="small"><span class="chip pending">Alter / short pieces</span> sent back to you from this lot</div>` : ""}
     ${l.rates && l.rates.stitching != null ? `<div class="small muted">Stitching rate ${inr(l.rates.stitching)}/pc</div>` : ""}
@@ -5399,6 +5449,7 @@ ${url}`;
   window.__ffrOk = true;
   S.session = store("ffr.session");
   restoreTab = store("ffr.tab");
+  loadImgs();
   (async () => {
     if (window.FFR_API) {
       S.live = true;
