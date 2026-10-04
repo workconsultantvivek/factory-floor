@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0410-1545";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0410-1540";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -3686,6 +3686,10 @@ ${url}`;
         const when = String(v.at || v.date || "");
         if (!it.first || when < it.first) it.first = when;
         if (when > it.last) it.last = when;
+        if (v.rat && (!it.rcv || v.rat < it.rcv)) {
+          it.rcv = v.rat;
+          it.rby = v.rby;
+        }
         it.st[v.st] = (it.st[v.st] || 0) + q;
         if (v.st === "approved") {
           it.alt += +v.alt || 0;
@@ -3734,7 +3738,7 @@ ${url}`;
       return `<div class="dbun"><div class="row spread" style="flex-wrap:nowrap;gap:8px"><span style="min-width:0"><span class="lotno">${esc(it.lot.lotNo)}</span> ${skuTitle(it.lot.design, it.sz, "dname")}${(() => {
         const a = it.rid && ((it.lot.recv || {}).stitching || {})[it.rid];
         const al = a ? a.at || a.date : allocFor(it.lot, { sz: it.sz }, it.w);
-        return `<ul class="tl small" style="margin:4px 0 0"><li>Allocated: <b>${al ? fmtDT(al) : "\u2014"}</b></li><li>Submitted: <b>${fmtDT(it.first)}</b></li><li>Time taken: <b>${al ? dur(al, it.first) : "\u2014"}</b></li></ul>`;
+        return `<ul class="tl small" style="margin:4px 0 0"><li>Allocated: <b>${al ? fmtDT(al) : "\u2014"}</b></li><li>Submitted: <b>${fmtDT(it.first)}</b></li><li>Received: <b>${it.rcv ? fmtDT(it.rcv) : "not yet"}</b>${it.rcv && W(it.rby) ? " by " + esc(W(it.rby).name) : ""}</li><li>Time taken: <b>${al && it.rcv ? dur(al, it.rcv) : "\u2014"}</b></li></ul>`;
       })()}</span><span class="cksum"><span>Submitted <b>${it.sub}</b></span><span class="ok">Received <b>${it.got}</b></span>${it.alt ? `<span class="warn">Alter <b>${it.alt}</b></span>` : ""}${it.rej ? `<span style="color:var(--bad)">Reject <b>${it.rej}</b></span>` : ""}<span>Pay <b>${inr(it.pay)}</b></span></span></div>${stt}</div>`;
     }).join("")}</td></tr>` : ""}`).join("")}
     <tr class="dtot"><td><b>Total</b></td><td><b>${tot.sub}</b></td><td><b>${tot.got}</b></td><td><b>${inr(tot.pay)}</b></td></tr></tbody></table></div>
