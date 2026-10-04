@@ -541,6 +541,17 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     }
     return out;
   }
+  function wNo(name) {
+    const m = String(name || "").match(/\((\d+)\)\s*$/);
+    return m ? +m[1] : null;
+  }
+  function qMatch(q, hay, names, sizes) {
+    const h = hay.filter(Boolean).join(" ").toLowerCase();
+    return q.split(/\s+/).filter(Boolean).every((t) => {
+      if (/^\d{1,3}$/.test(t)) return (names || []).some((n) => wNo(n) === +t) || (sizes || []).some((z) => String(z) === t);
+      return h.includes(t);
+    });
+  }
   function skuHay(design, cells) {
     return Object.keys(nz(cells || {})).map((k) => skuOf(design, ...splitCK(k))).join(" ");
   }
@@ -1418,7 +1429,10 @@ ${url}`;
     const q = bunQ.trim().toLowerCase();
     if (bunFilter !== "st") {
       let cs = stageCards(bunFilter);
-      if (q) cs = cs.filter((c) => [c.who ? (W(c.who) || {}).name : "", c.lot.lotNo, c.lot.design, c.lot.colour, skuHay(c.lot.design, c.cells), ...c.bullets.filter(Boolean).map((x) => x[1])].some((x) => String(x || "").toLowerCase().includes(q)));
+      if (q) cs = cs.filter((c) => {
+        const names = [c.who ? (W(c.who) || {}).name : "", ...c.bullets.filter(Boolean).map((x) => String(x[1] || "").replace(/\s*\([^()]*\d{1,2}:\d{2}[^()]*\)\s*$/, ""))];
+        return qMatch(q, [c.lot.lotNo, c.lot.design, c.lot.colour, c.lot.designName, skuHay(c.lot.design, c.cells), ...c.bullets.filter(Boolean).map((x) => x[1])], names, Object.keys(nz(c.cells || {})).map((k) => splitCK(k)[1]));
+      });
       if (!cs.length) return `<div class="empty">${q ? "No bundle matches." : "No bundle here right now."}</div>`;
       const tot = cs.reduce((a, c) => a + c.total, 0);
       return `<div class="small muted">${cs.length} bundle${cs.length === 1 ? "" : "s"} \xB7 ${tot} pcs</div>` + cs.map((c) => `<div class="card list" style="gap:8px"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.15rem">${esc(c.lot.lotNo)}</span> ${bunTitle(c.lot, c.cells)}<div style="margin-top:4px"><span class="chip ${c.chip[0]}">${esc(c.chip[1])}</span></div></div><div><div class="left">${c.total}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
@@ -1427,7 +1441,7 @@ ${url}`;
     let rows = bundleRows();
     rows = rows.filter((r) => r.left > 0);
     const nm = (w) => (W(w) || { name: "?" }).name;
-    if (q) rows = rows.filter((r) => [nm(r.a.w), r.lot.lotNo, r.lot.design, r.lot.colour, r.lot.designName, skuHay(r.lot.design, r.a.sz)].some((x) => String(x || "").toLowerCase().includes(q)));
+    if (q) rows = rows.filter((r) => qMatch(q, [nm(r.a.w), r.lot.lotNo, r.lot.design, r.lot.colour, r.lot.designName, skuHay(r.lot.design, r.a.sz)], [nm(r.a.w)], Object.keys(nz(r.a.sz || {})).map((k) => splitCK(k)[1])));
     if (!rows.length) return `<div class="empty">${q ? "No bundle matches." : "No bundle with stitchers right now."}</div>`;
     const by = {};
     rows.forEach((r) => (by[r.a.w] = by[r.a.w] || []).push(r));
@@ -1744,8 +1758,8 @@ ${url}`;
     if (q) bs = bs.filter((b) => {
       const st = W(b.v.w), ck = W(b.v.by2);
       const cells = Object.keys(nz(b.left)).map((k) => splitCK(k).join(" ")).join(" ");
-      const hay = [b.lot.lotNo, b.lot.design, b.lot.designName, cells, skuHay(b.lot.design, b.left), st && st.name, ck && ck.name].join(" ").toLowerCase();
-      return q.split(/\s+/).every((w) => hay.includes(w));
+      const names = [st && st.name, ck && ck.name];
+      return qMatch(q, [b.lot.lotNo, b.lot.design, b.lot.designName, cells, skuHay(b.lot.design, b.left), ...names], names, Object.keys(nz(b.left)).map((k) => splitCK(k)[1]));
     });
     if (!bs.length) return `<div class="empty">No bundle matches.</div>`;
     return bs.map((b) => {
