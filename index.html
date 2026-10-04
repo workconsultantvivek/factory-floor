@@ -1106,39 +1106,39 @@ ${url}`;
     for (const v of stageEntries(l, "stitching")) made[v.w] = (made[v.w] || 0) + (+v.q || 0);
     const load = (wid) => lotsSorted().reduce((a, x) => a + myOpen(x, "stitching", wid).total, 0);
     const sh = sheet("Who to allocate \u00B7 " + l.lotNo, `<div class="list">
-    <div class="card list" style="gap:4px"><div class="dname">${esc(l.design)}</div><b>${R} pcs left to give</b>${(() => { const n = activeWorkers().filter((w) => w.role === "Stitcher" && w.leave); return n.length ? `<div class="small muted">Not shown \u2013 at leave: ${n.map((w) => esc(w.name)).join(", ")}</div>` : ""; })()}<div class="small muted">Stitchers who got fewer pieces from this lot come first, so everyone gets a fair share.</div></div>
+    <div class="card list" style="gap:4px"><div class="dname">${esc(l.design)}</div><b>${R} pcs left to give</b>${(() => { const n = activeWorkers().filter((w) => w.role === "Stitcher" && w.leave); return n.length ? `<div class="small muted">Not shown \u2013 at leave: ${n.map((w) => esc(w.name)).join(", ")}</div>` : ""; })()}${(() => { const n = sts.filter(helperBlocked); return n.length ? `<div class="small muted">Not shown \u2013 helpers: ${n.map((w) => esc(w.name)).join(", ")}</div>` : ""; })()}<div class="small muted">Stitchers who got fewer pieces from this lot come first, so everyone gets a fair share.</div></div>
     <div id="whoList"></div></div>`);
     const draw = () => {
-      const pool = sts;
+      const pool = sts.filter((w) => stWeight(w) > 0);
       const g = (w) => given[w.id] || 0;
-      const srt = pool.slice().sort((a, b) => g(a) - g(b) || load(a.id) - load(b.id));
+      const wt = (w) => stWeight(w);
+      const srt = pool.slice().sort((a, b) => g(a) / wt(a) - g(b) / wt(b) || load(a.id) / wt(a) - load(b.id) / wt(b));
       let T = 0;
-      if (R > 0) {
-        let lo = 0, hi = Math.max(...srt.map(g)) + R;
-        while (lo < hi) {
-          const mid = Math.floor((lo + hi + 1) / 2);
-          const need = srt.reduce((a, w) => a + Math.max(0, mid - g(w)), 0);
+      if (R > 0 && srt.length) {
+        let lo = 0, hi = Math.max(...srt.map((w) => g(w) / wt(w))) + R + 1;
+        for (let i = 0; i < 60; i++) {
+          const mid = (lo + hi) / 2;
+          const need = srt.reduce((a, w) => a + Math.max(0, Math.floor(mid * wt(w)) - g(w)), 0);
           if (need <= R) lo = mid;
-          else hi = mid - 1;
+          else hi = mid;
         }
         T = lo;
       }
       const sug = {};
       let used = 0;
       for (const w of srt) {
-        sug[w.id] = Math.max(0, T - g(w));
+        sug[w.id] = Math.max(0, Math.floor(T * wt(w)) - g(w));
         used += sug[w.id];
       }
-      for (const w of srt) {
-        if (used >= R) break;
-        if (g(w) + sug[w.id] <= T) {
-          sug[w.id]++;
-          used++;
-        }
+      while (srt.length && used < R) {
+        const w = srt.slice().sort((a, b) => (g(a) + sug[a.id]) / wt(a) - (g(b) + sug[b.id]) / wt(b) || load(a.id) - load(b.id))[0];
+        sug[w.id]++;
+        used++;
       }
-      const rows = srt.slice().sort((a, b) => sug[b.id] - sug[a.id] || g(a) - g(b) || load(a.id) - load(b.id));
-      $("#whoList", sh).innerHTML = `<div class="tablewrap"><table class="dtab"><thead><tr><th>Stitcher</th><th>Got</th><th>Made</th><th>In hand</th><th>Give</th></tr></thead><tbody>${rows.map((w) => `<tr><td><b>${esc(w.name)}</b>${R ? `<div style="margin-top:4px"><button type="button" class="btn ${sug[w.id] ? "accent" : "alt"} sm" data-wgo="${w.id}">Allocate</button></div>` : ""}</td><td>${g(w)}</td><td>${made[w.id] || 0}</td><td>${load(w.id)}</td><td><b>${sug[w.id] || "\u2014"}</b></td></tr>`).join("")}</tbody></table></div>
-      <div class="small muted">Got = pieces given from this lot \u00B7 Made = pieces submitted from this lot \u00B7 In hand = pieces with them now from all lots \u00B7 Give = suggested pieces to make it even.</div>`;
+      const rows = srt.slice().sort((a, b) => sug[b.id] - sug[a.id] || g(a) / wt(a) - g(b) / wt(b) || load(a.id) - load(b.id));
+      const helpers = (w) => machineMates(w).filter((x) => isHelper(x) && !x.leave);
+      $("#whoList", sh).innerHTML = `<div class="tablewrap"><table class="dtab"><thead><tr><th>Stitcher</th><th>Got</th><th>Made</th><th>In hand</th><th>Give</th></tr></thead><tbody>${rows.map((w) => `<tr><td><b>${esc(w.name)}</b>${wt(w) > 1 ? ` <span class="chip line">1.5\xD7</span><div class="small muted">with helper ${helpers(w).map((x) => esc(wBase(x.name))).join(", ")}</div>` : ""}${R ? `<div style="margin-top:4px"><button type="button" class="btn ${sug[w.id] ? "accent" : "alt"} sm" data-wgo="${w.id}">Allocate</button></div>` : ""}</td><td>${g(w)}</td><td>${made[w.id] || 0}</td><td>${load(w.id)}</td><td><b>${sug[w.id] || "\u2014"}</b></td></tr>`).join("")}</tbody></table></div>
+      <div class="small muted">Got = pieces given from this lot \u00B7 Made = pieces submitted from this lot \u00B7 In hand = pieces with them now from all lots \u00B7 Give = suggested pieces to make it even. A stitcher with a helper on the same machine gets 1.5\xD7 a single stitcher's share.</div>`;
     };
     sh.addEventListener("click", (e) => {
       const b = e.target.closest("[data-wgo]");
@@ -1152,7 +1152,7 @@ ${url}`;
   function allocSheet(lid, preset, presetMode, presetW) {
     const l = __spreadValues({ id: lid }, S.lots[lid]);
     const tr = toReceive(l, "stitching");
-    const sts = activeWorkers().filter((w) => w.role === "Stitcher").sort((a, b) => !!a.leave - !!b.leave);
+    const sts = activeWorkers().filter((w) => w.role === "Stitcher" && !helperBlocked(w)).sort((a, b) => !!a.leave - !!b.leave);
     if (!sts.length) {
       toast("Add stitchers in Team first.");
       return;
@@ -1200,7 +1200,7 @@ ${url}`;
         h += `<div class="small muted">Stitchers sharing this sub-lot</div><div class="colchips">${sts.map((w) => `<button type="button" class="colchip ${picked.includes(w.id) ? "on" : ""}" data-pickst="${w.id}">${picked.includes(w.id) ? "\u2713 " : ""}${esc(w.name)} <span class="small" style="opacity:.7">${w.leave ? "at leave" : load(w.id)}</span></button>`).join("")}</div>`;
         if (picked.length) {
           const cs = [...new Set(keys().map((k) => splitCK(k)[0]))];
-          h += `<div class="row"><button type="button" class="btn sm" data-even="1">Split equally</button><span class="small muted">or type pieces below</span></div>` + cs.map((c) => `<div class="list" style="gap:6px"><div class="row spread"><b>${esc(c || "Pieces")}</b><label class="small row" style="gap:6px">Whole colour to <select data-colto="${esc(c)}" style="border:1px solid var(--line);border-radius:8px;padding:5px;background:var(--surface)"><option value="">\u2014</option>${picked.map((id) => `<option value="${id}">${esc(W(id).name)}</option>`).join("")}</select></label></div>
+          h += `<div class="row"><button type="button" class="btn sm" data-even="1">${picked.some((id) => stWeight(W(id)) > 1) ? "Split fairly (1.5\xD7 with helper)" : "Split equally"}</button><span class="small muted">or type pieces below</span></div>` + cs.map((c) => `<div class="list" style="gap:6px"><div class="row spread"><b>${esc(c || "Pieces")}</b><label class="small row" style="gap:6px">Whole colour to <select data-colto="${esc(c)}" style="border:1px solid var(--line);border-radius:8px;padding:5px;background:var(--surface)"><option value="">\u2014</option>${picked.map((id) => `<option value="${id}">${esc(W(id).name)}</option>`).join("")}</select></label></div>
         <div class="tablewrap"><table class="split"><thead><tr><th>Size</th><th>Left</th>${picked.map((id) => `<th>${esc(W(id).name)}</th>`).join("")}</tr></thead><tbody>${keys().filter((k) => splitCK(k)[0] === c).map((k) => `<tr><td><b>${esc(splitCK(k)[1])}</b></td><td class="left-${safeId(k)}">${tr.left[k]}</td>${picked.map((id) => `<td><input type="number" inputmode="numeric" min="0" data-cell="${esc(k)}" data-who="${id}" placeholder="0"></td>`).join("")}</tr>`).join("")}</tbody></table></div></div>`).join("") + `<div id="splitSum"></div>`;
         }
       }
@@ -1317,17 +1317,11 @@ ${url}`;
         return;
       }
       if (b.dataset.even) {
-        const n = picked.length;
         keys().forEach((k) => {
-          const q = tr.left[k];
-          const base = Math.floor(q / n);
-          let extra = q - base * n;
-          picked.forEach((id) => {
+          const parts = weightedSplit(tr.left[k], picked);
+          picked.forEach((id, j) => {
             const i = sh.querySelector(`[data-cell="${CSS.escape(k)}"][data-who="${id}"]`);
-            if (i) {
-              i.value = base + (extra > 0 ? 1 : 0);
-              if (extra > 0) extra--;
-            }
+            if (i) i.value = parts[j];
           });
         });
         upd();
@@ -3904,12 +3898,40 @@ ${url}`;
     const m = String(w.name || "").match(/\((\d+)\)\s*$/);
     return m ? m[1] : "";
   }
+  function isHelper(w) {
+    return !!(w && w.role === "Stitcher" && w.helper && wMno(w));
+  }
+  function machineMates(w) {
+    const mn = wMno(w);
+    if (!mn) return [];
+    return activeWorkers().filter((x) => x.id !== w.id && x.role === "Stitcher" && +wMno(x) === +mn);
+  }
+  function helperBlocked(w) {
+    return isHelper(w) && machineMates(w).some((x) => !isHelper(x) && !x.leave);
+  }
+  function stWeight(w) {
+    if (helperBlocked(w)) return 0;
+    return !isHelper(w) && machineMates(w).some((x) => isHelper(x) && !x.leave) ? 1.5 : 1;
+  }
+  function weightedSplit(q, ids) {
+    const wt = ids.map((id) => stWeight(W(id)) || 1);
+    const sum = wt.reduce((a, b) => a + b, 0);
+    const out = ids.map((id, i) => Math.floor(q * wt[i] / sum));
+    let left = q - out.reduce((a, b) => a + b, 0);
+    const ord = ids.map((id, i) => i).sort((a, b) => q * wt[b] / sum - out[b] - (q * wt[a] / sum - out[a]));
+    for (const i of ord) {
+      if (left <= 0) break;
+      out[i]++;
+      left--;
+    }
+    return out;
+  }
   function teamListHtml() {
     let ws = workers().sort((a, b) => (a.active === false) - (b.active === false) || ROLES.indexOf(a.role) - ROLES.indexOf(b.role));
     const q = teamQ.trim().toLowerCase();
     if (q) ws = ws.filter((w) => q.split(/\s+/).filter(Boolean).every((t) => /^\d{1,3}$/.test(t) ? +wMno(w) === +t || String(w.phone || "").includes(t) : [w.name, w.role, w.phone, w.active === false ? "inactive" : "active", w.leave ? "at leave" : ""].join(" ").toLowerCase().includes(t)));
     if (!ws.length) return `<div class="empty">No one matches.</div>`;
-    return `<div class="tablewrap"><table><thead><tr><th>Name</th><th></th></tr></thead><tbody>${ws.map((w) => `<tr style="${w.active === false ? "opacity:.5" : ""}"><td><b>${esc(w.name)}</b>${w.active === false ? ' <span class="chip">Inactive</span>' : w.leave ? ` <span class="chip pending">At Leave${w.leaveAt ? " since " + fmtDate(String(w.leaveAt).slice(0, 10)) : ""}</span>` : ""}<div class="small muted">${esc(w.role)}${wMno(w) ? " \xB7 Machine " + esc(wMno(w)) : ""}${w.pin ? "" : ' \xB7 <span class="muted">PIN not set yet</span>'}</div></td><td style="white-space:nowrap;text-align:right">${w.active === false ? "" : `<button class="btn alt sm" data-openas="${w.id}">Open</button> `}${S.live ? `<button class="btn accent sm" data-wlink="${w.id}">Link</button> ` : ""}${w.active === false ? "" : `<button class="btn alt sm" data-leave="${w.id}">${w.leave ? "Back" : "Leave"}</button> `}<button class="btn alt sm" data-editw="${w.id}">Edit</button></td></tr>`).join("")}</tbody></table></div>`;
+    return `<div class="tablewrap"><table><thead><tr><th>Name</th><th></th></tr></thead><tbody>${ws.map((w) => `<tr style="${w.active === false ? "opacity:.5" : ""}"><td><b>${esc(w.name)}</b>${w.active === false ? ' <span class="chip">Inactive</span>' : w.leave ? ` <span class="chip pending">At Leave${w.leaveAt ? " since " + fmtDate(String(w.leaveAt).slice(0, 10)) : ""}</span>` : ""}<div class="small muted">${esc(w.role)}${wMno(w) ? " \xB7 Machine " + esc(wMno(w)) : ""}${isHelper(w) ? " \xB7 Helper" : w.active !== false && w.role === "Stitcher" && stWeight(w) > 1 ? " \xB7 1.5\xD7 lots" : ""}${w.pin ? "" : ' \xB7 <span class="muted">PIN not set yet</span>'}</div></td><td style="white-space:nowrap;text-align:right">${w.active === false ? "" : `<button class="btn alt sm" data-openas="${w.id}">Open</button> `}${S.live ? `<button class="btn accent sm" data-wlink="${w.id}">Link</button> ` : ""}${w.active === false ? "" : `<button class="btn alt sm" data-leave="${w.id}">${w.leave ? "Back" : "Leave"}</button> `}<button class="btn alt sm" data-editw="${w.id}">Edit</button></td></tr>`).join("")}</tbody></table></div>`;
   }
   function teamView() {
     const ws = workers();
@@ -4170,9 +4192,13 @@ ${url}`;
     <div class="grid2"><label class="f">Role<select id="pR">${ROLES.map((r) => `<option ${w && w.role === r ? "selected" : ""}>${r}</option>`).join("")}</select></label><label class="f">Phone<input id="pP" inputmode="tel" value="${esc(w ? w.phone || "" : "")}"></label></div>
     <label class="f">${w && w.pin ? "New PIN (leave blank to keep)" : "PIN (optional \u2013 leave blank and they set their own)"}<input id="pI" inputmode="numeric" maxlength="6" autocomplete="off"></label>
     ${w && w.pin ? `<label class="row small"><input type="checkbox" id="pClr"> Clear PIN \u2013 they will set a new one from their link</label>` : ""}
+    <label class="row small" id="pHrow" ${(w ? w.role : ROLES[0]) === "Stitcher" ? "" : "hidden"}><input type="checkbox" id="pH" ${w && w.helper ? "checked" : ""}> Helper \u2013 works with another stitcher on the same machine (gets no lots; that stitcher gets 1.5\xD7 pieces)</label>
     ${w ? `<label class="row small"><input type="checkbox" id="pA" ${w.active === false ? "" : "checked"}> Active (untick when someone leaves)</label>` : ""}
     <div id="wErr" class="err"></div>
     <button class="btn accent big" type="submit">${w ? "Save" : "Add person"}</button></form>`, { short: true });
+    $("#pR", sh).onchange = () => {
+      $("#pHrow", sh).hidden = $("#pR", sh).value !== "Stitcher";
+    };
     $("#wForm", sh).onsubmit = async (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -4183,12 +4209,21 @@ ${url}`;
       if (!base) return err("Enter a name.");
       const mno = $("#pM", sh).value.trim();
       if (mno && !/^\d{1,4}$/.test(mno)) return err("Machine no. should be a number.");
-      if (mno && workers().some((x) => x.id !== id && x.active !== false && +wMno(x) === +mno)) return err("Machine " + mno + " is already given to " + workers().find((x) => x.id !== id && x.active !== false && +wMno(x) === +mno).name + ".");
+      const role = $("#pR", sh).value;
+      const helper = role === "Stitcher" && $("#pH", sh).checked;
+      if (helper && !mno) return err("Enter the machine no. of the stitcher this helper works with.");
+      const same = mno ? workers().filter((x) => x.id !== id && x.active !== false && +wMno(x) === +mno) : [];
+      if (same.length) {
+        const other = same.find((x) => x.role !== "Stitcher") || (role !== "Stitcher" ? same[0] : null);
+        if (other) return err("Machine " + mno + " is already given to " + other.name + ".");
+        const main = same.find((x) => !x.helper);
+        if (main && !helper) return err("Machine " + mno + " is already given to " + main.name + ". Tick Helper if this person works with them.");
+      }
       const name = base + (mno ? " (" + mno + ")" : "");
       const pin = $("#pI", sh).value.trim();
       if (pin && !/^\d{4,6}$/.test(pin)) return err("PIN should be 4 to 6 digits.");
       const wid = id || uid("w");
-      const body = { name, mno: mno || null, role: $("#pR", sh).value, phone: $("#pP", sh).value.trim(), active: w ? $("#pA", sh).checked : true };
+      const body = { name, mno: mno || null, role, helper, phone: $("#pP", sh).value.trim(), active: w ? $("#pA", sh).checked : true };
       if (pin) body.pin = hashPin(wid, pin);
       else if (w && $("#pClr", sh) && $("#pClr", sh).checked) body.pin = null;
       try {
