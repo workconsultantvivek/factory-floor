@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0410-1540";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0410-1600";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -1075,11 +1075,75 @@ ${url}`;
       <div class="crows">${rows}</div>
       ${t.st || t.qc || t.wh ? `<div class="row small" style="gap:6px"><span class="chip line">Not allocated ${t.na}</span>${t.st ? `<span class="chip line ph-st">With stitcher ${t.st}</span>` : ""}${t.qc ? `<span class="chip line ph-qc">Checking \u2192 ironing ${t.qc}</span>` : ""}${t.wh ? `<span class="chip line ph-wh">Warehouse ${t.wh}</span>` : ""}</div>` : ""}
       ${Object.keys(hd).length ? `<div class="small muted">Already given: ${Object.entries(hd).map(([w, q2]) => esc((W(w) || { name: "?" }).name) + " " + q2).join(" \xB7 ")}</div>` : ""}
-      ${mine && selN ? `<div class="subbar"><span><b>Sub-lot ${selN} pcs</b><span class="small muted" style="display:block">${esc(fmtCellsPlain([...aSel.keys], l.design))}</span></span><span class="row" style="gap:8px"><button type="button" class="btn accent" data-awhole="${l.id}">Allocate whole</button><button type="button" class="btn" data-asplit="${l.id}">Split</button><button type="button" class="btn alt sm" data-aclear="1">Clear</button></span></div>` : `<div class="small muted">Tap sizes (or a colour name) to make a sub-lot.</div>`}
+      ${mine && selN ? `<div class="subbar"><span><b>Sub-lot ${selN} pcs</b><span class="small muted" style="display:block">${esc(fmtCellsPlain([...aSel.keys], l.design))}</span></span><span class="row" style="gap:8px"><button type="button" class="btn accent" data-awhole="${l.id}">Allocate whole</button><button type="button" class="btn" data-asplit="${l.id}">Split</button><button type="button" class="btn alt sm" data-aclear="1">Clear</button></span></div>` : `<div class="row spread" style="gap:8px"><span class="small muted">Tap sizes (or a colour name) to make a sub-lot.</span><button type="button" class="btn alt sm" data-awho="${l.id}">Who to allocate</button></div>`}
     </div>`;
     }).join("");
   }
-  function allocSheet(lid, preset, presetMode) {
+  function whoSheet(lid) {
+    const l = S.lots[lid];
+    const tr = toReceive(l, "stitching");
+    const R = tr.total;
+    const sts = activeWorkers().filter((w) => w.role === "Stitcher");
+    if (!sts.length) return toast("Add stitchers in Team first.");
+    const given = holders(l, "stitching");
+    const made = {};
+    for (const v of stageEntries(l, "stitching")) made[v.w] = (made[v.w] || 0) + (+v.q || 0);
+    const load = (wid) => lotsSorted().reduce((a, x) => a + myOpen(x, "stitching", wid).total, 0);
+    let scope = sts.some((w) => given[w.id]) ? "lot" : "all";
+    const sh = sheet("Who to allocate \u00B7 " + l.lotNo, `<div class="list">
+    <div class="card list" style="gap:4px"><div class="dname">${esc(l.design)}</div><b>${R} pcs left to give</b><div class="small muted">Stitchers who got fewer pieces from this lot come first, so everyone gets a fair share.</div></div>
+    <div class="seg"><button type="button" data-wscope="lot">On this lot</button><button type="button" data-wscope="all">All stitchers</button></div>
+    <div id="whoList"></div></div>`);
+    const draw = () => {
+      sh.querySelectorAll("[data-wscope]").forEach((b) => b.classList.toggle("on", b.dataset.wscope === scope));
+      let pool = sts.filter((w) => scope === "all" || given[w.id]);
+      if (!pool.length) pool = sts;
+      const g = (w) => given[w.id] || 0;
+      const srt = pool.slice().sort((a, b) => g(a) - g(b) || load(a.id) - load(b.id));
+      let T = 0;
+      if (R > 0) {
+        let lo = 0, hi = Math.max(...srt.map(g)) + R;
+        while (lo < hi) {
+          const mid = Math.floor((lo + hi + 1) / 2);
+          const need = srt.reduce((a, w) => a + Math.max(0, mid - g(w)), 0);
+          if (need <= R) lo = mid;
+          else hi = mid - 1;
+        }
+        T = lo;
+      }
+      const sug = {};
+      let used = 0;
+      for (const w of srt) {
+        sug[w.id] = Math.max(0, T - g(w));
+        used += sug[w.id];
+      }
+      for (const w of srt) {
+        if (used >= R) break;
+        if (g(w) + sug[w.id] <= T) {
+          sug[w.id]++;
+          used++;
+        }
+      }
+      const rows = srt.slice().sort((a, b) => sug[b.id] - sug[a.id] || g(a) - g(b) || load(a.id) - load(b.id));
+      $("#whoList", sh).innerHTML = `<div class="tablewrap"><table class="dtab"><thead><tr><th>Stitcher</th><th>Got</th><th>Made</th><th>In hand</th><th>Give</th></tr></thead><tbody>${rows.map((w) => `<tr><td><b>${esc(w.name)}</b>${R ? `<div style="margin-top:4px"><button type="button" class="btn ${sug[w.id] ? "accent" : "alt"} sm" data-wgo="${w.id}">Allocate</button></div>` : ""}</td><td>${g(w)}</td><td>${made[w.id] || 0}</td><td>${load(w.id)}</td><td><b>${sug[w.id] || "\u2014"}</b></td></tr>`).join("")}</tbody></table></div>
+      <div class="small muted">Got = pieces given from this lot \u00B7 Made = pieces submitted from this lot \u00B7 In hand = pieces with them now from all lots \u00B7 Give = suggested pieces to make it even.</div>`;
+    };
+    sh.addEventListener("click", (e) => {
+      const sc = e.target.closest("[data-wscope]");
+      if (sc) {
+        scope = sc.dataset.wscope;
+        draw();
+        return;
+      }
+      const b = e.target.closest("[data-wgo]");
+      if (b) {
+        closeSheet();
+        allocSheet(lid, null, "whole", b.dataset.wgo);
+      }
+    });
+    draw();
+  }
+  function allocSheet(lid, preset, presetMode, presetW) {
     const l = __spreadValues({ id: lid }, S.lots[lid]);
     const tr = toReceive(l, "stitching");
     const sts = activeWorkers().filter((w) => w.role === "Stitcher");
@@ -1094,7 +1158,7 @@ ${url}`;
     });
     const cols = [...new Set(all.map((k) => splitCK(k)[0]))];
     const sel = new Set(preset || []);
-    let mode = presetMode || "", picked = [], wholeTo = "";
+    let mode = presetMode || "", picked = [], wholeTo = presetW || "";
     const sh = sheet("Allocate from " + l.lotNo, `<div class="list">
     <div class="row spread"><span class="dname">${lotLabel(l)}</span><b>${tr.total} pcs not given</b></div>
     <div class="card list" style="gap:10px" ${preset ? "hidden" : ""}><b>1. Select colour and size for the sub-lot</b><div id="aSel"></div><div class="row spread"><span class="small muted" id="aSelSum">Nothing selected</span><button type="button" class="btn alt sm" data-clear="1">Clear</button></div></div>
@@ -4612,6 +4676,10 @@ ${url}`;
         aSel = { lid: null, keys: /* @__PURE__ */ new Set() };
         const el = $("#allocList");
         if (el) el.innerHTML = allocListHtml();
+        return;
+      }
+      if (d.awho) {
+        whoSheet(d.awho);
         return;
       }
       if (d.awhole || d.asplit) {
