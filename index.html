@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0410-2022";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0410-2026";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -1925,7 +1925,14 @@ ${url}`;
     });
     const by = {};
     keys.forEach((k) => (by[splitCK(k)[0]] = by[splitCK(k)[0]] || []).push(k));
+    const selfRecv = isThreadW(me());
+    const rcvrs = selfRecv ? [] : (() => {
+      const sm = activeWorkers().filter((w) => w.role === "Sub manager");
+      return sm.length ? sm : activeWorkers().filter(isThreadW);
+    })();
+    if (!selfRecv && !rcvrs.length) return toast("Add the sub manager in Team first.");
     const sh = sheet("Receive " + l.lotNo, `<form id="trForm" class="list" novalidate>
+    ${selfRecv ? "" : `<label class="f">Received by<select id="trW">${rcvrs.map((w) => `<option value="${w.id}">${esc(w.name)}</option>`).join("")}</select></label>`}
     <div class="hint">Count the pieces you collected from the checker. If a size is short, lower it. The rest stays in <b>To receive</b>.</div>
     <div class="card list" style="gap:12px">${Object.entries(by).map(([c, ks]) => `<div class="cblock"><b>${esc(c || "Pieces")}</b><div class="sizes">${ks.map((k) => {
       const id = "tr_" + safeId(k);
@@ -1969,7 +1976,8 @@ ${url}`;
       const btn = e.target.querySelector("[type=submit]");
       btn.disabled = true;
       try {
-        await S.db.doc("lots/" + lid).update({ flow: { [uid("f")]: { stage: "thread", w: me().id, sz: r.o, q: r.t, by: bnd.v.by2 || me().id, at: (/* @__PURE__ */ new Date()).toISOString(), st: "given", self: true, eid, short: wc.total - r.t } } });
+        const rw = selfRecv ? me().id : $("#trW", sh).value;
+        await S.db.doc("lots/" + lid).update({ flow: { [uid("f")]: Object.assign({ stage: "thread", w: rw, sz: r.o, q: r.t, by: bnd.v.by2 || me().id, at: (/* @__PURE__ */ new Date()).toISOString(), st: "given", self: true, eid, short: wc.total - r.t }, selfRecv ? {} : { giver: me().id }) } });
         closeSheet();
         toast(r.t + " pcs of " + l.lotNo + " received" + (wc.total - r.t ? " \xB7 " + (wc.total - r.t) + " still to receive" : ""));
       } catch (x) {
@@ -2060,13 +2068,13 @@ ${url}`;
     const tot = bs.reduce((a, b) => a + b.total, 0);
     const held = activeWorkers().filter(isThreadW).map((w) => threadListHtml(w.id, "held", true)).join("");
     const heldH = held ? `<div><h3 style="margin:8px 0 0">Received, not given to a thread cutter yet</h3><p class="small muted" style="margin:4px 0 0">The thread receiver has these bundles. Give each one to a thread cutter.</p></div>${held}` : "";
-    let h = `<div class="row spread"><h2>Give to thread cutter</h2><span class="small muted">${bs.length} bundle${bs.length === 1 ? "" : "s"} \xB7 ${tot} pcs</span></div><p class="small muted" style="margin:0">Bundles the checker passed and nobody has received yet.</p>`;
+    let h = `<div class="row spread"><h2>Give to thread cutter</h2><span class="small muted">${bs.length} bundle${bs.length === 1 ? "" : "s"} \xB7 ${tot} pcs</span></div><p class="small muted" style="margin:0">Bundles the checker passed and nobody has received yet. Tap Receive once the sub manager has collected them.</p>`;
     if (!bs.length) return h + `<div class="empty"><h3>Nothing to give</h3>Bundles show here as soon as the checker passes them.</div>` + heldH;
     return h + bs.map((b) => {
       const st = W(b.v.w), ck = W(b.v.by2);
       return `<div class="card list" style="gap:8px"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(b.lot.design, szCols(b.left))}<div style="min-width:0;flex:1"><span class="lotno" style="font-size:1.2rem">${esc(b.lot.lotNo)}</span> ${bunTitle(b.lot, b.left)}</div><div><div class="left">${b.total}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
       <ul class="tl small" style="margin:0"><li>Stitcher: <b>${st ? esc(st.name) : "\u2014"}</b></li>${chkBullets(b.v)}</ul>
-      <button class="btn accent" data-hobun="${b.lot.id}|${b.eid}" style="align-self:flex-start">Give to thread cutter</button></div>`;
+      <button class="btn accent" data-trecv="${b.lot.id}|${b.eid}" style="align-self:flex-start">Receive</button></div>`;
     }).join("") + heldH;
   }
   function handoverListHtml() {
