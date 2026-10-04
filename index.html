@@ -1467,7 +1467,7 @@ ${url}`;
           if (!v || v.st !== "pending" && v.st !== "received") continue;
           out.push({ lot: l, cells: nz(v.sz), total: +v.q || 0, who: v.w, when: v.at || v.date, chip: v.st === "pending" ? ["pending", "With lot receiver"] : [v.chkStart ? "pending" : "pending", v.chkStart ? "Checking" : "With checker"], bullets: [["Stitcher", nm(v.w)], ["Submitted", fmtDT(v.at || v.date)], v.rby ? ["Received by", nm(v.rby) + " \xB7 " + fmtDT(v.rat)] : null, v.chkStart ? ["Check started", nm(v.chkBy) + " \xB7 " + fmtDT(v.chkStart)] : null] });
         }
-        for (const b of bundlesToReceive(l)) out.push({ lot: l, cells: b.left, total: b.total, who: b.v.w, when: b.v.at2, chip: ["approved", "Checked \xB7 Yet To Receive"], bullets: [["Stitcher", nm(b.v.w)], ["Checker", nm(b.v.by2) + (b.v.at2 ? " \xB7 " + fmtDT(b.v.at2) : "")]] });
+        for (const b of bundlesToReceive(l)) out.push({ lot: l, cells: b.left, total: b.total, who: b.v.w, when: b.v.at2, chip: ["approved", "Checked & Yet To Receive"], bullets: [["Stitcher", nm(b.v.w)], ["Checker", nm(b.v.by2) + (b.v.at2 ? " \xB7 " + fmtDT(b.v.at2) : "")]] });
       } else if (k === "th") {
         for (const w of activeWorkers().filter(isThreadW)) for (const b of threadBundles(l, w.id)) {
           const src = b.v.eid && prog[b.v.eid];
