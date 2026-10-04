@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0410-1530";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0410-1530b";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -924,10 +924,9 @@ ${url}`;
       const by = W(a.by);
       const isAlt = a.touched > 0;
       return `<div class="card list" style="gap:8px">
-    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> <span class="dname">${esc(l.design)}</span><div class="small muted ell">${isAlt ? "" : "given " + fmtDT(a.at || a.date) + (by ? " by " + esc(by.name) : "")}</div></div>
+    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> ${bunTitle(l, a.left)}<div class="small muted ell">${isAlt ? "" : "given " + fmtDT(a.at || a.date) + (by ? " by " + esc(by.name) : "")}</div></div>
     <div><div class="left">${a.total}</div><div class="small muted" style="text-align:right;white-space:nowrap">to make</div></div></div>
     ${isAlt ? `<div class="small"><span class="chip pending">Alter / short pieces</span> sent back to you from this lot</div>` : ""}
-    ${openRows(a.left)}
     ${l.rates && l.rates.stitching != null ? `<div class="small muted">Stitching rate ${inr(l.rates.stitching)}/pc</div>` : ""}
     <button class="btn accent" data-submitalloc="${l.id}|${a.rid}" style="align-self:flex-start">Completed \u2013 ready to submit ${a.total} pcs</button>
   </div>`;
