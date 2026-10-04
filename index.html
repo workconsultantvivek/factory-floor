@@ -519,13 +519,35 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     for (const [k, q] of Object.entries(lotCells(lot))) if (splitCK(k)[0] === c) t += +q || 0;
     return t;
   }
-  function fmtCells(sz) {
+  function fmtCells(sz, design) {
+    if (design) return skuList(sz, design);
     const by = {};
     for (const [k, n] of Object.entries(nz(sz))) {
       const [c, z] = splitCK(k);
       (by[c] = by[c] || []).push([z, n]);
     }
     return Object.entries(by).map(([c, a]) => (c ? esc(c) + ": " : "") + sortSizes(a.map((x) => x[0])).map((z) => esc(z) + " " + a.find((x) => x[0] === z)[1]).join(", ")).join(" \xB7 ");
+  }
+  function skuOf(design, c, z) {
+    return [design, c, z].filter(Boolean).join("_");
+  }
+  function skuKeysSorted(ks) {
+    const cols = [...new Set(ks.map((k) => splitCK(k)[0]))];
+    const out = [];
+    for (const c of cols) {
+      const byZ = {};
+      ks.filter((k) => splitCK(k)[0] === c).forEach((k) => (byZ[splitCK(k)[1]] = k));
+      sortSizes(Object.keys(byZ)).forEach((z) => out.push(byZ[z]));
+    }
+    return out;
+  }
+  function skuList(sz, design) {
+    const o = nz(sz);
+    return skuKeysSorted(Object.keys(o)).map((k) => esc(skuOf(design, ...splitCK(k))) + " " + o[k]).join(", ");
+  }
+  function skuTitle(design, sz, cls) {
+    const o = nz(sz);
+    return skuKeysSorted(Object.keys(o)).map((k) => `<span class="${cls}">${esc(skuOf(design, ...splitCK(k)))}</span> <span class="muted" style="font-weight:600">${o[k]}</span>`).join(" \xB7 ");
   }
   function lotsSorted() {
     return Object.entries(S.lots).map(([id, l]) => __spreadValues({ id }, l)).filter((l) => !l.deleted).sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")) || String(b.createdAt || "").localeCompare(String(a.createdAt || "")));
@@ -840,7 +862,7 @@ ${url}`;
     return `<div class="card entry">
     <div style="min-width:0"><div class="row" style="gap:6px"><span class="lotno">${esc(lot.lotNo)}</span><span class="muted small ell">${lot.design ? lotLabel(lot) : ""}</span></div>
     <div class="small muted" style="margin-top:3px">${fmtDate(e.date)} \xB7 ${stageName(e.stage)}${e.rej ? ` \xB7 ${e.rej} alter` : ""}</div>
-    ${e.sz ? `<div class="small" style="margin-top:6px">${fmtCells(e.sz)}</div>` : ""}
+    ${e.sz ? `<div class="small" style="margin-top:6px">${fmtCells(e.sz, lot.design)}</div>` : ""}
     ${e.note ? `<div class="small" style="margin-top:4px">${esc(e.note)}</div>` : ""}</div>
     <div><div class="qty">${e.qty} <span class="small muted">pcs</span></div>${amt != null ? `<div class="small" style="text-align:right">${inr(amt)}</div>` : ""}<div style="text-align:right;margin-top:4px"><span class="chip ${e.status === "received" ? "pending" : e.status}">${e.status === "pending" ? "Pending \xB7 with receiver" : e.status === "received" ? "With checker" : e.status === "approved" ? "Checked" : "Sent back"}</span></div>${e.short ? `<div class="small warn" style="text-align:right;margin-top:4px">${e.short} short at receiving</div>` : ""}${e.alter ? `<div class="small warn" style="text-align:right;margin-top:4px">${e.alter} alter</div>` : ""}${e.reject ? `<div class="small" style="text-align:right;color:var(--bad)">${e.reject} rejected</div>` : ""}${e.checkNote ? `<div class="small" style="text-align:right">${esc(e.checkNote)}</div>` : ""}
     ${e.status === "pending" ? `<div style="text-align:right;margin-top:6px"><button class="btn alt sm" data-withdraw="${e.docId}|${e.eid}">Undo</button></div>` : ""}</div>
@@ -852,7 +874,7 @@ ${url}`;
   function subState(l, wid) {
     const e = stageEntries(l, "stitching").filter((v) => v.w === wid);
     const s = (st) => e.filter((v) => v.st === st).reduce((a, v) => a + (+v.q || 0), 0);
-    const c = (st) => fmtCells(nz(doneCells(e.filter((v) => v.st === st).map((v) => ({ sz: v.sz })))));
+    const c = (st) => fmtCells(nz(doneCells(e.filter((v) => v.st === st).map((v) => ({ sz: v.sz })))), l.design);
     return { pending: s("pending"), received: s("received"), ok: s("approved"), pendingC: c("pending"), receivedC: c("received"), okC: c("approved") };
   }
   function allocOpen(lot, wid) {
@@ -983,8 +1005,8 @@ ${url}`;
       ${s.st === "approved" ? `<div style="text-align:right"><div class="left">${s.q}</div><div class="small muted">passed</div></div>` : ""}</div>
       ${allBack ? `<div class="small"><span class="chip rejected">${backOf(s) === "checker" ? "All alter" : "Not received by lot receiver"}</span> ${s.q} pcs ${backOf(s) === "checker" ? "to redo" : "still with you"}</div>` : ""}
       ${+s.short ? `<div class="small"><span class="chip pending">Short ${s.short}</span> not handed over at receiving</div>` : ""}
-      ${+s.alt && !allBack ? `<div class="list" style="gap:4px"><span class="small"><span class="chip pending">Alter ${s.alt}</span> fix and submit again</span>${s.altSz ? `<div class="small muted">${fmtCells(nz(s.altSz))}</div>` : ""}</div>` : ""}
-      ${+s.rej ? `<div class="list" style="gap:4px"><span class="small"><span class="chip rejected">Rejected ${s.rej}</span> not paid</span>${s.rejSz ? `<div class="small muted">${fmtCells(nz(s.rejSz))}</div>` : ""}</div>` : ""}
+      ${+s.alt && !allBack ? `<div class="list" style="gap:4px"><span class="small"><span class="chip pending">Alter ${s.alt}</span> fix and submit again</span>${s.altSz ? `<div class="small muted">${fmtCells(nz(s.altSz), l.design)}</div>` : ""}</div>` : ""}
+      ${+s.rej ? `<div class="list" style="gap:4px"><span class="small"><span class="chip rejected">Rejected ${s.rej}</span> not paid</span>${s.rejSz ? `<div class="small muted">${fmtCells(nz(s.rejSz), l.design)}</div>` : ""}</div>` : ""}
       ${s.chkNote || s.rNote ? `<div class="small">Note: ${esc(s.chkNote || s.rNote)}</div>` : ""}
       ${(() => {
         const ac = altCells(s);
@@ -1040,7 +1062,7 @@ ${url}`;
       <div class="crows">${rows}</div>
       ${t.st || t.qc || t.wh ? `<div class="row small" style="gap:6px"><span class="chip line">Not allocated ${t.na}</span>${t.st ? `<span class="chip line ph-st">With stitcher ${t.st}</span>` : ""}${t.qc ? `<span class="chip line ph-qc">Checking \u2192 ironing ${t.qc}</span>` : ""}${t.wh ? `<span class="chip line ph-wh">Warehouse ${t.wh}</span>` : ""}</div>` : ""}
       ${Object.keys(hd).length ? `<div class="small muted">Already given: ${Object.entries(hd).map(([w, q2]) => esc((W(w) || { name: "?" }).name) + " " + q2).join(" \xB7 ")}</div>` : ""}
-      ${mine && selN ? `<div class="subbar"><span><b>Sub-lot ${selN} pcs</b><span class="small muted" style="display:block">${esc(fmtCellsPlain([...aSel.keys]))}</span></span><span class="row" style="gap:8px"><button type="button" class="btn accent" data-awhole="${l.id}">Allocate whole</button><button type="button" class="btn" data-asplit="${l.id}">Split</button><button type="button" class="btn alt sm" data-aclear="1">Clear</button></span></div>` : `<div class="small muted">Tap sizes (or a colour name) to make a sub-lot.</div>`}
+      ${mine && selN ? `<div class="subbar"><span><b>Sub-lot ${selN} pcs</b><span class="small muted" style="display:block">${esc(fmtCellsPlain([...aSel.keys], l.design))}</span></span><span class="row" style="gap:8px"><button type="button" class="btn accent" data-awhole="${l.id}">Allocate whole</button><button type="button" class="btn" data-asplit="${l.id}">Split</button><button type="button" class="btn alt sm" data-aclear="1">Clear</button></span></div>` : `<div class="small muted">Tap sizes (or a colour name) to make a sub-lot.</div>`}
     </div>`;
     }).join("");
   }
@@ -1075,7 +1097,7 @@ ${url}`;
         return `<div class="cblock"><div class="row spread"><b>${esc(c || "Pieces")}</b><button type="button" class="btn alt sm" data-selcol="${esc(c)}">${allOn ? "Clear " + esc(c) : "All " + esc(c)}</button></div><div class="colchips">${ks.map((k) => `<button type="button" class="colchip ${sel.has(k) ? "on" : ""}" data-selk="${esc(k)}">${sel.has(k) ? "\u2713 " : ""}${esc(splitCK(k)[1])} \xB7 ${tr.left[k]}</button>`).join("")}</div></div>`;
       }).join("");
       const n = selTotal();
-      $("#aSelSum", sh).textContent = n ? `Sub-lot: ${n} pcs \xB7 ${fmtCellsPlain([...sel])}` : "Nothing selected";
+      $("#aSelSum", sh).textContent = n ? `Sub-lot: ${n} pcs \xB7 ${fmtCellsPlain([...sel], l.design)}` : "Nothing selected";
       drawStep2();
     };
     const stOpt = () => sts.map((w) => `<option value="${w.id}" ${wholeTo === w.id ? "selected" : ""}>${esc(w.name)} \xB7 ${load(w.id)} in hand</option>`).join("");
@@ -1245,7 +1267,7 @@ ${url}`;
           for (const k of keys()) {
             if ((now.left[k] || 0) < tr.left[k]) {
               const [c, z] = splitCK(k);
-              return err(`${c} ${z}: someone just allocated some of these pieces. Close and open again.`);
+              return err(`${skuOf(cur.design, c, z)}: someone just allocated some of these pieces. Close and open again.`);
             }
             sz[k] = tr.left[k];
           }
@@ -1258,7 +1280,7 @@ ${url}`;
           for (const sz of Object.values(per)) for (const [k, n] of Object.entries(sz)) used[k] = (used[k] || 0) + n;
           for (const [k, u] of Object.entries(used)) if (u > (now.left[k] || 0)) {
             const [c, z] = splitCK(k);
-            return err(`${c} ${z}: only ${now.left[k] || 0} pcs left. Someone may have just allocated some.`);
+            return err(`${skuOf(cur.design, c, z)}: only ${now.left[k] || 0} pcs left. Someone may have just allocated some.`);
           }
           Object.assign(give, per);
           if (!Object.keys(give).length) return err("Enter pieces for each stitcher, or tap Split equally.");
@@ -1287,7 +1309,8 @@ ${url}`;
     });
     drawSel();
   }
-  function fmtCellsPlain(ks) {
+  function fmtCellsPlain(ks, design) {
+    if (design) return skuKeysSorted(ks).map((k) => skuOf(design, ...splitCK(k))).join(", ");
     const by = {};
     ks.forEach((k) => {
       const [c, z] = splitCK(k);
@@ -1309,7 +1332,7 @@ ${url}`;
       return `<section class="card list" style="gap:8px"><div class="row spread"><h3>${esc(w.name)}</h3><span class="small muted">${inHand} to finish${waiting ? " \xB7 " + waiting + " not received" : ""}</span></div>
     ${rs.sort((a, b) => String(b.at).localeCompare(String(a.at))).slice(0, 12).map((r) => {
         const o = myOpen(r.lot, "stitching", wid);
-        return `<div class="erow"><span style="min-width:0"><b class="lotno">${esc(r.lot.lotNo)}</b> <span class="dname">${lotLabel(r.lot)}</span><span class="small muted" style="display:block">${fmtDT(r.at || r.date)} \xB7 ${fmtCells(r.sz)}</span></span><span class="row" style="gap:6px"><b>${r.q}</b>${o.total ? '<span class="chip line">In work</span>' : '<span class="chip approved">Submitted</span>'}${!stageEntries(r.lot, "stitching").some((v) => v.w === wid) ? `<button class="btn alt sm" data-cancelalloc="${r.lot.id}|${r.rid}">Cancel</button>` : ""}<button class="btn alt sm" data-editalloc="${r.lot.id}|${r.rid}">Edit pcs</button><button class="btn alt sm" data-editsize="${r.lot.id}|${wid}">Edit size</button></span></div>`;
+        return `<div class="erow"><span style="min-width:0"><b class="lotno">${esc(r.lot.lotNo)}</b> <span class="dname">${lotLabel(r.lot)}</span><span class="small muted" style="display:block">${fmtDT(r.at || r.date)} \xB7 ${fmtCells(r.sz, r.lot.design)}</span></span><span class="row" style="gap:6px"><b>${r.q}</b>${o.total ? '<span class="chip line">In work</span>' : '<span class="chip approved">Submitted</span>'}${!stageEntries(r.lot, "stitching").some((v) => v.w === wid) ? `<button class="btn alt sm" data-cancelalloc="${r.lot.id}|${r.rid}">Cancel</button>` : ""}<button class="btn alt sm" data-editalloc="${r.lot.id}|${r.rid}">Edit pcs</button><button class="btn alt sm" data-editsize="${r.lot.id}|${wid}">Edit size</button></span></div>`;
       }).join("")}</section>`;
     }).join("");
   }
@@ -1447,7 +1470,7 @@ ${url}`;
     const list = submissions(["received", "approved", "rejected"]).filter((s) => s.rat).sort((a, b) => String(b.rat).localeCompare(String(a.rat))).slice(0, 40);
     let h = `<div><h2>Received</h2><p class="small muted" style="margin:4px 0 0">Work you received and where it is now.</p></div>`;
     if (!list.length) return h + `<div class="empty">Nothing received yet.</div>`;
-    return h + `<div class="list">${list.map((s) => `<div class="card"><div class="row spread"><span><b>${esc((W(s.w) || { name: "?" }).name)}</b> \xB7 <span class="lotno">${esc(s.lot.lotNo)}</span> <span class="small muted">${fmtDate(String(s.rat).slice(0, 10))}</span></span><span class="row" style="gap:6px"><b>${s.rq != null ? s.rq : s.q}</b><span class="chip ${s.st === "received" ? "pending" : s.st}">${s.st === "received" ? "With checker" : s.st === "approved" ? "Checked" : "Sent back"}</span></span></div>${s.short ? `<div class="small warn">${s.short} pcs short when received</div>` : ""}<div class="small muted">${fmtCells(s.sz)}</div></div>`).join("")}</div>`;
+    return h + `<div class="list">${list.map((s) => `<div class="card"><div class="row spread"><span><b>${esc((W(s.w) || { name: "?" }).name)}</b> \xB7 <span class="lotno">${esc(s.lot.lotNo)}</span> <span class="small muted">${fmtDate(String(s.rat).slice(0, 10))}</span></span><span class="row" style="gap:6px"><b>${s.rq != null ? s.rq : s.q}</b><span class="chip ${s.st === "received" ? "pending" : s.st}">${s.st === "received" ? "With checker" : s.st === "approved" ? "Checked" : "Sent back"}</span></span></div>${s.short ? `<div class="small warn">${s.short} pcs short when received</div>` : ""}<div class="small muted">${fmtCells(s.sz, s.lot.design)}</div></div>`).join("")}</div>`;
   }
   function inboxView() {
     const list = submissions("received").sort((a, b) => String(a.rat).localeCompare(String(b.rat)));
@@ -1465,7 +1488,7 @@ ${url}`;
       const alt = ap ? +s.alt || 0 : +s.alt || +s.q || 0, rej = ap ? +s.rej || 0 : 0, pass = ap ? +s.q || 0 : 0;
       const tot = pass + alt + rej;
       return `<span class="cksum"><span>Total <b>${tot}</b></span><span class="ok">Passed <b>${pass}</b></span><span class="warn">Alter <b>${alt}</b></span>${rej ? `<span style="color:var(--bad)">Reject <b>${rej}</b></span>` : ""}</span>`;
-    })()}</div><div class="small muted">${fmtCells(s.sz)}${s.by2 ? " \xB7 by " + esc((W(s.by2) || { name: s.by2 === "owner" ? "Owner" : "?" }).name) : ""}</div>${s.st === "approved" || s.st === "rejected" ? canEditCheck(s.lot, s) ? `<button class="btn alt sm" data-editchk="${s.lot.id}|${s.eid}" style="margin-top:8px">Edit check</button>` : `<div class="small muted" style="margin-top:6px">${s.wh ? "Already in warehouse" : s.altRecv ? "Stitcher already submitted the alter pieces again" : "Already handed over"} \xB7 can't edit</div>` : ""}</div>`).join("")}</div>`;
+    })()}</div><div class="small muted">${fmtCells(s.sz, s.lot.design)}${s.by2 ? " \xB7 by " + esc((W(s.by2) || { name: s.by2 === "owner" ? "Owner" : "?" }).name) : ""}</div>${s.st === "approved" || s.st === "rejected" ? canEditCheck(s.lot, s) ? `<button class="btn alt sm" data-editchk="${s.lot.id}|${s.eid}" style="margin-top:8px">Edit check</button>` : `<div class="small muted" style="margin-top:6px">${s.wh ? "Already in warehouse" : s.altRecv ? "Stitcher already submitted the alter pieces again" : "Already handed over"} \xB7 can't edit</div>` : ""}</div>`).join("")}</div>`;
   }
   function canEditCheck(l, v) {
     if (v.wh) return false;
@@ -1677,12 +1700,7 @@ ${url}`;
     return `<li>Checking started: <b>${v.chkStart ? esc(nm(v.chkBy || v.by2)) : "\u2014"}</b>${v.chkStart ? ` (${fmtDT(v.chkStart)})` : ""}</li><li>Checking finished: <b>${esc(nm(v.by2))}</b>${v.at2 ? ` (${fmtDT(v.at2)})` : ""}</li><li>Checking time: <b>${v.chkStart && v.at2 ? dur(v.chkStart, v.at2) : "\u2014"}</b></li>`;
   }
   function bunTitle(l, cells) {
-    const by = {};
-    for (const [k, n] of Object.entries(nz(cells))) {
-      const [c, z] = splitCK(k);
-      (by[c] = by[c] || {})[z] = n;
-    }
-    return Object.entries(by).map(([c, zs]) => `<span class="dname">${esc(l.design)}${c ? "_" + esc(c) : ""}</span> <span class="muted" style="font-weight:600">${sortSizes(Object.keys(zs)).map((z) => esc(z) + " " + zs[z]).join(", ")}</span>`).join(" \xB7 ");
+    return skuTitle(l.design, cells, "dname");
   }
   function bundlesToReceive(l) {
     const ents = Object.entries((l.prog || {}).stitching || {}).filter(([, v]) => v && v.st === "approved" && !v.wh).sort((a, b) => String(a[1].at2 || a[1].at || "").localeCompare(String(b[1].at2 || b[1].at || "")));
@@ -2099,7 +2117,7 @@ ${url}`;
     const monthPcs = items.filter((v) => String(v.at).slice(0, 7) === cur).reduce((a, v) => a + (+v.q || 0), 0);
     let h = `<div class="row spread"><h2>Completed</h2><span class="small muted">${monthPcs} pcs this month</span></div>`;
     if (!items.length) return h + `<div class="empty">Nothing handed over to ironing yet.</div>`;
-    return h + items.slice(0, 40).map((v) => `<div class="card"><div class="row spread"><span><span class="lotno">${esc(v.lot.lotNo)}</span> <span class="muted">${esc(v.lot.design)}</span> <span class="small muted">${fmtDate(String(v.at).slice(0, 10))} \u2192 ${esc((W(v.w) || { name: "?" }).name)}</span></span><b>${v.q}</b></div><div class="small muted">${fmtCells(v.sz)}</div></div>`).join("");
+    return h + items.slice(0, 40).map((v) => `<div class="card"><div class="row spread"><span><span class="lotno">${esc(v.lot.lotNo)}</span> <span class="muted">${esc(v.lot.design)}</span> <span class="small muted">${fmtDate(String(v.at).slice(0, 10))} \u2192 ${esc((W(v.w) || { name: "?" }).name)}</span></span><b>${v.q}</b></div><div class="small muted">${fmtCells(v.sz, v.lot.design)}</div></div>`).join("");
   }
   function flowDoneView(stage) {
     const m = me();
@@ -2143,7 +2161,7 @@ ${url}`;
         return r != null && g ? " \xB7 <b>" + inr(g * r) + "</b>" : "";
       })()}</span></span><b>${v.q} pcs</b></div>
       <div class="row" style="gap:6px">${status}</div>
-      ${missing && Object.keys(missing).length ? `<div class="small" style="color:var(--bad)">Not received: ${fmtCells(missing)}</div>` : ""}
+      ${missing && Object.keys(missing).length ? `<div class="small" style="color:var(--bad)">Not received: ${fmtCells(missing, v.lot.design)}</div>` : ""}
       ${wh ? `<div class="small muted">Counted ${fmtDate(String(wh.at).slice(0, 10))}${W(wh.by) ? " by " + esc(W(wh.by).name) : ""}${wh.note ? " \xB7 " + esc(wh.note) : ""}</div>` : ""}</div>`;
     }).join("");
   }
@@ -2251,7 +2269,7 @@ ${url}`;
     let h = `<div class="row spread"><h2>Received in Warehouse</h2><span class="small muted">${total} pcs received</span></div>`;
     if (!total) return h + `<div class="empty"><h3>No stock received yet</h3>Pieces appear here once they are received in the warehouse.</div>`;
     h += `<input class="search" type="search" id="stockQ" placeholder="Search design or colour" value="${esc(stockQ)}" autocomplete="off"><div class="list" id="stockList">${stockListHtml(agg)}</div>`;
-    h += `<section class="list"><h3>Latest received</h3>${recent.slice(0, 15).map((r) => `<div class="card"><div class="row spread"><span><span class="lotno">${esc(r.lot.lotNo)}</span> <span class="dname">${esc(r.lot.design)}</span> <span class="small muted">${fmtDate(String(r.wh.at).slice(0, 10))}${W(r.wh.by) ? " \xB7 " + esc(W(r.wh.by).name) : ""}</span></span><b>${r.wh.q}</b></div><div class="small muted">${fmtCells(nz(r.wh.sz))}</div>${r.wh.short ? `<div class="small warn">${r.wh.short} short</div>` : ""}</div>`).join("")}</section>`;
+    h += `<section class="list"><h3>Latest received</h3>${recent.slice(0, 15).map((r) => `<div class="card"><div class="row spread"><span><span class="lotno">${esc(r.lot.lotNo)}</span> <span class="dname">${esc(r.lot.design)}</span> <span class="small muted">${fmtDate(String(r.wh.at).slice(0, 10))}${W(r.wh.by) ? " \xB7 " + esc(W(r.wh.by).name) : ""}</span></span><b>${r.wh.q}</b></div><div class="small muted">${fmtCells(nz(r.wh.sz), r.lot.design)}</div>${r.wh.short ? `<div class="small warn">${r.wh.short} short</div>` : ""}</div>`).join("")}</section>`;
     return h;
   }
   const UW_URL = "https://vivekshingala707.app.n8n.cloud/webhook/factory-uniware-push-9f0c42", UW_KEY = "9f0c423ae2fd359b84ea99ad";
@@ -3144,7 +3162,7 @@ ${url}`;
     const nm = (w) => (W(w) || { name: "?" }).name;
     const sh = sheet("Edit bundle \xB7 " + l.lotNo, `<form id="eaForm" class="list" novalidate>
     <div class="hint">Fix who got the bundle or how many pieces were given. Work already submitted from this bundle moves with it. Wrong size? Use <b>Change size</b> below.</div>
-    <label class="f">Bundle<select id="eaR">${allocs.map((a) => `<option value="${a.rid}" ${a.rid === rid0 ? "selected" : ""}>${esc(nm(a.w))} \xB7 ${fmtDT(a.at || a.date)} \xB7 ${fmtCells(a.sz)}</option>`).join("")}</select></label>
+    <label class="f">Bundle<select id="eaR">${allocs.map((a) => `<option value="${a.rid}" ${a.rid === rid0 ? "selected" : ""}>${esc(nm(a.w))} \xB7 ${fmtDT(a.at || a.date)} \xB7 ${fmtCells(a.sz, l.design)}</option>`).join("")}</select></label>
     <label class="f">Stitcher (who actually got this bundle)<select id="eaW"></select></label>
     <div class="card list" style="gap:12px" id="eaBox"></div>
     <label class="row small" id="eaCutWrap" style="gap:8px;display:none;flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="eaCut" checked> <span id="eaCutTxt"></span></label>
@@ -3562,14 +3580,7 @@ ${url}`;
     h += `<div class="tablewrap"><table class="dtab"><thead><tr><th>Stitcher</th><th>Submitted</th><th>Received</th><th>Pay</th></tr></thead><tbody>
     ${rows.map((r) => `<tr><td><b>${esc(r.name)}</b><div class="small muted">${[`<button type="button" class="linkbtn" data-dashw="${r.w}">${Object.keys(r.items).length} bundle${Object.keys(r.items).length === 1 ? "" : "s"} ${dashOpen.has(r.w) ? "\u25B4" : "\u25BE"}</button>`, r.alt ? `<span class="warn">${r.alt} alter (${pct(r.alt, r.got)})</span>` : "", r.rej ? `<span style="color:var(--bad)">${r.rej} rej (${pct(r.rej, r.got)})</span>` : ""].filter(Boolean).join(" \xB7 ")}</div></td><td><b>${r.sub}</b></td><td>${r.got}</td><td><b>${inr(r.pay)}</b>${r.norate ? '<div class="small warn">rate missing</div>' : ""}</td></tr>${dashOpen.has(r.w) ? `<tr class="dsub"><td colspan="4">${Object.values(r.items).sort((a, b) => b.last.localeCompare(a.last)).map((it) => {
       const stt = it.st.pending ? `<span class="chip pending">${it.st.pending} with receiver</span>` : "";
-      return `<div class="dbun"><div class="row spread" style="flex-wrap:nowrap;gap:8px"><span style="min-width:0"><span class="lotno">${esc(it.lot.lotNo)}</span> ${(() => {
-        const by = {};
-        for (const [k, n] of Object.entries(nz(it.sz))) {
-          const [c, z] = splitCK(k);
-          (by[c] = by[c] || {})[z] = n;
-        }
-        return Object.entries(by).map(([c, zs]) => `<b>${esc(it.lot.design)}${c ? "_" + esc(c) : ""}</b> <span class="muted">${sortSizes(Object.keys(zs)).map((z) => esc(z) + " " + zs[z]).join(", ")}</span>`).join(" \xB7 ");
-      })()}${(() => {
+      return `<div class="dbun"><div class="row spread" style="flex-wrap:nowrap;gap:8px"><span style="min-width:0"><span class="lotno">${esc(it.lot.lotNo)}</span> ${skuTitle(it.lot.design, it.sz, "dname")}${(() => {
         const a = it.rid && ((it.lot.recv || {}).stitching || {})[it.rid];
         const al = a ? a.at || a.date : allocFor(it.lot, { sz: it.sz }, it.w);
         return `<ul class="tl small" style="margin:4px 0 0"><li>Allocated: <b>${al ? fmtDT(al) : "\u2014"}</b></li><li>Submitted: <b>${fmtDT(it.first)}</b></li><li>Time taken: <b>${al ? dur(al, it.first) : "\u2014"}</b></li></ul>`;
@@ -3644,7 +3655,7 @@ ${url}`;
       const lastE = g.subs[g.subs.length - 1].e;
       const alt = g.subs.reduce((a, x) => a + +((x.e.altSz || {})[g.k] || 0), 0), rej = g.subs.reduce((a, x) => a + +((x.e.rejSz || {})[g.k] || 0), 0);
       return `<div class="card list" style="gap:8px">
-      <div class="row spread" style="flex-wrap:nowrap;gap:8px"><b class="lotno" style="font-size:.9rem;min-width:0;overflow-wrap:break-word;letter-spacing:-.01em">${esc(lot.lotNo)}/${esc(lot.design || "")}/${esc(c)}/${esc(z)}</b><b style="white-space:nowrap;flex:none">\xD7 ${pcs}</b></div>
+      <div class="row spread" style="flex-wrap:nowrap;gap:8px"><b class="lotno" style="font-size:.9rem;min-width:0;overflow-wrap:break-word;letter-spacing:-.01em">${esc(lot.lotNo)} ${esc(skuOf(lot.design || "", c, z))}</b><b style="white-space:nowrap;flex:none">\xD7 ${pcs}</b></div>
       <ul class="tl"><li>Allocated: <b>${al ? fmtDT(al) : "\u2014"}</b></li><li>Submitted: <b>${fmtDT(first)}</b></li><li>Time taken: <b>${al ? dur(al, first) : "\u2014"}</b></li></ul>
       <div class="row spread"><span class="row" style="gap:6px">${stChip(lastE)}${alt ? `<span class="small warn">${alt} alter</span>` : ""}${rej ? `<span class="small" style="color:var(--bad)">${rej} rej</span>` : ""}</span><span class="row" style="gap:6px">${amt != null ? `<b>${inr(amt)}</b>` : ""}${lastE.status === "pending" ? `<button class="btn alt sm" data-withdraw="${lastE.docId}|${lastE.eid}">Undo</button>` : ""}</span></div>
     </div>`;
