@@ -3124,6 +3124,29 @@ ${url}`;
       else if (v.st === "rejected") r.alt += n || a;
       r.sub.push({ at: v.at || v.date, n: n + (v.st === "approved" ? a + j : 0), st: v.st, at2: v.at2, by2: v.by2 });
     }
+    const stg = {};
+    const addStg = (w, label, cls, n) => {
+      if (!w || !(n > 0)) return;
+      const a = stg[w] = stg[w] || [];
+      const e = a.find((x) => x[0] === label);
+      if (e) e[2] += n;
+      else a.push([label, cls, n]);
+    };
+    const prefix = { ck: "", th: "Thread cutting \xB7 ", ir: "Ironing \xB7 " };
+    for (const sk of ["ck", "th", "ir"]) for (const cd of stageCards(sk)) {
+      if (cd.lot.id !== lid) continue;
+      addStg(cd.who, prefix[sk] + cd.chip[1], sk === "ck" ? "ph-qc" : "ph-fin", +(cd.cells || {})[k] || 0);
+    }
+    const prog0 = (l.prog || {}).stitching || {};
+    for (const v of Object.values(l.flow || {})) {
+      if (!v || v.stage !== "ironing" || v.st === "cancelled" || v.st === "given") continue;
+      const from = v.from && (l.flow || {})[v.from];
+      const src = from && from.eid && prog0[from.eid];
+      if (!src) continue;
+      if (v.wh) addStg(src.w, "In warehouse", "ph-wh", +(v.wh.sz || {})[k] || 0);
+      else if (v.st === "done") addStg(src.w, "Sent to warehouse, not counted yet", "ph-wh", +(v.sz || {})[k] || 0);
+    }
+    for (const v of Object.values(prog0)) if (v && v.st === "approved" && v.wh) addStg(v.w, "In warehouse", "ph-wh", +(v.wh.sz || {})[k] || 0);
     const ws = Object.values(by).sort((a, b) => (b.pass + b.recv + b.pend) - (a.pass + a.recv + a.pend) || b.alloc - a.alloc);
     const stLbl = { pending: "submitted", received: "counted", approved: "checked", rejected: "sent back" };
     const cards = ws.map((r) => {
@@ -3132,7 +3155,15 @@ ${url}`;
       const bits = [r.pass ? `<span class="chip approved">Passed ${r.pass}</span>` : "", r.recv ? `<span class="chip pending">Counted, to check ${r.recv}</span>` : "", r.pend ? `<span class="chip pending">Submitted ${r.pend}</span>` : "", r.alt ? `<span class="chip pending">Alter ${r.alt}</span>` : "", r.rej ? `<span class="chip rejected">Rejected ${r.rej}</span>` : "", open ? `<span class="chip line">Still stitching ${open}</span>` : ""].filter(Boolean).join("");
       const allocs = r.allocAt.sort((a, b) => String(a[0] || "").localeCompare(String(b[0] || ""))).map(([at, n, b]) => `<li>Allocated <b>${n}</b> \xB7 ${fmtDT(at)}${b ? " by " + esc(nm(b)) : ""}</li>`).join("");
       const subs = r.sub.sort((a, b) => String(a.at || "").localeCompare(String(b.at || ""))).map((x) => `<li>Submitted <b>${x.n}</b> \xB7 ${fmtDT(x.at)} \xB7 ${stLbl[x.st] || x.st}${x.at2 ? " " + fmtDT(x.at2) + (x.by2 ? " by " + esc(nm(x.by2)) : "") : ""}</li>`).join("");
-      return `<div class="card list" style="gap:6px;padding:10px"><div class="wrow"><b>${esc(nm(r.w))}</b><span><b>${made}</b><span class="small muted"> of ${r.alloc} made</span></span></div><div class="row" style="gap:5px;flex-wrap:wrap">${bits}</div><ul class="tl small" style="margin:0">${allocs}${subs}</ul></div>`;
+      const st = (stg[r.w] || []).slice();
+      if (open) st.unshift(["Still with stitcher", "ph-st", open]);
+      if (r.alt) st.push(["Alter, back to stitcher", "ph-st", r.alt]);
+      if (r.rej) st.push(["Rejected", "ph-bad", r.rej]);
+      const traced = st.reduce((a, x) => a + x[2], 0);
+      const gap = made + open - traced;
+      if (gap > 0) st.push(["Passed \xB7 stage not traced", "line", gap]);
+      const now = st.length ? `<div class="list" style="gap:4px;background:var(--surface);border-radius:10px;padding:8px"><b class="small">Now at</b>${st.map(([lb, cls, n]) => `<div class="wrow"><span class="chip ${cls}">${esc(lb)}</span><b>${n}</b></div>`).join("")}</div>` : "";
+      return `<div class="card list" style="gap:6px;padding:10px"><div class="wrow"><b>${esc(nm(r.w))}</b><span><b>${made}</b><span class="small muted"> of ${r.alloc} made</span></span></div><div class="row" style="gap:5px;flex-wrap:wrap">${bits}</div>${now}<ul class="tl small" style="margin:0">${allocs}${subs}</ul></div>`;
     }).join("");
     const wr = lotWhere(l);
     const now = WGRP.map(([g, n, cls]) => {
