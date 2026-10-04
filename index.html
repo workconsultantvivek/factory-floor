@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0410-1530b";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0410-1545";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -3813,11 +3813,34 @@ ${url}`;
     }).join("")}</div>`;
     return h;
   }
+  let teamQ = "", mnoMigrated = false;
+  function wBase(n) {
+    return String(n || "").replace(/\s*\(\d+\)\s*$/, "").trim();
+  }
+  function wMno(w) {
+    if (!w) return "";
+    if (w.mno) return String(w.mno);
+    const m = String(w.name || "").match(/\((\d+)\)\s*$/);
+    return m ? m[1] : "";
+  }
+  function teamListHtml() {
+    let ws = workers().sort((a, b) => (a.active === false) - (b.active === false) || ROLES.indexOf(a.role) - ROLES.indexOf(b.role));
+    const q = teamQ.trim().toLowerCase();
+    if (q) ws = ws.filter((w) => q.split(/\s+/).filter(Boolean).every((t) => /^\d{1,3}$/.test(t) ? +wMno(w) === +t || String(w.phone || "").includes(t) : [w.name, w.role, w.phone, w.active === false ? "inactive" : "active"].join(" ").toLowerCase().includes(t)));
+    if (!ws.length) return `<div class="empty">No one matches.</div>`;
+    return `<div class="tablewrap"><table><thead><tr><th>Name</th><th></th></tr></thead><tbody>${ws.map((w) => `<tr style="${w.active === false ? "opacity:.5" : ""}"><td><b>${esc(w.name)}</b>${w.active === false ? ' <span class="chip">Inactive</span>' : ""}<div class="small muted">${esc(w.role)}${wMno(w) ? " \xB7 Machine " + esc(wMno(w)) : ""}${w.pin ? "" : ' \xB7 <span class="muted">PIN not set yet</span>'}</div></td><td style="white-space:nowrap;text-align:right">${w.active === false ? "" : `<button class="btn alt sm" data-openas="${w.id}">Open</button> `}${S.live ? `<button class="btn accent sm" data-wlink="${w.id}">Link</button> ` : ""}<button class="btn alt sm" data-editw="${w.id}">Edit</button></td></tr>`).join("")}</tbody></table></div>`;
+  }
   function teamView() {
-    const ws = workers().sort((a, b) => (a.active === false) - (b.active === false) || ROLES.indexOf(a.role) - ROLES.indexOf(b.role));
+    const ws = workers();
+    if (!mnoMigrated && S.live && ws.length) {
+      mnoMigrated = true;
+      const patch = {};
+      for (const w of ws) if (!w.mno && wMno(w)) patch[w.id] = { mno: wMno(w) };
+      if (Object.keys(patch).length) S.db.doc("config/main").update({ workers: patch }).catch((x) => console.warn("mno", x));
+    }
     let h = `<div class="row spread"><h2>Team</h2><button class="btn accent" data-act="addWorker">+ Add person</button></div>`;
     if (!ws.length) return h + `<div class="empty"><h3>Add your team</h3>Add each cutting master, stitcher, thread cutter and ironing person with a PIN. They pick their name on the first screen.</div>`;
-    return h + `<div class="tablewrap"><table><thead><tr><th>Name</th><th></th></tr></thead><tbody>${ws.map((w) => `<tr style="${w.active === false ? "opacity:.5" : ""}"><td><b>${esc(w.name)}</b>${w.active === false ? ' <span class="chip">Inactive</span>' : ""}<div class="small muted">${esc(w.role)}${w.pin ? "" : ' \xB7 <span class="muted">PIN not set yet</span>'}</div></td><td style="white-space:nowrap;text-align:right">${w.active === false ? "" : `<button class="btn alt sm" data-openas="${w.id}">Open</button> `}${S.live ? `<button class="btn accent sm" data-wlink="${w.id}">Link</button> ` : ""}<button class="btn alt sm" data-editw="${w.id}">Edit</button></td></tr>`).join("")}</tbody></table></div>`;
+    return h + `<input class="search" type="search" id="teamQ" placeholder="Search name, role, machine no. or phone" value="${esc(teamQ)}" autocomplete="off"><div id="teamList">${teamListHtml()}</div>`;
   }
   function sheet(title, html, opts) {
     closeSheet();
@@ -4062,7 +4085,7 @@ ${url}`;
   function workerSheet(id) {
     const w = id ? W(id) : null;
     const sh = sheet(w ? "Edit " + w.name : "Add person", `<form id="wForm" class="list" novalidate>
-    <label class="f">Name<input id="pN" value="${esc(w ? w.name : "")}"></label>
+    <div class="grid2"><label class="f">Name<input id="pN" value="${esc(w ? wBase(w.name) : "")}"></label><label class="f">Machine no.<input id="pM" inputmode="numeric" maxlength="4" placeholder="e.g. 07" value="${esc(wMno(w))}"></label></div>
     <div class="grid2"><label class="f">Role<select id="pR">${ROLES.map((r) => `<option ${w && w.role === r ? "selected" : ""}>${r}</option>`).join("")}</select></label><label class="f">Phone<input id="pP" inputmode="tel" value="${esc(w ? w.phone || "" : "")}"></label></div>
     <label class="f">${w && w.pin ? "New PIN (leave blank to keep)" : "PIN (optional \u2013 leave blank and they set their own)"}<input id="pI" inputmode="numeric" maxlength="6" autocomplete="off"></label>
     ${w && w.pin ? `<label class="row small"><input type="checkbox" id="pClr"> Clear PIN \u2013 they will set a new one from their link</label>` : ""}
@@ -4075,12 +4098,16 @@ ${url}`;
       const err = (x) => {
         $("#wErr", sh).textContent = x;
       };
-      const name = $("#pN", sh).value.trim();
-      if (!name) return err("Enter a name.");
+      const base = wBase($("#pN", sh).value.trim());
+      if (!base) return err("Enter a name.");
+      const mno = $("#pM", sh).value.trim();
+      if (mno && !/^\d{1,4}$/.test(mno)) return err("Machine no. should be a number.");
+      if (mno && workers().some((x) => x.id !== id && x.active !== false && +wMno(x) === +mno)) return err("Machine " + mno + " is already given to " + workers().find((x) => x.id !== id && x.active !== false && +wMno(x) === +mno).name + ".");
+      const name = base + (mno ? " (" + mno + ")" : "");
       const pin = $("#pI", sh).value.trim();
       if (pin && !/^\d{4,6}$/.test(pin)) return err("PIN should be 4 to 6 digits.");
       const wid = id || uid("w");
-      const body = { name, role: $("#pR", sh).value, phone: $("#pP", sh).value.trim(), active: w ? $("#pA", sh).checked : true };
+      const body = { name, mno: mno || null, role: $("#pR", sh).value, phone: $("#pP", sh).value.trim(), active: w ? $("#pA", sh).checked : true };
       if (pin) body.pin = hashPin(wid, pin);
       else if (w && $("#pClr", sh) && $("#pClr", sh).checked) body.pin = null;
       try {
@@ -4205,6 +4232,12 @@ ${url}`;
       trecvQ = t.value;
       const el = $("#trecvList");
       if (el) el.innerHTML = threadRecvListHtml();
+      return;
+    }
+    if (t.id === "teamQ") {
+      teamQ = t.value;
+      const el = $("#teamList");
+      if (el) el.innerHTML = teamListHtml();
       return;
     }
     if (t.id === "allocQ") {
