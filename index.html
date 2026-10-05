@@ -1095,8 +1095,22 @@ ${url}`;
     const open = myOpen(l, "stitching", wid).total;
     return Math.min(alt, open);
   }
+  function resubmittedAfter(l, wid, cells, since) {
+    const need = Object.values(cells).reduce((a, b) => a + (+b || 0), 0);
+    if (!need || !since) return false;
+    let got = 0;
+    for (const e of Object.values((l.prog || {}).stitching || {})) {
+      if (!e || e.w !== wid || e.st === "withdrawn" || String(e.at || "") <= String(since)) continue;
+      for (const [k, n] of Object.entries(nz(e.sz))) if (cells[k]) got += +n || 0;
+    }
+    return got >= need;
+  }
   function alterResolved(l, v, wid) {
     if (Object.keys(altCells(v)).length) return false;
+    if (v.altRecv && !(+v.short || 0)) {
+      const cells = v.st === "rejected" ? nz(v.sz || {}) : nz(v.altSz || {});
+      if (resubmittedAfter(l, wid, cells, v.altRat)) return true;
+    }
     const keys = /* @__PURE__ */ new Set([...Object.keys(nz(v.sz)), ...Object.keys(nz(v.altSz)), ...Object.keys(nz(v.rejSz))]);
     const open = myOpen(l, "stitching", wid).left;
     if ([...keys].some((k) => (open[k] || 0) > 0)) return false;
@@ -1113,6 +1127,7 @@ ${url}`;
     for (const l of lotsSorted()) for (const [id, v] of Object.entries(l.irAlt || {})) {
       if (!v || v.w !== m.id || !Object.keys(nz(v.sz)).length) continue;
       if (v.st === "recv") {
+        if (resubmittedAfter(l, m.id, nz(v.sz), v.rat)) continue;
         const open = myOpen(l, "stitching", m.id).left;
         const ks = Object.keys(nz(v.sz));
         const busy = Object.values((l.prog || {}).stitching || {}).some((e) => e && e.w === m.id && (e.st === "pending" || e.st === "received") && String(e.at || "") > String(v.rat || "") && Object.keys(nz(e.sz)).some((k) => ks.includes(k)));
