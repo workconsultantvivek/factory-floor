@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0510-1450";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0510-1505";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -721,6 +721,7 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     }
     if (!tabs.find((t) => t[0] === S.tab)) S.tab = tabs[0][0];
     if (store("ffr.tab") !== S.tab) store("ffr.tab", S.tab);
+    if (tabs.some((t) => t[0] === "pend") && S.tab !== "pend") setTimeout(() => loadPend(false), 1500);
     if (lastTabSeen !== S.tab) {
       S.q = {};
       allocQ = trecvQ = lotQ = "";
@@ -2920,6 +2921,10 @@ ${url}`;
   const PEND_URL = "https://vivekshingala707.app.n8n.cloud/webhook/factory-pending-9f0c42";
   let pendQ = "", pendBusy = false;
   async function loadPend(force) {
+    if (!S.pend) {
+      const c = store("ffr.pend");
+      if (c && c.map) S.pend = Object.assign(c, { t: c.t || 0, err: "" });
+    }
     if (pendBusy) return;
     if (!force && S.pend && Date.now() - S.pend.t < 6e5) return;
     pendBusy = true;
@@ -2935,6 +2940,7 @@ ${url}`;
       const j = await r.json();
       if (!r.ok || j.error) throw new Error(j.error || "Server " + r.status);
       S.pend = { map: j.pending || {}, other: j.other || [], total: j.total || 0, at: j.fetchedAt, t: Date.now(), err: "" };
+      store("ffr.pend", S.pend);
     } catch (x) {
       S.pend = Object.assign({}, S.pend || { map: {}, other: [], total: 0 }, { err: "Could not load the pending list (" + String(x && (x.name === "AbortError" ? "timed out" : x.message) || x).slice(0, 60) + "). Tap Refresh.", t: Date.now() });
     }
@@ -2995,6 +3001,7 @@ ${url}`;
     let h = `<div class="row spread"><h2>Pending list</h2><button type="button" class="btn alt sm" data-pendrefresh="1">Refresh</button></div>
     <p class="small muted" style="margin:0">Orders waiting for stock (Uniware open sale + blocked), from the PENDING LIST sheet that updates every morning at 8. "+N in factory" = pieces cut and not yet in the warehouse.</p>`;
     if (!P) return h + `<div class="empty">Loading pending list…</div>`;
+    if (pendBusy) h += `<div class="small muted">Updating…</div>`;
     if (P.err) h += `<div class="err">${esc(P.err)}</div>`;
     h += `<div class="stats"><div class="stat"><span>Pending pcs</span><b>${P.total || 0}</b></div><div class="stat"><span>SKUs</span><b>${Object.keys(P.map || {}).length}</b></div><div class="stat"><span>Loaded</span><b style="font-size:1rem">${P.at ? fmtDT(P.at) : "—"}</b></div></div>`;
     h += `<div class="list" id="pendList">${pendListHtml()}</div>`;
