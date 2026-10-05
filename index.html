@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0510-1515";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0510-1520";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -3002,10 +3002,10 @@ ${url}`;
     const own = me() && me().id === "owner";
     const P = S.pend;
     let h = `<div class="row spread"><h2>Pending list</h2>${own ? `<button type="button" class="btn ${P ? "alt" : "accent"} sm" data-pendrefresh="1" ${pendBusy ? "disabled" : ""}>${pendBusy ? "Refreshing…" : "Refresh"}</button>` : ""}</div>
-    <p class="small muted" style="margin:0">Orders waiting for stock (Uniware open sale + blocked), from the PENDING LIST sheet. ${own ? "Tap Refresh to load the latest sheet – everyone sees the list you load." : "The owner updates this list."} "+N in factory" = pieces cut and not yet in the warehouse.</p>`;
+    <p class="small muted" style="margin:0">Orders waiting for stock (Uniware open sale + blocked), from the PENDING LIST sheet. Updates automatically every morning at 9 AM.${own ? " Tap Refresh to load it now – everyone sees the same list." : ""} "+N in factory" = pieces cut and not yet in the warehouse.</p>`;
     if (pendErr && own) h += `<div class="err">${esc(pendErr)}</div>`;
-    if (!P) return h + `<div class="empty">${own ? (pendBusy ? "Loading pending list…" : "No pending list yet. Tap Refresh to load it.") : "The owner has not loaded the pending list yet."}</div>`;
-    h += `<div class="stats"><div class="stat"><span>Pending pcs</span><b>${P.total || 0}</b></div><div class="stat"><span>SKUs</span><b>${Object.keys(P.map || {}).length}</b></div><div class="stat"><span>Updated</span><b style="font-size:1rem">${fmtDT(P.savedAt || P.at)}</b></div></div>`;
+    if (!P) return h + `<div class="empty">${own ? (pendBusy ? "Loading pending list…" : "No pending list yet. Tap Refresh to load it.") : "No pending list yet – it loads automatically every morning at 9 AM."}</div>`;
+    h += `<div class="stats"><div class="stat"><span>Pending pcs</span><b>${P.total || 0}</b></div><div class="stat"><span>SKUs</span><b>${Object.keys(P.map || {}).length}</b></div><div class="stat"><span>Updated${P.by ? " · auto" : ""}</span><b style="font-size:1rem">${fmtDT(P.savedAt || P.at)}</b></div></div>`;
     h += `<div class="list" id="pendList">${pendListHtml()}</div>`;
     if ((P.other || []).length) h += `<div class="small muted">Other SKUs: ${P.other.map((o) => esc(o.sku) + " " + o.q).join(" · ")}</div>`;
     return h;
