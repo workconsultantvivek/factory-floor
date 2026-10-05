@@ -69,6 +69,7 @@ nav.bottom .ico{display:grid;place-items:center;width:44px;height:28px;border-ra
 .btn.alt{background:transparent;color:var(--ink);border-color:var(--line)}
 .btn.bad{background:var(--bad);border-color:var(--bad);color:#fff}
 .btn.accent{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.go{background:#1D7A4C;border-color:#1D7A4C;color:#fff}
 .btn.sm{padding:6px 10px;font-size:.85rem;border-radius:8px}
 .btn.big{padding:15px 18px;font-size:1.08rem;width:100%}
 .btn:disabled{opacity:.5;cursor:default}
@@ -2057,7 +2058,7 @@ ${url}`;
     const tot = ls.reduce((a, l) => a + threadPool(l, m.id).total, 0);
     let h = `<div class="row spread"><h2>Thread lots</h2><span class="small muted">${tot} pcs in hand</span></div>`;
     if (!ls.length) return h + `<div class="empty"><h3>No lot in hand</h3>Lots the checker hands over to you appear here.</div>`;
-    return h + `<p class="small muted" style="margin:0">Each card is one bundle you received. Give it to a thread cutter, then tap Thread cutting finished. Finished bundles move to <b>To ironing</b>.</p><div class="list" id="tList">${threadListHtml()}</div>`;
+    return h + `<p class="small muted" style="margin:0">Each card is one bundle you received. Tap Start Thread Cutting when you give it to a thread cutter, then Finish Thread Cutting when it is done. Finished bundles move to <b>To ironing</b>.</p><div class="list" id="tList">${threadListHtml()}</div>`;
   }
   function threadFinCount(wid) {
     return lotsSorted().reduce((a, l) => a + threadBundles(l, wid).filter((b) => b.v.tcDone).length, 0);
@@ -2069,7 +2070,7 @@ ${url}`;
     const m = me();
     const n = threadFinCount(m.id);
     let h = `<div class="row spread"><h2>To ironing</h2><span class="small muted">${n} bundle${n === 1 ? "" : "s"}</span></div><p class="small muted" style="margin:0">Thread cutting is finished for these bundles. Allocate each one to ironing.</p>`;
-    if (!n) return h + `<div class="empty"><h3>Nothing to allocate</h3>Bundles show here when you tap Thread cutting finished in Thread lots.</div>`;
+    if (!n) return h + `<div class="empty"><h3>Nothing to allocate</h3>Bundles show here when you tap Finish Thread Cutting in Thread lots.</div>`;
     return h + `<div class="list">${threadListHtml(null, "fin")}</div>`;
   }
   function mgrThreadView() {
@@ -2122,7 +2123,7 @@ ${url}`;
       <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(b.lot.design, szCols(b.left))}<div style="min-width:0;flex:1"><span class="lotno" style="font-size:1.2rem">${esc(b.lot.lotNo)}</span> ${bunTitle(b.lot, b.left)}${forWid ? `<div class="small muted">with <b>${esc((W(m.id) || {}).name || "?")}</b></div>` : ""}</div><div><div class="left">${b.total}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
       
       <ul class="tl small" style="margin:0">${st ? `<li>Stitcher: <b>${esc(st.name)}</b></li>` : ""}<li>Checker: <b>${ck ? esc(ck.name) : b.v.by === "owner" ? "Owner" : "\u2014"}</b></li><li>Received: <b>${fmtDT(b.v.at)}</b></li>${b.v.tc ? `<li>Thread cutting allocated: <b>${esc((W(b.v.tc) || { name: "?" }).name)}</b> (${fmtDT(b.v.tcAt)})</li>` : ""}${b.v.tcDone ? `<li>Thread cutting finished: <b>${fmtDT(b.v.tcDone)}</b></li><li>Thread cutting time: <b>${dur(b.v.tcAt, b.v.tcDone)}</b></li>` : ""}${b.used ? `<li>Already given to ironing: <b>${b.used}</b></li>` : ""}</ul>
-      <div class="row" style="gap:8px">${b.v.tcDone ? `<button type="button" class="btn accent" data-tgivef="${b.lot.id}|${b.fid}" data-twid="${m.id}">Allocate ${b.total} pcs to ironing</button><button type="button" class="btn alt sm" data-tcundo="${b.lot.id}|${b.fid}">Undo finish</button>` : b.v.tc ? `<button type="button" class="btn accent" data-tcfin="${b.lot.id}|${b.fid}">Thread cutting finished</button>` : `<button type="button" class="btn accent" data-tcutf="${b.lot.id}|${b.fid}" data-twid="${m.id}">Give to thread cutter</button><button type="button" class="btn alt sm" data-tundof="${b.lot.id}|${b.fid}" data-twid="${m.id}">Undo receive</button>`}</div>
+      <div class="row" style="gap:8px">${b.v.tcDone ? `<button type="button" class="btn accent" data-tgivef="${b.lot.id}|${b.fid}" data-twid="${m.id}">Allocate ${b.total} pcs to ironing</button><button type="button" class="btn alt sm" data-tcundo="${b.lot.id}|${b.fid}">Undo finish</button>` : b.v.tc ? `<button type="button" class="btn accent" data-tcfin="${b.lot.id}|${b.fid}">Finish Thread Cutting</button>` : `<button type="button" class="btn go" data-tcutf="${b.lot.id}|${b.fid}" data-twid="${m.id}">Start Thread Cutting</button><button type="button" class="btn alt sm" data-tundof="${b.lot.id}|${b.fid}" data-twid="${m.id}">Undo receive</button>`}</div>
     </div>`;
     }).join("") || `<div class="empty">No bundle in hand.</div>`;
   }
