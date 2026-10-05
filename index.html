@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0410-2038";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0510-1440";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -713,8 +713,8 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     const nHo = () => lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0);
     const nTh = () => activeWorkers().filter(isThreadW).reduce((a, w) => a + lotsSorted().reduce((b, l) => b + threadBundles(l, w.id).filter((x) => x.v.tc).length, 0), 0);
     const nTask = () => tasksFor().filter((t) => t.st !== "done").length;
-    const boss = [["alloc", "Allocate", ICON.add, nAlloc()], ["rinbox", "Receive", ICON.add, nRcv()], ["inbox", "Check", ICON.done, nInbox()], ["handover", "To thread cutter", ICON.lots, nHo()], ["mthread", "To ironing", ICON.lots, nTh()], ["bundles", "Report", ICON.team], ["otasks", "Tasks", ICON.done, nTask()], ["dash", "Dashboard", ICON.team, 0, true], ["duty", "Duty hours", ICON.done, 0, true], ["lots", "All lots", ICON.lots, 0, true], ["stock", "Stock", ICON.lots, 0, true]];
-    const tabs = m.id === "owner" ? boss.concat([["team", "Team", ICON.team, 0, true]]) : m.role === "Cutting master" ? [["add", "Add cut lot", ICON.add], ["lots", "All lots", ICON.lots], ["mtasks", "Tasks", ICON.done, tasksFor(m.id).filter((t) => t.st !== "done").length]] : m.role === "Lot allocator" ? [["alloc", "Allocate", ICON.add, nAlloc()], ["allocd", "Bundles", ICON.team], ["lots", "All lots", ICON.lots]] : m.role === "Lot receiver" ? [["rinbox", "Receive work", ICON.add, nRcv()], ["rhist", "Received", ICON.done], ["lots", "All lots", ICON.lots]] : m.role === "Warehouse Receiver & Pusher" ? [["whr", "Received in Warehouse", ICON.add, whFlowState().filter((r) => !r.split && r.baseQ > 0).length], ["uwp", "Push Uniware", ICON.lots, whFlowState().filter((r) => r.split && r.uwLeftQ > 0).length], ["uwh", "Pushed", ICON.done]] : m.role === "Warehouse receiver" ? [["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["lots", "All lots", ICON.done]] : m.role === "Checker" ? [["inbox", "Check work", ICON.done, nInbox()], ["checked", "Checked", ICON.team]] : m.role === "Sub manager" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "Thread lots", ICON.lots, threadPendCount(m.id)], ["tfin", "To ironing", ICON.done, threadFinCount(m.id)], ["wh", "Receive stock", ICON.add, nWh()], ["stock", "Received in Warehouse", ICON.lots]] : m.role === "Thread cutter" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "New lots", ICON.lots, threadPendCount(m.id)], ["tfin", "To ironing", ICON.done, threadFinCount(m.id)], ["tdone", "Completed", ICON.done]] : m.role === "Ironing" ? [["inew", "New lots", ICON.lots, flowItems("ironing").filter((v) => v.w === m.id && v.st === "given").length], ["idone", "Completed", ICON.done]] : m.role === "Manager" ? boss.filter((t) => !["dash", "handover", "mthread"].includes(t[0])).concat([["links", "Team links", ICON.team, 0, true]]) : RECV_STAGES.includes(myStage()) ? [["add", "New lots", ICON.lots, myLots(m.id).reduce((n, l) => n + allocOpen(l, m.id).filter((a) => a.total > 0).length, 0)], ["alter", "Alter / Rejected", ICON.add, myLots(m.id).reduce((a, l) => a + altWaiting(l, m.id).total + irAltCells(l, m.id, "sent").total, 0)], ["done", "Completed", ICON.done]] : myStage() ? [["add", "Add entry", ICON.add], ["lots", "Cut lots", ICON.lots], ["done", "Completed", ICON.done]] : [["lots", "Cut lots", ICON.lots]];
+    const boss = [["alloc", "Allocate", ICON.add, nAlloc()], ["rinbox", "Receive", ICON.add, nRcv()], ["inbox", "Check", ICON.done, nInbox()], ["handover", "To thread cutter", ICON.lots, nHo()], ["mthread", "To ironing", ICON.lots, nTh()], ["bundles", "Report", ICON.team], ["pend", "Pending", ICON.lots], ["otasks", "Tasks", ICON.done, nTask()], ["dash", "Dashboard", ICON.team, 0, true], ["duty", "Duty hours", ICON.done, 0, true], ["lots", "All lots", ICON.lots, 0, true], ["stock", "Stock", ICON.lots, 0, true]];
+    const tabs = m.id === "owner" ? boss.concat([["team", "Team", ICON.team, 0, true]]) : m.role === "Cutting master" ? [["add", "Add cut lot", ICON.add], ["lots", "All lots", ICON.lots], ["pend", "Pending", ICON.lots], ["mtasks", "Tasks", ICON.done, tasksFor(m.id).filter((t) => t.st !== "done").length]] : m.role === "Lot allocator" ? [["alloc", "Allocate", ICON.add, nAlloc()], ["allocd", "Bundles", ICON.team], ["lots", "All lots", ICON.lots]] : m.role === "Lot receiver" ? [["rinbox", "Receive work", ICON.add, nRcv()], ["rhist", "Received", ICON.done], ["lots", "All lots", ICON.lots]] : m.role === "Warehouse Receiver & Pusher" ? [["whr", "Received in Warehouse", ICON.add, whFlowState().filter((r) => !r.split && r.baseQ > 0).length], ["uwp", "Push Uniware", ICON.lots, whFlowState().filter((r) => r.split && r.uwLeftQ > 0).length], ["uwh", "Pushed", ICON.done]] : m.role === "Warehouse receiver" ? [["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["lots", "All lots", ICON.done]] : m.role === "Checker" ? [["inbox", "Check work", ICON.done, nInbox()], ["checked", "Checked", ICON.team]] : m.role === "Sub manager" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "Thread lots", ICON.lots, threadPendCount(m.id)], ["tfin", "To ironing", ICON.done, threadFinCount(m.id)], ["wh", "Receive stock", ICON.add, nWh()], ["stock", "Received in Warehouse", ICON.lots]] : m.role === "Thread cutter" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "New lots", ICON.lots, threadPendCount(m.id)], ["tfin", "To ironing", ICON.done, threadFinCount(m.id)], ["tdone", "Completed", ICON.done]] : m.role === "Ironing" ? [["inew", "New lots", ICON.lots, flowItems("ironing").filter((v) => v.w === m.id && v.st === "given").length], ["idone", "Completed", ICON.done]] : m.role === "Manager" ? boss.filter((t) => !["dash", "handover", "mthread"].includes(t[0])).concat([["links", "Team links", ICON.team, 0, true]]) : RECV_STAGES.includes(myStage()) ? [["add", "New lots", ICON.lots, myLots(m.id).reduce((n, l) => n + allocOpen(l, m.id).filter((a) => a.total > 0).length, 0)], ["alter", "Alter / Rejected", ICON.add, myLots(m.id).reduce((a, l) => a + altWaiting(l, m.id).total + irAltCells(l, m.id, "sent").total, 0)], ["done", "Completed", ICON.done]] : myStage() ? [["add", "Add entry", ICON.add], ["lots", "Cut lots", ICON.lots], ["done", "Completed", ICON.done]] : [["lots", "Cut lots", ICON.lots]];
     if (restoreTab) {
       if (tabs.find((t) => t[0] === restoreTab)) S.tab = restoreTab;
       restoreTab = null;
@@ -726,7 +726,7 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
       allocQ = trecvQ = lotQ = "";
       lastTabSeen = S.tab;
     }
-    const body = { add: addView, lots: lotsView, done: doneView, team: teamView, alter: alterView, alloc: allocView, allocd: bundlesView, duty: dutyView, trecv: threadRecvView, bundles: bundlesView, dash: dashView, inbox: inboxView, checked: checkedView, rinbox: rinboxView, rhist: rhistView, wh: whInboxView, stock: stockView, whr: whRecvdView, uwp: uwQueueView, uwh: uwHistView, handover: handoverView, pending: pendingView, links: linksView, otasks: bossTasksView, mtasks: masterTasksView, mthread: mgrThreadView, tnew: threadNewView, tfin: threadFinView, tdone: threadDoneView, inew: () => flowNewView("ironing"), idone: () => flowDoneView("ironing") }[S.tab]();
+    const body = { add: addView, lots: lotsView, done: doneView, team: teamView, alter: alterView, alloc: allocView, allocd: bundlesView, duty: dutyView, trecv: threadRecvView, bundles: bundlesView, dash: dashView, inbox: inboxView, checked: checkedView, rinbox: rinboxView, rhist: rhistView, wh: whInboxView, stock: stockView, whr: whRecvdView, uwp: uwQueueView, uwh: uwHistView, handover: handoverView, pending: pendingView, links: linksView, pend: pendView, otasks: bossTasksView, mtasks: masterTasksView, mthread: mgrThreadView, tnew: threadNewView, tfin: threadFinView, tdone: threadDoneView, inew: () => flowNewView("ironing"), idone: () => flowDoneView("ironing") }[S.tab]();
     app.innerHTML = header() + `<main class="wrap">${["dash", "duty", "bundles", "lots", "stock", "team", "links"].includes(S.tab) ? bossLinks(S.tab) : ""}${body}</main>` + (tabs.length > 1 ? `<nav class="bottom ${tabs.filter((t) => !t[4]).length > 5 ? "many" : ""}"><div class="wrap">${tabs.filter((t) => !t[4]).map((t) => `<button data-tab="${t[0] === "bundles" && m.id === "owner" ? "dash" : t[0]}" aria-current="${S.tab === t[0] || t[0] === "bundles" && isBoss() && ["dash", "duty", "lots", "stock", "team", "links"].includes(S.tab)}"><span class="ico">${t[2]}${t[3] ? `<i class="badge">${t[3]}</i>` : ""}</span>${t[1]}</button>`).join("")}</div></nav>` : "");
     addSearch(app);
     for (const [id, v] of Object.entries(draft)) {
@@ -2917,6 +2917,83 @@ ${url}`;
       <div><div class="left">${n}</div><div class="small muted" style="text-align:right">pcs</div></div></div><div class="row" style="gap:5px;flex-wrap:wrap">${skus}</div>${canUndo ? `<button class="btn alt sm" data-whundo="${esc(p.rec)}" style="align-self:flex-start">Undo split</button>` : ""}</div>`;
     }).join("");
   }
+  const PEND_URL = "https://vivekshingala707.app.n8n.cloud/webhook/factory-pending-9f0c42";
+  let pendQ = "", pendBusy = false;
+  async function loadPend(force) {
+    if (pendBusy) return;
+    if (!force && S.pend && Date.now() - S.pend.t < 6e5) return;
+    pendBusy = true;
+    try {
+      const r = await fetch(PEND_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ k: UW_KEY }) });
+      const j = await r.json();
+      if (!r.ok || j.error) throw new Error(j.error || "Server " + r.status);
+      S.pend = { map: j.pending || {}, other: j.other || [], total: j.total || 0, at: j.fetchedAt, t: Date.now(), err: "" };
+    } catch (x) {
+      S.pend = Object.assign({}, S.pend || { map: {}, other: [], total: 0 }, { err: "Could not load the pending list. Tap Refresh.", t: Date.now() });
+    }
+    pendBusy = false;
+    if (S.tab === "pend") render();
+  }
+  function factoryPipe() {
+    const o = {};
+    const add = (d, k, n) => {
+      const [c, z] = splitCK(k);
+      const key = uwSku(d, c, z).toLowerCase();
+      o[key] = (o[key] || 0) + n;
+    };
+    for (const l of lotsSorted()) {
+      if (l.closed) continue;
+      for (const [k, n] of Object.entries(lotCells(l))) if (+n > 0) add(l.design, k, +n);
+    }
+    for (const r of whRecords()) if (!r.lot.closed) for (const [k, n] of Object.entries(nz(r.wh.sz))) add(r.lot.design, k, -(+n));
+    return o;
+  }
+  function pendGroups() {
+    const sizes = ["XS", "S", "M", "L", "XL", "XXL", "3XL"];
+    const g = {};
+    for (const [sku, n] of Object.entries((S.pend || {}).map || {})) {
+      const p = sku.split("_");
+      if (p.length < 2) continue;
+      const z = p[p.length - 1], d = p[0], c = p.slice(1, -1).join("_");
+      const G = g[d] = g[d] || { d, rows: {}, tot: 0, sizes: new Set() };
+      (G.rows[c] = G.rows[c] || {})[z] = n;
+      G.tot += n;
+      G.sizes.add(z);
+    }
+    return Object.values(g).map((G) => Object.assign(G, { sizes: sizes.filter((z) => G.sizes.has(z)) })).sort((a, b) => b.tot - a.tot);
+  }
+  function pendListHtml() {
+    const q = pendQ.trim().toLowerCase();
+    const pipe = factoryPipe();
+    let gs = pendGroups();
+    if (q) gs = gs.filter((G) => q.split(/\s+/).filter(Boolean).every((t) => G.d.toLowerCase().includes(t) || Object.keys(G.rows).some((c) => c.toLowerCase().includes(t))));
+    if (!gs.length) return `<div class="empty">${S.pend && S.pend.total ? "No design matches." : "No pending orders."}</div>`;
+    return gs.slice(0, 120).map((G) => {
+      const cols = Object.keys(G.rows).sort((a, b) => Object.values(G.rows[b]).reduce((x, y) => x + y, 0) - Object.values(G.rows[a]).reduce((x, y) => x + y, 0));
+      return `<div class="card list" style="gap:8px"><div class="row spread"><span class="dname" style="font-size:1.1rem">${esc(G.d)}</span><b>${G.tot} pending</b></div>
+      <div class="tablewrap"><table class="dtab ptab"><thead><tr><th>Colour</th>${G.sizes.map((z) => `<th>${esc(z)}</th>`).join("")}<th>Total</th></tr></thead><tbody>${cols.map((c) => {
+        const r = G.rows[c];
+        const t = Object.values(r).reduce((x, y) => x + y, 0);
+        return `<tr><td><b>${esc(c || "—")}</b></td>${G.sizes.map((z) => {
+          const n = r[z] || 0;
+          const f = pipe[uwSku(G.d, c, z).toLowerCase()] || 0;
+          return `<td>${n ? `<b>${n}</b>` : '<span class="muted">—</span>'}${f > 0 ? `<div class="small" style="color:var(--ok,#2e7d32)">+${f} in factory</div>` : ""}</td>`;
+        }).join("")}<td><b>${t}</b></td></tr>`;
+      }).join("")}</tbody></table></div></div>`;
+    }).join("") + (gs.length > 120 ? `<div class="small muted">Showing the top 120 designs. Search to find others.</div>` : "");
+  }
+  function pendView() {
+    loadPend(false);
+    const P = S.pend;
+    let h = `<div class="row spread"><h2>Pending list</h2><button type="button" class="btn alt sm" data-pendrefresh="1">Refresh</button></div>
+    <p class="small muted" style="margin:0">Orders waiting for stock (Uniware open sale + blocked), from the PENDING LIST sheet that updates every morning at 8. "+N in factory" = pieces cut and not yet in the warehouse.</p>`;
+    if (!P) return h + `<div class="empty">Loading pending list…</div>`;
+    if (P.err) h += `<div class="err">${esc(P.err)}</div>`;
+    h += `<div class="stats"><div class="stat"><span>Pending pcs</span><b>${P.total || 0}</b></div><div class="stat"><span>SKUs</span><b>${Object.keys(P.map || {}).length}</b></div><div class="stat"><span>Loaded</span><b style="font-size:1rem">${P.at ? fmtDT(P.at) : "—"}</b></div></div>`;
+    h += `<div class="list" id="pendList">${pendListHtml()}</div>`;
+    if ((P.other || []).length) h += `<div class="small muted">Other SKUs: ${P.other.map((o) => esc(o.sku) + " " + o.q).join(" · ")}</div>`;
+    return h;
+  }
   function pendingByPerson() {
     const rows = [];
     const lots = lotsSorted();
@@ -4479,6 +4556,12 @@ ${url}`;
       if (el) el.innerHTML = teamListHtml();
       return;
     }
+    if (t.id === "pendQ") {
+      pendQ = t.value;
+      const el = $("#pendList");
+      if (el) el.innerHTML = pendListHtml();
+      return;
+    }
     if (t.id === "allocQ") {
       allocQ = t.value;
       const el = $("#allocList");
@@ -4855,6 +4938,13 @@ ${url}`;
         t.disabled = true;
         await S.db.doc("config/main").update({ workers: { [d.leave]: w.leave ? { leave: false, leaveAt: null } : { leave: true, leaveAt: (/* @__PURE__ */ new Date()).toISOString() } } });
         toast(w.name + (w.leave ? " is back from leave" : " marked At Leave"));
+        return;
+      }
+      if (d.pendrefresh) {
+        t.disabled = true;
+        t.textContent = "Loading\u2026";
+        await loadPend(true);
+        render();
         return;
       }
       if (d.awho) {
