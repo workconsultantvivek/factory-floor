@@ -723,6 +723,7 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     if (store("ffr.tab") !== S.tab) store("ffr.tab", S.tab);
     const body = { add: addView, lots: lotsView, done: doneView, team: teamView, alter: alterView, alloc: allocView, allocd: bundlesView, duty: dutyView, trecv: threadRecvView, bundles: bundlesView, dash: dashView, inbox: inboxView, checked: checkedView, rinbox: rinboxView, rhist: rhistView, wh: whInboxView, stock: stockView, whr: whRecvdView, uwp: uwQueueView, uwh: uwHistView, handover: handoverView, pending: pendingView, links: linksView, otasks: bossTasksView, mtasks: masterTasksView, mthread: mgrThreadView, tnew: threadNewView, tfin: threadFinView, tdone: threadDoneView, inew: () => flowNewView("ironing"), idone: () => flowDoneView("ironing") }[S.tab]();
     app.innerHTML = header() + `<main class="wrap">${["dash", "duty", "bundles", "lots", "stock", "team", "links"].includes(S.tab) ? bossLinks(S.tab) : ""}${body}</main>` + (tabs.length > 1 ? `<nav class="bottom ${tabs.filter((t) => !t[4]).length > 5 ? "many" : ""}"><div class="wrap">${tabs.filter((t) => !t[4]).map((t) => `<button data-tab="${t[0] === "bundles" && m.id === "owner" ? "dash" : t[0]}" aria-current="${S.tab === t[0] || t[0] === "bundles" && isBoss() && ["dash", "duty", "lots", "stock", "team", "links"].includes(S.tab)}"><span class="ico">${t[2]}${t[3] ? `<i class="badge">${t[3]}</i>` : ""}</span>${t[1]}</button>`).join("")}</div></nav>` : "");
+    addSearch(app);
     for (const [id, v] of Object.entries(draft)) {
       const el = document.getElementById(id);
       if (el && el.closest("form") && !el.disabled) el.value = v;
@@ -740,6 +741,44 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
         }
       }
     }
+  }
+  function searchCards(main) {
+    return [...main.querySelectorAll(".card")].filter((c) => !c.parentElement.closest(".card") && !c.closest("form") && !c.querySelector("form,input:not([type=checkbox])"));
+  }
+  function applySearch(main) {
+    const q = String((S.q || {})[S.tab] || "").toLowerCase().replace(/[_|]/g, " ").trim();
+    const toks = q ? q.split(/\s+/) : [];
+    let shown = 0;
+    const cards = searchCards(main);
+    for (const c of cards) {
+      const t = c.textContent.toLowerCase().replace(/[_|]/g, " ");
+      const ok = toks.every((k) => t.includes(k));
+      c.style.display = ok ? "" : "none";
+      if (ok) shown++;
+    }
+    const n = main.querySelector("#ffrQn");
+    if (n) n.textContent = toks.length ? shown ? shown + " of " + cards.length + " shown" : "No match" : "";
+  }
+  function addSearch(app) {
+    const main = app.querySelector("main.wrap");
+    if (!main || ["add", "team", "links", "dash", "duty"].includes(S.tab)) return;
+    const cards = searchCards(main);
+    if (cards.length < 3) return;
+    S.q = S.q || {};
+    const box = document.createElement("div");
+    box.className = "list";
+    box.style.cssText = "gap:4px;margin:4px 0 10px";
+    box.innerHTML = `<div class="row" style="gap:8px;flex-wrap:nowrap"><input id="ffrQ" type="search" inputmode="search" autocomplete="off" placeholder="Search lot no, SKU, colour, size, name\u2026" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;background:var(--surface);color:inherit"></div><div id="ffrQn" class="small muted"></div>`;
+    const head = [...main.children].find((c) => c.querySelector && c.querySelector("h2"));
+    if (head) head.after(box);
+    else cards[0].before(box);
+    const inp = box.querySelector("#ffrQ");
+    inp.value = S.q[S.tab] || "";
+    inp.addEventListener("input", () => {
+      S.q[S.tab] = inp.value;
+      applySearch(main);
+    });
+    applySearch(main);
   }
   function header() {
     const m = me();
