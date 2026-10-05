@@ -2198,12 +2198,17 @@ ${url}`;
       return `<div class="card list" style="gap:8px">
     <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.2rem">${esc(v.lot.lotNo)}</span> ${bunTitle(v.lot, cells)}</div><div><div class="left">${q}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
     ${stage !== "ironing" ? "" : (() => {
-        const src = v.from && (v.lot.flow || {})[v.from];
         const nm = (id) => id === "owner" ? "Owner" : (W(id) || { name: "?" }).name;
+        let src = v.from && (v.lot.flow || {})[v.from];
+        if (!src || !src.tc) {
+          const keys = Object.keys(nz(v.sz));
+          const tw = v.fromW || v.by;
+          src = Object.values(v.lot.flow || {}).filter((x) => x && x.st !== "cancelled" && x.stage === "thread" && x.w === tw && x.tc && Object.keys(nz(x.sz)).some((k) => keys.includes(k))).sort((a, b) => String(b.tcAt || "").localeCompare(String(a.tcAt || "")))[0] || src;
+        }
         const li = [];
-        if (src && src.tc) li.push(`<li>Thread cutting allocated: <b>${esc(nm(src.tc))}</b> (${fmtDT(src.tcAt)})</li>`);
-        if (src && src.tcDone) li.push(`<li>Thread cutting finished: <b>${fmtDT(src.tcDone)}</b>${src.tcAt ? ` \xB7 ${dur(src.tcAt, src.tcDone)}` : ""}</li>`);
-        li.push(`<li>Allocated to ironing: <b>${esc(from ? from.name : "?")}</b> (${fmtDT(v.at)})</li>`);
+        if (src && src.tc) li.push(`<li>Thread cutting: <b>${esc(nm(src.tc))}</b> (${fmtDT(src.tcAt)})</li>`);
+        else li.push(`<li>Thread cutting: <b>${esc(from ? from.name : "?")}</b> (${fmtDT(v.at)})</li>`);
+        if (src && src.tc && src.tcDone) li.push(`<li>Thread cutting finished: <b>${fmtDT(src.tcDone)}</b>${src.tcAt ? ` \xB7 ${dur(src.tcAt, src.tcDone)}` : ""}</li>`);
         return `<ul class="tl small" style="margin:0">${li.join("")}</ul>`;
       })()}
     <div class="row" style="gap:8px"><button class="btn accent" data-flowdone="${v.lot.id}|${v.fid}${key ? "|" + esc(key) : ""}">${stage === "thread" ? "Done \u2013 hand over to ironing" : "Done \u2013 send to warehouse"}</button>${stage === "ironing" ? `<button class="btn" data-irsplit="${v.lot.id}|${v.fid}${key ? "|" + esc(key) : ""}">Split \u2013 warehouse / alter</button>` : ""}</div></div>`;
