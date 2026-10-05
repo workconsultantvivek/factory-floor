@@ -673,6 +673,7 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
       render(true);
     });
   }
+  let tFilt = "all";
   let lotQ = "", lotFilter = "open", halfSel = null, pickedLot = null, cutDesign = null, cutCols = [], cutExtra = [];
   function render(keep) {
     const app = $("#app");
@@ -2058,6 +2059,9 @@ ${url}`;
     const tot = ls.reduce((a, l) => a + threadPool(l, m.id).total, 0);
     let h = `<div class="row spread"><h2>Thread lots</h2><span class="small muted">${tot} pcs in hand</span></div>`;
     if (!ls.length) return h + `<div class="empty"><h3>No lot in hand</h3>Lots the checker hands over to you appear here.</div>`;
+    const cnt = { all: 0, yet: 0, started: 0 };
+    for (const l of ls) for (const b of threadBundles(l, m.id)) if (!b.v.tcDone) { cnt.all++; b.v.tc ? cnt.started++ : cnt.yet++; }
+    h += `<div class="seg">${[["all", "All"], ["yet", "Yet to allocate"], ["started", "Started"]].map(([k, n]) => `<button type="button" data-tfilt="${k}" class="${tFilt === k ? "on" : ""}">${n} (${cnt[k]})</button>`).join("")}</div>`;
     return h + `<p class="small muted" style="margin:0">Each card is one bundle you received. Tap Start Thread Cutting when you give it to a thread cutter, then Finish Thread Cutting when it is done. Finished bundles move to <b>To ironing</b>.</p><div class="list" id="tList">${threadListHtml()}</div>`;
   }
   function threadFinCount(wid) {
@@ -2113,7 +2117,9 @@ ${url}`;
   function threadListHtml(forWid, mode, quiet) {
     const m = forWid ? { id: forWid } : me();
     const bs = [];
-    for (const l of lotsSorted()) bs.push(...threadBundles(l, m.id).filter((b) => mode === "fin" ? !!b.v.tcDone : mode === "cut" ? !!b.v.tc : mode === "held" ? !b.v.tc : !b.v.tcDone));
+    const fm = !forWid && !mode ? tFilt : "all";
+    for (const l of lotsSorted()) bs.push(...threadBundles(l, m.id).filter((b) => mode === "fin" ? !!b.v.tcDone : mode === "cut" ? !!b.v.tc : mode === "held" ? !b.v.tc : !b.v.tcDone && (fm === "yet" ? !b.v.tc : fm === "started" ? !!b.v.tc : true)));
+    if (!bs.length && fm !== "all") return `<div class="empty"><h3>Nothing here</h3>${fm === "yet" ? "Every bundle has been given to a thread cutter." : "No bundle is with a thread cutter right now."}</div>`;
     if (quiet && !bs.length) return "";
     bs.sort((a, b) => String(a.v.at || "").localeCompare(String(b.v.at || "")));
     return bs.map((b) => {
@@ -5376,6 +5382,11 @@ ${url}`;
       }
       if (d.bunfilter) {
         bunFilter = d.bunfilter;
+        render();
+        return;
+      }
+      if (d.tfilt) {
+        tFilt = d.tfilt;
         render();
         return;
       }
