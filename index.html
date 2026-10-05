@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0510-1908";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0510-1912";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -3508,6 +3508,42 @@ ${url}`;
     if (canEditCut(l)) $("#lwEditCut", sh).onclick = () => editCutSheet(lid);
     if (canFix) $("#lwEditAlloc", sh).onclick = () => editAllocSheet(lid, null);
   }
+  function stagesAll() {
+    const out = {};
+    const add = (lid, w, label, cls, cells) => {
+      if (!w || !cells) return;
+      const a = ((out[lid] = out[lid] || {})[w] = out[lid][w] || []);
+      a.push([label, cls, nz(cells)]);
+    };
+    const prefix = { ck: "", th: "Thread cutting \xB7 ", ir: "Ironing \xB7 " };
+    for (const sk of ["ck", "th", "ir"]) for (const cd of stageCards(sk)) add(cd.lot.id, cd.who, sk === "ck" && /^Passed/.test(cd.chip[1]) ? "Checked & Yet To Receive" : prefix[sk] + cd.chip[1], sk === "ck" ? "ph-qc" : "ph-fin", cd.cells);
+    for (const [lid, l] of Object.entries(S.lots)) {
+      if (!l || l.deleted) continue;
+      const prog0 = (l.prog || {}).stitching || {};
+      for (const v of Object.values(l.flow || {})) {
+        if (!v || v.stage !== "ironing" || v.st === "cancelled" || v.st === "given") continue;
+        const from = v.from && (l.flow || {})[v.from];
+        const src = from && from.eid && prog0[from.eid];
+        if (!src) continue;
+        if (v.wh) add(lid, src.w, "In warehouse", "ph-wh", v.wh.sz);
+        else if (v.st === "done") add(lid, src.w, "Sent to warehouse, not counted yet", "ph-wh", v.sz);
+      }
+      for (const v of Object.values(prog0)) if (v && v.st === "approved" && v.wh) add(lid, v.w, "In warehouse", "ph-wh", v.wh.sz);
+    }
+    return out;
+  }
+  function nowAtFor(all, lid, w, k, passed) {
+    const st = [];
+    for (const [lb, cls, cells] of ((all[lid] || {})[w] || [])) {
+      const n = +cells[k] || 0;
+      if (!n) continue;
+      const e = st.find((x) => x[0] === lb);
+      if (e) e[2] += n; else st.push([lb, cls, n]);
+    }
+    const traced = st.reduce((a, x) => a + x[2], 0);
+    if (passed > traced) st.push(["Passed \xB7 stage not traced", "line", passed - traced]);
+    return st.length ? `<div class="row" style="gap:5px;flex-wrap:wrap;align-items:center"><b class="small">Now at:</b>${st.map(([lb, cls, n]) => `<span class="chip ${cls}">${esc(lb)} ${n}</span>`).join("")}</div>` : "";
+  }
   function cellWhoSheet(lid, k) {
     const l = __spreadValues({ id: lid }, S.lots[lid]);
     if (!S.lots[lid]) return;
@@ -4172,6 +4208,7 @@ ${url}`;
       g.last = g.subs[g.subs.length - 1].e.at || g.subs[g.subs.length - 1].e.date;
       return g;
     }).sort((x, y) => String(y.last).localeCompare(String(x.last)));
+    const ALLST = stagesAll();
     const stChip = (e) => `<span class="chip ${e.status === "pending" ? "pending" : "approved"}">${e.status === "pending" ? "Pending \xB7 with receiver" : e.status === "received" ? "Received" : "Received \xB7 checked"}</span>`;
     h += `<div class="list">${gl.map((g) => {
       const lot = S.lots[g.lotId] || { lotNo: "(lot removed)", design: "" };
@@ -4197,6 +4234,7 @@ ${url}`;
       <div class="list" style="gap:6px;flex:1;min-width:0">
       <div class="row spread" style="flex-wrap:nowrap;gap:8px;align-items:flex-start"><div style="min-width:0"><div class="small muted lotno">${esc(lot.lotNo)}</div><div class="sku">${esc(skuOf(lot.design || "", c, z))}</div></div><div style="text-align:right;flex:none"><div class="left" style="font-size:1.35rem">${pcs + alt + rej}</div><div class="small muted">pcs</div></div></div>
       <ul class="tl small"><li>Allocated: <b>${al ? fmtDT(al) : "\u2014"}</b></li><li>Submitted: <b>${fmtDT(first)}</b></li><li>Received: <b>${rcv ? fmtDT(rcv) : "not yet"}</b></li><li>Time taken: <b>${al && rcv ? dur(al, rcv) : "\u2014"}</b></li></ul>
+      ${nowAtFor(ALLST, g.lotId, m.id, g.k, g.subs.reduce((a, x) => a + ((pe(x) || {}).st === "approved" ? +((pe(x).sz || {})[g.k] || 0) : 0), 0))}
       <div class="row spread" style="gap:6px"><span class="row" style="gap:6px">${stChip(lastE)}${alt ? (() => { const open = g.subs.some((x) => +((x.e.altSz || {})[g.k] || 0) && pe(x) && !alterResolved(lot, pe(x), m.id)); return open ? `<span class="small warn">${alt} alter \xB7 to fix</span>` : `<span class="small warn">${alt} alter</span>`; })() : ""}${rej ? `<span class="small" style="color:var(--bad)">${rej} rej</span>` : ""}</span><span class="row" style="gap:6px">${amt != null ? `<b style="font-size:1.05rem">${inr(amt)}</b>` : ""}${lastE.status === "pending" ? `<button class="btn alt sm" data-withdraw="${lastE.docId}|${lastE.eid}">Undo</button>` : ""}</span></div>
       </div>
     </div>`;
