@@ -734,7 +734,7 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
       lastTabSeen = S.tab;
     }
     const body = { add: addView, lots: lotsView, done: doneView, team: teamView, alter: alterView, alloc: allocView, allocd: bundlesView, duty: dutyView, trecv: threadRecvView, bundles: bundlesView, dash: dashView, inbox: inboxView, checked: checkedView, rinbox: rinboxView, rhist: rhistView, wh: whInboxView, stock: stockView, whr: whRecvdView, uwp: uwQueueView, uwh: uwHistView, handover: handoverView, pending: pendingView, links: linksView, pend: pendView, otasks: bossTasksView, mtasks: masterTasksView, mthread: mgrThreadView, tnew: threadNewView, tfin: threadFinView, tdone: threadDoneView, inew: () => flowNewView("ironing"), idone: () => flowDoneView("ironing") }[S.tab]();
-    app.innerHTML = header() + `<main class="wrap">${["dash", "duty", "bundles", "lots", "stock", "team", "links"].includes(S.tab) ? bossLinks(S.tab) : ""}${body}</main>` + (tabs.length > 1 ? `<nav class="bottom ${tabs.filter((t) => !t[4]).length > 5 ? "many" : ""}"><div class="wrap">${tabs.filter((t) => !t[4]).map((t) => `<button data-tab="${t[0] === "bundles" && m.id === "owner" ? "dash" : t[0]}" aria-current="${S.tab === t[0] || t[0] === "bundles" && isBoss() && ["dash", "duty", "lots", "stock", "team", "links"].includes(S.tab)}"><span class="ico">${t[2]}${t[3] ? `<i class="badge">${t[3]}</i>` : ""}</span>${t[1]}</button>`).join("")}</div></nav>` : "");
+    app.innerHTML = header() + `<main class="wrap">${["dash", "duty", "bundles", "lots", "stock", "team", "links"].includes(S.tab) ? bossLinks(S.tab) : ""}${missingAlert(m)}${body}</main>` + (tabs.length > 1 ? `<nav class="bottom ${tabs.filter((t) => !t[4]).length > 5 ? "many" : ""}"><div class="wrap">${tabs.filter((t) => !t[4]).map((t) => `<button data-tab="${t[0] === "bundles" && m.id === "owner" ? "dash" : t[0]}" aria-current="${S.tab === t[0] || t[0] === "bundles" && isBoss() && ["dash", "duty", "lots", "stock", "team", "links"].includes(S.tab)}"><span class="ico">${t[2]}${t[3] ? `<i class="badge">${t[3]}</i>` : ""}</span>${t[1]}</button>`).join("")}</div></nav>` : "");
     addSearch(app);
     for (const [id, v] of Object.entries(draft)) {
       const el = document.getElementById(id);
@@ -1922,6 +1922,29 @@ ${url}`;
   }
   function bunTitle(l, cells) {
     return skuTitle(l.design, cells, "dname");
+  }
+  function missingItems() {
+    const out = [];
+    for (const l of lotsSorted()) {
+      const lefts = {};
+      for (const b of bundlesToReceive(l)) lefts[b.eid] = b;
+      const seen = new Set();
+      const fl = Object.values(l.flow || {}).filter((v) => v && v.stage === "thread" && v.st !== "cancelled" && v.eid && +v.short > 0).sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+      for (const v of fl) {
+        if (seen.has(v.eid) || !lefts[v.eid]) continue;
+        seen.add(v.eid);
+        const e = ((l.prog || {}).stitching || {})[v.eid] || {};
+        out.push({ lot: l, eid: v.eid, left: lefts[v.eid].left, total: lefts[v.eid].total, at: v.at, rw: v.w, sw: e.w, ck: e.by2 || e.chkBy });
+      }
+    }
+    return out;
+  }
+  function missingAlert(m) {
+    if (!m || !(isBoss() || m.role === "Checker")) return "";
+    const list = missingItems().filter((x) => isBoss() || x.ck === m.id);
+    if (!list.length) return "";
+    const nm = (id) => id === "owner" ? "Owner" : (W(id) || { name: "?" }).name;
+    return `<div class="card list" style="gap:8px;border-color:var(--bad);background:var(--bad-bg)"><b style="color:var(--bad)">Missing pieces \u00B7 ${list.reduce((a, x) => a + x.total, 0)} pcs</b><div class="small">Checked and passed, but the sub manager did not get these when collecting. ${isBoss() ? "" : "Please find them and hand them to the sub manager."}</div>${list.map((x) => `<div class="small" style="border-top:1px solid var(--line);padding-top:6px"><span class="lotno">${esc(x.lot.lotNo)}</span> <b>${fmtCells(x.left, x.lot.design)}</b><div class="muted">Short at receive by ${esc(nm(x.rw))} (${fmtDT(x.at)}) \u00B7 Stitcher: ${esc(nm(x.sw))}${isBoss() ? " \u00B7 Checker: " + esc(nm(x.ck)) : ""}</div></div>`).join("")}</div>`;
   }
   function bundlesToReceive(l) {
     const ents = Object.entries((l.prog || {}).stitching || {}).filter(([, v]) => v && v.st === "approved" && !v.wh).sort((a, b) => String(a[1].at2 || a[1].at || "").localeCompare(String(b[1].at2 || b[1].at || "")));
