@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0510-1903";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0510-1908";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -1036,21 +1036,45 @@ ${url}`;
     const big = t.dataset.zoomimg.replace(/([?&])width=\d+/, "$1width=900");
     sheet(t.dataset.zoomt || "Photo", `<img class="zoomimg" src="${esc(big)}" alt="">`, { short: true });
   }, true);
+  function backInHand(l, wid) {
+    const o = {};
+    const add = (sz) => { for (const [k, n] of Object.entries(nz(sz))) o[k] = (o[k] || 0) + (+n || 0); };
+    for (const v of Object.values((l.prog || {}).stitching || {})) {
+      if (!v || v.w !== wid) continue;
+      const isBack = v.st === "rejected" || v.st === "approved" && (+v.alt || 0) > 0;
+      if (!isBack || alterResolved(l, v, wid)) continue;
+      if (v.st === "rejected" && backOf(v) !== "checker") add(v.sz);
+      else if (v.altRecv) add(v.st === "rejected" ? v.sz : v.altSz);
+    }
+    for (const v of Object.values(l.irAlt || {})) if (v && v.w === wid && v.st === "recv" && !resubmittedAfter(l, wid, nz(v.sz), v.rat)) add(v.sz);
+    return o;
+  }
   function stitchNewView(todays) {
     const m = me();
     const cards = [];
-    for (const l of myLots(m.id)) for (const a of allocOpen(l, m.id)) if (a.total > 0) cards.push({ lot: l, a });
+    for (const l of myLots(m.id)) {
+      const pool = backInHand(l, m.id);
+      for (const a of allocOpen(l, m.id)) if (a.total > 0) {
+        const alt = {};
+        for (const [k, n] of Object.entries(a.left)) {
+          const t = Math.min(n, pool[k] || 0);
+          if (t > 0) { alt[k] = t; pool[k] -= t; }
+        }
+        cards.push({ lot: l, a, alt });
+      }
+    }
     const tot = cards.reduce((s, c) => s + c.a.total, 0);
     let h = `<div class="row spread"><h2>New lots</h2><span class="small muted">${tot} pcs in hand</span></div>`;
     if (!cards.length) h += `<div class="empty"><h3>No lot in hand</h3>Lots the lot allocator gives you appear here.</div>`;
-    h += cards.map(({ lot: l, a }) => {
+    h += cards.map(({ lot: l, a, alt }) => {
       const by = W(a.by);
-      const isAlt = a.touched > 0;
+      const altN = Object.values(alt).reduce((x, y) => x + y, 0);
+      const isAlt = false;
       const pics = skuImgs(l.design, [...new Set(Object.keys(a.left).filter((k) => a.left[k] > 0).map((k) => splitCK(k)[0]))]);
       return `<div class="card list" style="gap:8px">
     <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${pics}<div style="min-width:0;flex:1"><span class="lotno" style="font-size:1.2rem">${esc(l.lotNo)}</span> ${bunTitle(l, a.left)}<div class="small muted ell">${isAlt ? "" : "given " + fmtDT(a.at || a.date) + (by ? " by " + esc(by.name) : "")}</div></div>
-    <div><div class="left">${a.total}</div><div class="small muted" style="text-align:right;white-space:nowrap">to make</div></div></div>
-    ${isAlt ? `<div class="small"><span class="chip pending">Alter / short pieces</span> sent back to you from this lot</div>` : ""}
+    <div><div class="left">${a.total}</div><div class="small muted" style="text-align:right;white-space:nowrap">to make</div>${altN ? `<div style="text-align:right;color:var(--bad);font-weight:800;white-space:nowrap">${altN} ALTER</div>` : ""}</div></div>
+    ${altN ? `<div class="small" style="color:var(--bad);font-weight:700">ALTER: ${skuKeysSorted(Object.keys(alt)).map((k) => esc(skuOf(l.design, ...splitCK(k))) + " " + alt[k]).join(" \xB7 ")}</div>` : ""}
     ${l.rates && l.rates.stitching != null ? `<div class="small muted">Stitching rate ${inr(l.rates.stitching)}/pc</div>` : ""}
     <button class="btn accent" data-submitalloc="${l.id}|${a.rid}" style="align-self:flex-start">Completed \u2013 ready to submit ${a.total} pcs</button>
   </div>`;
