@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0510-1905";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0510-1903";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -1154,7 +1154,12 @@ ${url}`;
       const allBack = s.st === "rejected";
       return `<div class="card list" style="gap:8px">
       <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(l.design, szCols(Object.assign({}, s.altSz || {}, s.rejSz || {}, s.sz || {})))}<div style="min-width:0;flex:1"><span class="lotno" style="font-size:1.15rem">${esc(l.lotNo)}</span><div class="sku" style="font-weight:700;overflow-wrap:anywhere">${bunTitle(l, Object.keys(nz(s.sz)).length ? s.sz : Object.assign({}, s.altSz || {}, s.rejSz || {})) || lotLabel(l)}</div><div class="small muted">submitted ${fmtDT(s.at || s.date)}${s.at2 ? " \xB7 checked " + fmtDT(s.at2) : ""}${ck ? " by " + esc(ck.name) : ""}</div></div>
-      ${s.st === "approved" ? `<div style="text-align:right"><div class="left">${s.q}</div><div class="small muted">passed</div></div>` : ""}</div>
+      ${(() => {
+        const al = +s.alt || 0, rj = +s.rej || 0, sh = +s.short || 0;
+        const n = allBack ? +s.q || 0 : al + rj + sh;
+        const lb = allBack ? (backOf(s) === "checker" ? "alter" : "pcs") : al && !rj && !sh ? "alter" : rj && !al && !sh ? "rejected" : sh && !al && !rj ? "short" : "pcs back";
+        return n ? `<div style="text-align:right;flex:none"><div class="left">${n}</div><div class="small muted">${lb}</div>${s.st === "approved" && +s.q ? `<div class="small muted">${s.q} passed</div>` : ""}</div>` : "";
+      })()}</div>
       ${allBack ? `<div class="small"><span class="chip rejected">${backOf(s) === "checker" ? "All alter" : "Not received by lot receiver"}</span> ${s.q} pcs ${backOf(s) === "checker" ? "to redo" : "still with you"}</div>` : ""}
       ${+s.short ? `<div class="small"><span class="chip pending">Short ${s.short}</span> not handed over at receiving</div>` : ""}
       ${+s.alt && !allBack ? `<div class="list" style="gap:4px"><span class="small"><span class="chip pending">Alter ${s.alt}</span> fix and submit again</span>${s.altSz ? `<div class="small muted">${fmtCells(nz(s.altSz), l.design)}</div>` : ""}</div>` : ""}
