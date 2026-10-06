@@ -1759,7 +1759,7 @@ ${url}`;
     return `<div class="list">${all.map((x) => `<div class="card list" style="gap:8px">
       <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(x.lot.design, szCols(x.cells))}<div style="min-width:0;flex:1"><b style="font-size:1.1rem">${esc(nm(x.w))}</b><div><span class="lotno">${esc(x.lot.lotNo)}</span> ${bunTitle(x.lot, x.cells)}</div><div class="small muted">${x.kind === "ir" ? "from ironing" : "checked"}${x.at ? " " + fmtDT(x.at) : ""}${x.by ? " by " + esc(nm(x.by)) : ""}</div></div><div style="text-align:right;flex:none"><div class="left">${x.n}</div><div class="small warn">alter</div></div></div>
       ${x.note ? `<div class="small">Note: ${esc(x.note)}</div>` : ""}
-      <button class="btn accent" data-altalloc="${x.kind}|${x.lot.id}|${x.id}" style="align-self:flex-start">Allocate ${x.n} pcs to ${esc(nm(x.w))}</button>
+      <button class="btn go" data-altalloc="${x.kind}|${x.lot.id}|${x.id}" style="align-self:flex-start">Allocate ${x.n} pcs to ${esc(nm(x.w))}</button>
     </div>`).join("")}</div>`;
   }
   function checkedView() {
@@ -5125,8 +5125,6 @@ ${url}`;
         if (!t.dataset.sure) {
           t.dataset.sure = "1";
           t.textContent = "Tap again to allocate";
-          t.classList.remove("accent");
-          t.classList.add("bad");
           return;
         }
         t.disabled = true;
