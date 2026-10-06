@@ -721,7 +721,7 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     const nTh = () => activeWorkers().filter(isThreadW).reduce((a, w) => a + lotsSorted().reduce((b, l) => b + threadBundles(l, w.id).filter((x) => x.v.tc).length, 0), 0);
     const nTask = () => tasksFor().filter((t) => t.st !== "done").length;
     const boss = [["alloc", "Allocate", ICON.add, nAlloc() + altQueue().length], ["rinbox", "Receive", ICON.add, nRcv()], ["inbox", "Check", ICON.done, nInbox()], ["handover", "To thread cutter", ICON.lots, nHo()], ["mthread", "To ironing", ICON.lots, nTh()], ["bundles", "Report", ICON.team], ["pend", "Pending", ICON.lots], ["otasks", "Tasks", ICON.done, nTask()], ["dash", "Dashboard", ICON.team, 0, true], ["duty", "Duty hours", ICON.done, 0, true], ["lots", "All lots", ICON.lots, 0, true], ["stock", "Stock", ICON.lots, 0, true]];
-    const tabs = m.id === "owner" ? boss.concat([["team", "Team", ICON.team, 0, true]]) : m.role === "Cutting master" ? [["add", "Add cut lot", ICON.add], ["lots", "All lots", ICON.lots], ["pend", "Pending", ICON.lots], ["mtasks", "Tasks", ICON.done, tasksFor(m.id).filter((t) => t.st !== "done").length]] : m.role === "Lot allocator" ? [["alloc", "Allocate", ICON.add, nAlloc()], ["allocd", "Bundles", ICON.team], ["lots", "All lots", ICON.lots]] : m.role === "Lot receiver" ? [["rinbox", "Receive work", ICON.add, nRcv()], ["rhist", "Received", ICON.done], ["lots", "All lots", ICON.lots]] : m.role === "Warehouse Receiver & Pusher" ? [["whr", "Received in Warehouse", ICON.add, whFlowState().filter((r) => !r.split && r.baseQ > 0).length], ["uwp", "Push Uniware", ICON.lots, whFlowState().filter((r) => r.split && r.uwLeftQ > 0).length], ["uwh", "Pushed", ICON.done]] : m.role === "Warehouse receiver" ? [["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["lots", "All lots", ICON.done]] : m.role === "Checker" ? [["inbox", "Check work", ICON.done, nInbox()], ["altq", "Allocate alter", ICON.add, altQueue().length], ["checked", "Checked", ICON.team]] : m.role === "Sub manager" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "Thread lots", ICON.lots, threadPendCount(m.id)], ["tfin", "To ironing", ICON.done, threadFinCount(m.id)], ["wh", "Receive stock", ICON.add, nWh()], ["stock", "Received in Warehouse", ICON.lots]] : m.role === "Thread cutter" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "New lots", ICON.lots, threadPendCount(m.id)], ["tfin", "To ironing", ICON.done, threadFinCount(m.id)], ["tdone", "Completed", ICON.done]] : m.role === "Ironing" ? [["inew", "New lots", ICON.lots, flowItems("ironing").filter((v) => v.w === m.id && v.st === "given").length], ["idone", "Completed", ICON.done]] : m.role === "Manager" ? boss.filter((t) => !["dash", "handover", "mthread"].includes(t[0])).concat([["links", "Team links", ICON.team, 0, true]]) : RECV_STAGES.includes(myStage()) ? [["add", "New lots", ICON.lots, myLots(m.id).reduce((n, l) => n + allocOpen(l, m.id).filter((a) => a.total > 0).length, 0)], ["alter", "Alter / Rejected", ICON.add, 0], ["done", "Completed", ICON.done]] : myStage() ? [["add", "Add entry", ICON.add], ["lots", "Cut lots", ICON.lots], ["done", "Completed", ICON.done]] : [["lots", "Cut lots", ICON.lots]];
+    const tabs = m.id === "owner" ? boss.concat([["team", "Team", ICON.team, 0, true]]) : m.role === "Cutting master" ? [["add", "Add cut lot", ICON.add], ["lots", "All lots", ICON.lots], ["pend", "Pending", ICON.lots], ["mtasks", "Tasks", ICON.done, tasksFor(m.id).filter((t) => t.st !== "done").length]] : m.role === "Lot allocator" ? [["alloc", "Allocate", ICON.add, nAlloc()], ["allocd", "Bundles", ICON.team], ["lots", "All lots", ICON.lots]] : m.role === "Lot receiver" ? [["rinbox", "Receive work", ICON.add, nRcv()], ["rhist", "Received", ICON.done], ["lots", "All lots", ICON.lots]] : m.role === "Warehouse Receiver & Pusher" ? [["whr", "Received in Warehouse", ICON.add, whFlowState().filter((r) => !r.split && r.baseQ > 0).length], ["uwp", "Push Uniware", ICON.lots, whFlowState().filter((r) => r.split && r.uwLeftQ > 0).length], ["uwh", "Pushed", ICON.done]] : m.role === "Warehouse receiver" ? [["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["lots", "All lots", ICON.done]] : m.role === "Checker" ? [["inbox", "Check work", ICON.done, nInbox()], ["altq", "Allocate alter", ICON.add, altQueue().length], ["checked", "Checked", ICON.team]] : m.role === "Sub manager" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "Thread lots", ICON.lots, threadPendCount(m.id)], ["tfin", "To ironing", ICON.done, threadFinCount(m.id)], ["wh", "Receive stock", ICON.add, nWh()], ["stock", "Received in Warehouse", ICON.lots]] : m.role === "Thread cutter" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "New lots", ICON.lots, threadPendCount(m.id)], ["tfin", "To ironing", ICON.done, threadFinCount(m.id)], ["tdone", "Completed", ICON.done]] : m.role === "Ironing" ? [["inew", "New lots", ICON.lots, flowItems("ironing").filter((v) => v.w === m.id && v.st === "given").length], ["ialt", "Allocate alter", ICON.add, irAltMine(m.id).filter((x) => x.st === "sent" && !x.ckr).length], ["idone", "Completed", ICON.done]] : m.role === "Manager" ? boss.filter((t) => !["dash", "handover", "mthread"].includes(t[0])).concat([["links", "Team links", ICON.team, 0, true]]) : RECV_STAGES.includes(myStage()) ? [["add", "New lots", ICON.lots, myLots(m.id).reduce((n, l) => n + allocOpen(l, m.id).filter((a) => a.total > 0).length, 0)], ["alter", "Alter / Rejected", ICON.add, 0], ["done", "Completed", ICON.done]] : myStage() ? [["add", "Add entry", ICON.add], ["lots", "Cut lots", ICON.lots], ["done", "Completed", ICON.done]] : [["lots", "Cut lots", ICON.lots]];
     if (restoreTab) {
       if (tabs.find((t) => t[0] === restoreTab)) S.tab = restoreTab;
       restoreTab = null;
@@ -733,7 +733,7 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
       allocQ = altQ = trecvQ = lotQ = "";
       lastTabSeen = S.tab;
     }
-    const body = { add: addView, lots: lotsView, done: doneView, team: teamView, alter: alterView, alloc: allocView, allocd: bundlesView, duty: dutyView, trecv: threadRecvView, bundles: bundlesView, dash: dashView, inbox: inboxView, checked: checkedView, altq: altAllocView, rinbox: rinboxView, rhist: rhistView, wh: whInboxView, stock: stockView, whr: whRecvdView, uwp: uwQueueView, uwh: uwHistView, handover: handoverView, pending: pendingView, links: linksView, pend: pendView, otasks: bossTasksView, mtasks: masterTasksView, mthread: mgrThreadView, tnew: threadNewView, tfin: threadFinView, tdone: threadDoneView, inew: () => flowNewView("ironing"), idone: () => flowDoneView("ironing") }[S.tab]();
+    const body = { add: addView, lots: lotsView, done: doneView, team: teamView, alter: alterView, alloc: allocView, allocd: bundlesView, duty: dutyView, trecv: threadRecvView, bundles: bundlesView, dash: dashView, inbox: inboxView, checked: checkedView, altq: altAllocView, rinbox: rinboxView, rhist: rhistView, wh: whInboxView, stock: stockView, whr: whRecvdView, uwp: uwQueueView, uwh: uwHistView, handover: handoverView, pending: pendingView, links: linksView, pend: pendView, otasks: bossTasksView, mtasks: masterTasksView, mthread: mgrThreadView, tnew: threadNewView, tfin: threadFinView, tdone: threadDoneView, inew: () => flowNewView("ironing"), ialt: irAltIronView, idone: () => flowDoneView("ironing") }[S.tab]();
     app.innerHTML = header() + `<main class="wrap">${["dash", "duty", "bundles", "lots", "stock", "team", "links"].includes(S.tab) ? bossLinks(S.tab) : ""}${missingAlert(m)}${body}</main>` + (tabs.length > 1 ? `<nav class="bottom ${tabs.filter((t) => !t[4]).length > 5 ? "many" : ""}"><div class="wrap">${tabs.filter((t) => !t[4]).map((t) => `<button data-tab="${t[0] === "bundles" && m.id === "owner" ? "dash" : t[0]}" aria-current="${S.tab === t[0] || t[0] === "bundles" && isBoss() && ["dash", "duty", "lots", "stock", "team", "links"].includes(S.tab)}"><span class="ico">${t[2]}${t[3] ? `<i class="badge">${t[3]}</i>` : ""}</span>${t[1]}</button>`).join("")}</div></nav>` : "");
     addSearch(app);
     for (const [id, v] of Object.entries(draft)) {
@@ -1167,7 +1167,7 @@ ${url}`;
       return `<div class="card list" style="gap:8px">
       <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(v.lot.design, szCols(v.sz))}<div style="min-width:0;flex:1"><span class="lotno" style="font-size:1.15rem">${esc(v.lot.lotNo)}</span> ${bunTitle(v.lot, v.sz)}<div class="small muted">sent back from ironing ${fmtDT(v.at)}${by ? " by " + esc(by.name) : ""}</div></div><div style="text-align:right"><div class="left">${v.q}</div><div class="small muted">alter</div></div></div>
       ${v.note ? `<div class="small">Note: ${esc(v.note)}</div>` : ""}
-      ${v.st === "sent" ? `<div class="small"><span class="chip pending">Waiting \xB7 checker to allocate</span></div>` : `<div class="small"><span class="chip approved">Allocated ${fmtDT(v.rat)}</span> Fix them and submit from <b>New lots</b>.</div>`}
+      ${v.st === "sent" ? `<div class="small"><span class="chip pending">Waiting \xB7 ${v.ckr ? "checker to allocate" : "checker to receive from ironing"}</span></div>` : `<div class="small"><span class="chip approved">Allocated ${fmtDT(v.rat)}</span> Fix them and submit from <b>New lots</b>.</div>`}
     </div>`;
     }).join("");
     if (!list.length && !irl.length) return h + `<div class="empty"><h3>Nothing sent back</h3>When the checker or ironing marks pieces alter or reject, they show here.</div>`;
@@ -1736,7 +1736,7 @@ ${url}`;
         if (!v || v.st !== "sent") continue;
         const cells = nz(v.sz || {});
         const n = Object.values(cells).reduce((a, b) => a + (+b || 0), 0);
-        if (n) out.push({ kind: "ir", lot: l, id, w: v.w, cells, n, at: v.at, by: v.by, note: v.note });
+        if (n) out.push({ kind: "ir", lot: l, id, w: v.w, cells, n, at: v.at, by: v.by, note: v.note, ckr: v.ckr, ckrBy: v.ckrBy });
       }
     }
     return out.sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")));
@@ -1746,7 +1746,7 @@ ${url}`;
     const nm = (id) => id === "owner" ? "Owner" : (W(id) || { name: "?" }).name;
     let all = altQueue();
     const tot = all.reduce((a, x) => a + x.n, 0);
-    let h = `<div class="row spread"><h2>Allocate alter</h2><span class="small muted">${all.length} bundle${all.length === 1 ? "" : "s"} \xB7 ${tot} pcs</span></div><p class="small muted" style="margin:0">Alter pieces from checking and ironing. Hand them back to the stitcher and tap Allocate – they then show in that stitcher's New lots.</p>`;
+    let h = `<div class="row spread"><h2>Allocate alter</h2><span class="small muted">${all.length} bundle${all.length === 1 ? "" : "s"} \xB7 ${tot} pcs</span></div><p class="small muted" style="margin:0">Alter pieces from checking and ironing. Ironing alter: first tap Receive when the ironing person hands the pieces to you. Then hand them back to the stitcher and tap Allocate – they then show in that stitcher's New lots.</p>`;
     if (!all.length) return h + `<div class="empty"><h3>No alter pieces</h3>Pieces marked alter show here until you allocate them back.</div>`;
     return h + `<input class="search" type="search" id="altQ" placeholder="Search stitcher, lot no. or SKU" value="${esc(q)}" autocomplete="off"><div id="altList">${altListHtml()}</div>`;
   }
@@ -1759,7 +1759,7 @@ ${url}`;
     return `<div class="list">${all.map((x) => `<div class="card list" style="gap:8px">
       <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(x.lot.design, szCols(x.cells))}<div style="min-width:0;flex:1"><b style="font-size:1.1rem">${esc(nm(x.w))}</b><div><span class="lotno">${esc(x.lot.lotNo)}</span> ${bunTitle(x.lot, x.cells)}</div><div class="small muted">${x.kind === "ir" ? "from ironing" : "checked"}${x.at ? " " + fmtDT(x.at) : ""}${x.by ? " by " + esc(nm(x.by)) : ""}</div></div><div style="text-align:right;flex:none"><div class="left">${x.n}</div><div class="small warn">alter</div></div></div>
       ${x.note ? `<div class="small">Note: ${esc(x.note)}</div>` : ""}
-      <button class="btn go" data-altalloc="${x.kind}|${x.lot.id}|${x.id}" style="align-self:flex-start">Allocate ${x.n} pcs to ${esc(nm(x.w))}</button>
+      ${x.kind === "ir" && !x.ckr ? `<button class="btn go" data-altrecv="${x.lot.id}|${x.id}" style="align-self:flex-start">Receive alter from ${esc(nm(x.by))}</button>` : `${x.kind === "ir" ? `<div class="small"><span class="chip approved">Received from ${esc(nm(x.by))}</span> ${fmtDT(x.ckr)}${x.ckrBy ? " by " + esc(nm(x.ckrBy)) : ""}</div>` : ""}<button class="btn go" data-altalloc="${x.kind}|${x.lot.id}|${x.id}" style="align-self:flex-start">Allocate ${x.n} pcs to ${esc(nm(x.w))}</button>`}
     </div>`).join("")}</div>`;
   }
   function checkedView() {
@@ -2523,6 +2523,33 @@ ${url}`;
     let h = `<div class="row spread"><h2>Completed</h2><span class="small muted">${monthPcs} pcs this month</span></div>`;
     if (!items.length) return h + `<div class="empty">Nothing handed over to ironing yet.</div>`;
     return h + items.slice(0, 40).map((v) => `<div class="card"><div class="row spread"><span><span class="lotno">${esc(v.lot.lotNo)}</span> <span class="muted">${esc(v.lot.design)}</span> <span class="small muted">${fmtDate(String(v.at).slice(0, 10))} \u2192 ${esc((W(v.w) || { name: "?" }).name)}</span></span><b>${v.q}</b></div><div class="small muted">${fmtCells(v.sz, v.lot.design)}</div></div>`).join("");
+  }
+  function irAltMine(wid) {
+    const out = [];
+    for (const l of lotsSorted()) for (const [id, v] of Object.entries(l.irAlt || {})) {
+      if (!v || v.by !== wid) continue;
+      const cells = nz(v.sz || {});
+      const n = Object.values(cells).reduce((a, b) => a + (+b || 0), 0);
+      if (n) out.push(__spreadValues({ lot: l, id, cells, n }, v));
+    }
+    return out.sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+  }
+  function irAltIronView() {
+    const m = me();
+    const nm = (id) => id === "owner" ? "Owner" : (W(id) || { name: "?" }).name;
+    const all = irAltMine(m.id);
+    const wait = all.filter((x) => x.st === "sent" && !x.ckr);
+    const done = all.filter((x) => !(x.st === "sent" && !x.ckr)).slice(0, 40);
+    let h = `<div class="row spread"><h2>Allocate alter</h2><span class="small muted">${wait.reduce((a, x) => a + x.n, 0)} pcs to hand over</span></div><p class="small muted" style="margin:0">Alter pieces you split out while ironing. Give them to the checker – the checker taps Receive, then allocates them back to the stitcher.</p>`;
+    if (!all.length) return h + `<div class="empty"><h3>No alter pieces</h3>Use <b>Split – warehouse / alter</b> in New lots to send pieces for alter.</div>`;
+    const card = (x) => {
+      const st = x.st === "recv" ? `<span class="chip approved">Allocated to ${esc(nm(x.w))}</span> ${fmtDT(x.rat)}` : x.ckr ? `<span class="chip approved">Received by checker</span> ${fmtDT(x.ckr)}${x.ckrBy ? " \xB7 " + esc(nm(x.ckrBy)) : ""}` : `<span class="chip pending">Waiting \xB7 checker to receive</span>`;
+      return `<div class="card list" style="gap:8px">
+      <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(x.lot.design, szCols(x.cells))}<div style="min-width:0;flex:1"><b style="font-size:1.1rem">${esc(nm(x.w))}</b><div><span class="lotno">${esc(x.lot.lotNo)}</span> ${bunTitle(x.lot, x.cells)}</div><div class="small muted">split ${fmtDT(x.at)}</div></div><div style="text-align:right;flex:none"><div class="left">${x.n}</div><div class="small warn">alter</div></div></div>
+      ${x.note ? `<div class="small">Note: ${esc(x.note)}</div>` : ""}
+      <div class="small">${st}</div></div>`;
+    };
+    return h + (wait.length ? `<div class="list">${wait.map(card).join("")}</div>` : `<div class="empty">All alter pieces handed over to the checker.</div>`) + (done.length ? `<h3 style="margin:8px 0 0">Handed over</h3><div class="list">${done.map(card).join("")}</div>` : "");
   }
   function flowDoneView(stage) {
     const m = me();
@@ -5120,8 +5147,23 @@ ${url}`;
         render(true);
         return;
       }
+      if (d.altrecv) {
+        const [lid, id] = d.altrecv.split("|");
+        const v = ((S.lots[lid] || {}).irAlt || {})[id];
+        if (!v || v.st !== "sent" || v.ckr) return toast("Already received");
+        if (!t.dataset.sure) {
+          t.dataset.sure = "1";
+          t.textContent = "Tap again to receive " + (+v.q || 0) + " pcs";
+          return;
+        }
+        t.disabled = true;
+        await S.db.doc("lots/" + lid).update({ irAlt: { [id]: { ckr: (/* @__PURE__ */ new Date()).toISOString(), ckrBy: me().id } } });
+        toast("Alter received from ironing · now allocate it to the stitcher");
+        return;
+      }
       if (d.altalloc) {
         const [kind, lid, id] = d.altalloc.split("|");
+        if (kind === "ir" && !(((S.lots[lid] || {}).irAlt || {})[id] || {}).ckr) return toast("Receive the alter from ironing first");
         if (!t.dataset.sure) {
           t.dataset.sure = "1";
           t.textContent = "Tap again to allocate";
