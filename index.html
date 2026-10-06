@@ -2063,6 +2063,29 @@ ${url}`;
     bs.sort((a, b) => String(a.v.at2 || "").localeCompare(String(b.v.at2 || "")));
     return bs;
   }
+  function bundleStatus(l, v) {
+    const keys = Object.keys(nz(v.sz)).concat(Object.keys(nz(v.altSz || {})), Object.keys(nz(v.rejSz || {})));
+    const ks = [...new Set(keys)];
+    const a = v.rid && ((l.recv || {}).stitching || {})[v.rid];
+    const sum = (o) => ks.reduce((t, k) => t + (+((o || {})[k]) || 0), 0);
+    if (!a) return null;
+    const bundle = sum(a.sz);
+    let passed = 0, rej = 0, qc = 0, rcv = 0, alt = 0;
+    for (const e of Object.values((l.prog || {}).stitching || {})) {
+      if (!e || e.rid !== v.rid || e.w !== v.w) continue;
+      if (e.st === "approved") { passed += sum(e.sz); rej += sum(e.rejSz); alt += sum(e.altSz); }
+      else if (e.st === "received") qc += sum(e.sz);
+      else if (e.st === "pending") rcv += sum(e.sz);
+    }
+    const st = W(v.w), nm = st ? st.name : "stitcher";
+    const held = Math.max(0, bundle - passed - rej - qc - rcv);
+    const parts = [];
+    if (rcv) parts.push([rcv, "lot receiver"]);
+    if (qc) parts.push([qc, "checker"]);
+    if (held) parts.push([held, alt ? "alter \xB7 " + nm : "stitching \xB7 " + nm]);
+    if (rej) parts.push([rej, "rejected"]);
+    return { bundle, parts };
+  }
   function threadRecvListHtml() {
     const q = trecvQ.trim().toLowerCase();
     let bs = threadRecvItems();
@@ -2075,7 +2098,7 @@ ${url}`;
     if (!bs.length) return `<div class="empty">No bundle matches.</div>`;
     return bs.map((b) => {
       const st = W(b.v.w);
-      return `<div class="card list" style="gap:8px"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(b.lot.design, szCols(b.left))}<div style="min-width:0;flex:1"><span class="lotno" style="font-size:1.2rem">${esc(b.lot.lotNo)}</span> ${bunTitle(b.lot, b.left)}</div><div><div class="left">${b.total}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
+      return `<div class="card list" style="gap:8px"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(b.lot.design, szCols(b.left))}<div style="min-width:0;flex:1"><span class="lotno" style="font-size:1.2rem">${esc(b.lot.lotNo)}</span> ${bunTitle(b.lot, b.left)}</div><div><div class="left">${b.total}</div><div class="small muted" style="text-align:right">pcs</div>${(() => { const bs2 = bundleStatus(b.lot, b.v); if (!bs2) return ""; return `<div class="small" style="text-align:right;margin-top:6px;white-space:nowrap">Bundle: <b>${bs2.bundle}</b></div>${bs2.parts.length ? bs2.parts.map(([n, at]) => `<div class="small warn" style="text-align:right;white-space:nowrap">Pending: <b>${n}</b> at ${esc(at)}</div>`).join("") : `<div class="small ok" style="text-align:right;white-space:nowrap">Pending: <b>0</b></div>`}`; })()}</div></div>
       <ul class="tl small" style="margin:0"><li>Stitcher: <b>${st ? esc(st.name) : "\u2014"}</b></li>${chkBullets(b.v)}</ul>
       <button class="btn accent" data-trecv="${b.lot.id}|${b.eid}" style="align-self:flex-start">Receive</button></div>`;
     }).join("");
