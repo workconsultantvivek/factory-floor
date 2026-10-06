@@ -2641,7 +2641,7 @@ ${url}`;
     return h + list.map((s) => {
       const w = W(s.w) || { name: "?" };
       return `<div class="card list" style="gap:8px">
-    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(s.lot.design, szCols(s.sz))}<div style="min-width:0;flex:1"><span class="lotno" style="font-size:1.15rem">${esc(s.lot.lotNo)}</span> <span class="muted">${esc(s.lot.design)}</span><div class="small muted">ironed by ${esc(w.name)} \xB7 ${fmtDate(String(s.doneAt).slice(0, 10))}</div></div>
+    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(s.lot.design, szCols(s.sz))}<div style="min-width:0;flex:1"><span class="lotno" style="font-size:1.15rem">${esc(s.lot.lotNo)}</span> ${bunTitle(s.lot, s.sz)}<div class="small muted">ironed by ${esc(w.name)} \xB7 ${fmtDate(String(s.doneAt).slice(0, 10))}</div></div>
     <div><div class="left">${s.q}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
     ${openRows(nz(s.sz))}
     <button class="btn accent" data-whrcv="${s.lot.id}|${s.fid}" style="align-self:flex-start">Count &amp; receive</button></div>`;
