@@ -2370,28 +2370,65 @@ ${url}`;
     return { [nid]: copy, [fid]: { missBack: nid } };
   }
   const missFixing = new Set();
+  const legacyCache = /* @__PURE__ */ new WeakMap();
+  function legacyMakers(lot) {
+    if (legacyCache.has(lot)) return legacyCache.get(lot);
+    const st = (lot.prog || {}).stitching || {};
+    const flow = lot.flow || {};
+    const linked = new Set(Object.values(flow).filter((x) => x && x.eid && x.st !== "cancelled").map((x) => x.eid));
+    const ents = Object.entries(st).filter(([id, e]) => e && e.st === "approved" && !linked.has(id)).sort((a, b) => String(a[1].at2 || "").localeCompare(String(b[1].at2 || "")));
+    const left = {};
+    for (const [id, e] of ents) for (const [k, n] of Object.entries(nz(e.sz))) (left[k] = left[k] || []).push({ id, n: +n || 0 });
+    const out = {};
+    const tfs = Object.entries(flow).filter(([, x]) => x && x.stage === "thread" && !x.eid && x.st !== "cancelled").sort((a, b) => String(a[1].at || "").localeCompare(String(b[1].at || "")));
+    for (const [fid, x] of tfs) {
+      const o = out[fid] = {};
+      for (const [k, n] of Object.entries(nz(x.sz))) {
+        let need = +n || 0;
+        for (const it of left[k] || []) {
+          if (!need) break;
+          const q = Math.min(it.n, need);
+          if (q > 0) { it.n -= q; need -= q; (o[k] = o[k] || {})[it.id] = ((o[k] || {})[it.id] || 0) + q; }
+        }
+      }
+    }
+    legacyCache.set(lot, out);
+    return out;
+  }
   function makerLis(v, cells, withChecker) {
     const keys = Object.keys(nz(cells));
     const st = (v.lot.prog || {}).stitching || {};
     const flow = v.lot.flow || {};
-    let eids = [];
     let src = v.eid ? v : v.from && flow[v.from];
     for (let i = 0; i < 6 && src && !src.eid && src.from && flow[src.from]; i++) src = flow[src.from];
-    if (src && src.eid) eids = [src.eid];
-    else {
-      const linked = new Set(Object.values(flow).filter((x) => x && x.eid && x.st !== "cancelled").map((x) => x.eid));
-      const cut = String((src && src.at) || v.at || "");
-      eids = Object.entries(st).filter(([id, e]) => e && e.st === "approved" && !linked.has(id) && String(e.at2 || "") <= cut && Object.keys(nz(e.sz)).some((k) => keys.includes(k))).map(([id]) => id);
+    const share = {};
+    if (src && src.eid) {
+      const e = st[src.eid];
+      if (e) for (const k of keys) if (+((e.sz || {})[k]) > 0) (share[k] = share[k] || {})[src.eid] = Math.min(+e.sz[k], +cells[k] || 0);
+    } else {
+      let tf = src && src.stage === "thread" ? Object.keys(flow).find((id) => flow[id] === src) : null;
+      if (!tf) {
+        const cut = String(v.at || "");
+        const cand = Object.entries(flow).filter(([, x]) => x && x.stage === "thread" && !x.eid && x.st !== "cancelled" && (!v.fromW || x.w === v.fromW) && String(x.at || "") <= cut && keys.some((k) => +((x.sz || {})[k]) > 0)).sort((a, b) => String(b[1].at || "").localeCompare(String(a[1].at || "")));
+        tf = cand.length ? cand[0][0] : null;
+      }
+      const lm = tf ? legacyMakers(v.lot)[tf] || {} : {};
+      for (const k of keys) {
+        let need = +cells[k] || 0;
+        for (const [id, n] of Object.entries(lm[k] || {})) {
+          if (!need) break;
+          const q = Math.min(n, need);
+          need -= q;
+          (share[k] = share[k] || {})[id] = q;
+        }
+      }
     }
     const by = {}, ck = {};
-    for (const id of eids) {
+    for (const o of Object.values(share)) for (const [id, n] of Object.entries(o)) {
       const e = st[id];
-      if (!e) continue;
-      const n = Object.entries(nz(e.sz)).reduce((a, [k, c]) => a + (keys.includes(k) ? +c || 0 : 0), 0);
-      if (n) {
-        by[e.w] = (by[e.w] || 0) + n;
-        if (e.by2) ck[e.by2] = (ck[e.by2] || 0) + n;
-      }
+      if (!e || !n) continue;
+      by[e.w] = (by[e.w] || 0) + n;
+      if (e.by2) ck[e.by2] = (ck[e.by2] || 0) + n;
     }
     const nmOf = (id) => id === "owner" ? "Owner" : (W(id) || { name: "?" }).name;
     const fmt = (o) => {
