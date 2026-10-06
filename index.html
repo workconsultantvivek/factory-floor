@@ -2347,6 +2347,39 @@ ${url}`;
     return { [nid]: copy, [fid]: { missBack: nid } };
   }
   const missFixing = new Set();
+  function makerLis(v, cells, withChecker) {
+    const keys = Object.keys(nz(cells));
+    const st = (v.lot.prog || {}).stitching || {};
+    const flow = v.lot.flow || {};
+    let eids = [];
+    let src = v.eid ? v : v.from && flow[v.from];
+    for (let i = 0; i < 6 && src && !src.eid && src.from && flow[src.from]; i++) src = flow[src.from];
+    if (src && src.eid) eids = [src.eid];
+    else {
+      const linked = new Set(Object.values(flow).filter((x) => x && x.eid && x.st !== "cancelled").map((x) => x.eid));
+      const cut = String((src && src.at) || v.at || "");
+      eids = Object.entries(st).filter(([id, e]) => e && e.st === "approved" && !linked.has(id) && String(e.at2 || "") <= cut && Object.keys(nz(e.sz)).some((k) => keys.includes(k))).map(([id]) => id);
+    }
+    const by = {}, ck = {};
+    for (const id of eids) {
+      const e = st[id];
+      if (!e) continue;
+      const n = Object.entries(nz(e.sz)).reduce((a, [k, c]) => a + (keys.includes(k) ? +c || 0 : 0), 0);
+      if (n) {
+        by[e.w] = (by[e.w] || 0) + n;
+        if (e.by2) ck[e.by2] = (ck[e.by2] || 0) + n;
+      }
+    }
+    const nmOf = (id) => id === "owner" ? "Owner" : (W(id) || { name: "?" }).name;
+    const fmt = (o) => {
+      const ws = Object.entries(o);
+      return ws.map(([w, n]) => esc(nmOf(w)) + (ws.length > 1 ? ` (${n})` : "")).join(", ");
+    };
+    const out = [];
+    if (Object.keys(by).length) out.push(`<li>Stitcher: <b>${fmt(by)}</b></li>`);
+    if (withChecker && Object.keys(ck).length) out.push(`<li>Checker: <b>${fmt(ck)}</b></li>`);
+    return out.join("");
+  }
   function flowNewView(stage) {
     const m = me();
     if (stage === "ironing") for (const v of flowItems("ironing")) {
@@ -2360,30 +2393,7 @@ ${url}`;
     const tot = items.reduce((a, v) => a + (+v.q || 0), 0);
     let h = `<div class="row spread"><h2>New lots</h2><span class="small muted">${tot} pcs in hand</span></div>`;
     if (!items.length) return h + `<div class="empty"><h3>No lot in hand</h3>${stage === "thread" ? "Lots the checker hands over to you appear here." : "Lots the thread cutter hands over to you appear here."}</div>`;
-    const stitchersOf = (v, cells) => {
-      const keys = Object.keys(nz(cells));
-      const st = (v.lot.prog || {}).stitching || {};
-      const flow = v.lot.flow || {};
-      let eids = [];
-      const src = v.eid ? v : v.from && flow[v.from];
-      if (src && src.eid) eids = [src.eid];
-      else {
-        const linked = new Set(Object.values(flow).filter((x) => x && x.eid && x.st !== "cancelled").map((x) => x.eid));
-        const cut = String((src && src.at) || v.at || "");
-        eids = Object.entries(st).filter(([id, e]) => e && e.st === "approved" && !linked.has(id) && String(e.at2 || "") <= cut && Object.keys(nz(e.sz)).some((k) => keys.includes(k))).map(([id]) => id);
-      }
-      const by = {};
-      for (const id of eids) {
-        const e = st[id];
-        if (!e) continue;
-        const n = Object.entries(nz(e.sz)).reduce((a, [k, c]) => a + (keys.includes(k) ? +c || 0 : 0), 0);
-        if (n) by[e.w] = (by[e.w] || 0) + n;
-      }
-      const ws = Object.entries(by);
-      if (!ws.length) return "";
-      const nmOf = (id) => (W(id) || { name: "?" }).name;
-      return `<li>Stitcher: <b>${ws.map(([w, n]) => esc(nmOf(w)) + (ws.length > 1 ? ` (${n})` : "")).join(", ")}</b></li>`;
-    };
+    const stitchersOf = (v, cells) => makerLis(v, cells, false);
     const card = (v, cells, q, key) => {
       const from = W(v.fromW || v.by);
       const stLi = stitchersOf(v, cells);
@@ -2643,6 +2653,7 @@ ${url}`;
       return `<div class="card list" style="gap:8px">
     <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(s.lot.design, szCols(s.sz))}<div style="min-width:0;flex:1"><span class="lotno" style="font-size:1.15rem">${esc(s.lot.lotNo)}</span> ${bunTitle(s.lot, s.sz)}<div class="small muted">ironed by ${esc(w.name)} \xB7 ${fmtDate(String(s.doneAt).slice(0, 10))}</div></div>
     <div><div class="left">${s.q}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
+    ${(() => { const li = makerLis(s, s.sz, true); return li ? `<ul class="tl small" style="margin:0">${li}</ul>` : ""; })()}
     ${openRows(nz(s.sz))}
     <button class="btn accent" data-whrcv="${s.lot.id}|${s.fid}" style="align-self:flex-start">Count &amp; receive</button></div>`;
     }).join("");
