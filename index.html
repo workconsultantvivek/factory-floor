@@ -4109,20 +4109,47 @@ ${url}`;
   }
   function stitchPay(lot, wid) {
     const cap = sumCells(recvList(lot, "stitching").filter((v) => v.w === wid));
-    const seen = {}, out = {};
-    const ents = Object.entries((lot.prog || {}).stitching || {}).filter(([, v]) => v && v.w === wid && (v.st === "received" || v.st === "approved")).sort((a, b) => String(a[1].rat || a[1].at || a[1].date).localeCompare(String(b[1].rat || b[1].at || b[1].date)));
-    for (const [eid, v] of ents) {
-      const o = {};
+    const seen = {}, owed = {}, out = {}, hist = {};
+    const ents = Object.entries((lot.prog || {}).stitching || {}).filter(([, v]) => v && v.w === wid && (v.st === "received" || v.st === "approved"));
+    const evs = ents.map(([eid, v]) => ({ t: String(v.rat || v.at || v.date || ""), o: 0, eid, v })).concat(Object.values(lot.irAlt || {}).filter((v) => v && v.w === wid && v.at).map((v) => ({ t: String(v.at), o: 1, ir: v }))).sort((x, y) => x.t.localeCompare(y.t) || x.o - y.o);
+    for (const ev of evs) {
+      if (ev.ir) {
+        for (const [k, n] of Object.entries(nz(ev.ir.sz || {}))) {
+          let need = +n || 0;
+          const hs = hist[k] || [];
+          for (let i = hs.length - 1; i >= 0 && need > 0; i--) {
+            const d = Math.min(hs[i].q, need);
+            if (d <= 0) continue;
+            hs[i].q -= d;
+            out[hs[i].eid][k] -= d;
+            if (!out[hs[i].eid][k]) delete out[hs[i].eid][k];
+            need -= d;
+            owed[k] = (owed[k] || 0) + d;
+          }
+        }
+        continue;
+      }
+      const v = ev.v, o = {};
       const keys = new Set(Object.keys(v.sz || {}).concat(Object.keys(v.altSz || {}), Object.keys(v.rejSz || {})));
       for (const k of keys) {
-        const got = (+(v.sz || {})[k] || 0) + (v.st === "approved" ? (+(v.altSz || {})[k] || 0) + (+(v.rejSz || {})[k] || 0) : 0);
-        const rej = v.st === "approved" ? +(v.rejSz || {})[k] || 0 : 0;
+        const ap = v.st === "approved";
+        const got = (+(v.sz || {})[k] || 0) + (ap ? (+(v.altSz || {})[k] || 0) + (+(v.rejSz || {})[k] || 0) : 0);
+        const rej = ap ? +(v.rejSz || {})[k] || 0 : 0;
+        const alt = ap ? +(v.altSz || {})[k] || 0 : 0;
         const take = Math.max(0, Math.min(got, (cap[k] || 0) - (seen[k] || 0)));
         seen[k] = (seen[k] || 0) + take;
-        const pay = Math.max(0, take - rej);
-        if (pay) o[k] = pay;
+        const fix = Math.max(0, Math.min(got - take, owed[k] || 0));
+        owed[k] = (owed[k] || 0) - fix;
+        const tot = take + fix;
+        const altIn = Math.min(alt, tot);
+        owed[k] += altIn;
+        const pay = Math.max(0, tot - altIn - Math.min(rej, tot - altIn));
+        if (pay) {
+          o[k] = pay;
+          (hist[k] || (hist[k] = [])).push({ eid: ev.eid, q: pay });
+        }
       }
-      out[eid] = o;
+      out[ev.eid] = o;
     }
     return out;
   }
@@ -4233,7 +4260,7 @@ ${url}`;
       })()}</span><span class="cksum"><span>Submitted <b>${it.sub}</b></span><span class="ok">Received <b>${it.got}</b></span>${it.alt ? `<span class="warn">Alter <b>${it.alt}</b></span>` : ""}${it.rej ? `<span style="color:var(--bad)">Reject <b>${it.rej}</b></span>` : ""}<span>Pay <b>${inr(it.pay)}</b></span></span></div>${stt}</div>`;
     }).join("")}</td></tr>` : ""}`).join("")}
     <tr class="dtot"><td><b>Total</b></td><td><b>${tot.sub}</b></td><td><b>${tot.got}</b></td><td><b>${inr(tot.pay)}</b></td></tr></tbody></table></div>
-    <p class="small muted" style="margin:0">Submitted counts every piece a stitcher handed in on that date (alter pieces handed in again are counted again). Pay counts received pieces once, minus rejected, at the design's stitching rate${per === "h1" || per === "h2" ? " \u2013 this is the pay cycle total" : ""}.</p>`;
+    <p class="small muted" style="margin:0">Submitted counts every piece a stitcher handed in on that date (alter pieces handed in again are counted again). Pay counts received pieces once, minus alter and rejected, at the design's stitching rate${per === "h1" || per === "h2" ? " \u2013 this is the pay cycle total" : ""}.</p>`;
     return h;
   }
   function doneView() {
