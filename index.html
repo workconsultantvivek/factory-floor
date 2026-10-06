@@ -2327,8 +2327,35 @@ ${url}`;
       }
     };
   }
+  function missCells(v) {
+    const o = {};
+    for (const [k, n] of Object.entries(v.sz || {})) {
+      const d = (+n || 0) - (+((v.wh || {}).sz || {})[k] || 0);
+      if (d > 0) o[k] = d;
+    }
+    return o;
+  }
+  function missBackPatch(v, fid, by) {
+    const sz = missCells(v);
+    const q = Object.values(sz).reduce((a, b) => a + b, 0);
+    if (!q) return null;
+    const nid = uid("f");
+    const now = (/* @__PURE__ */ new Date()).toISOString();
+    const copy = {};
+    for (const [k, x] of Object.entries(v)) if (!["lot", "fid", "wh", "doneAt", "irAltQ", "splitOf", "missBack"].includes(k)) copy[k] = x;
+    Object.assign(copy, { stage: "ironing", sz, q, st: "given", at: now, missOf: fid, missAt: (v.wh && v.wh.at) || now, missBy: (v.wh && v.wh.by) || by || "" });
+    return { [nid]: copy, [fid]: { missBack: nid } };
+  }
+  const missFixing = new Set();
   function flowNewView(stage) {
     const m = me();
+    if (stage === "ironing") for (const v of flowItems("ironing")) {
+      if (v.w !== m.id || v.st !== "done" || !v.wh || v.missBack || !(+v.wh.short > 0) || missFixing.has(v.lot.id + v.fid)) continue;
+      const patch = missBackPatch(v, v.fid, v.wh.by);
+      if (!patch) continue;
+      missFixing.add(v.lot.id + v.fid);
+      S.db.doc("lots/" + v.lot.id).update({ flow: patch }).catch(() => missFixing.delete(v.lot.id + v.fid));
+    }
     const items = flowItems(stage).filter((v) => v.w === m.id && v.st === "given");
     const tot = items.reduce((a, v) => a + (+v.q || 0), 0);
     let h = `<div class="row spread"><h2>New lots</h2><span class="small muted">${tot} pcs in hand</span></div>`;
@@ -2361,7 +2388,7 @@ ${url}`;
       const from = W(v.fromW || v.by);
       const stLi = stitchersOf(v, cells);
       return `<div class="card list" style="gap:8px">
-    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(v.lot.design, szCols(nz(cells)))}<div style="min-width:0;flex:1"><span class="lotno" style="font-size:1.2rem">${esc(v.lot.lotNo)}</span> ${bunTitle(v.lot, cells)}</div><div><div class="left">${q}</div><div class="small muted" style="text-align:right">pcs</div></div></div>
+    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(v.lot.design, szCols(nz(cells)))}<div style="min-width:0;flex:1"><span class="lotno" style="font-size:1.2rem">${esc(v.lot.lotNo)}</span> ${bunTitle(v.lot, cells)}${v.missOf ? `<div style="margin-top:4px"><span class="chip rejected">Missing at warehouse</span> <span class="small muted">counted ${fmtDT(v.missAt)}${W(v.missBy) ? " by " + esc(W(v.missBy).name) : ""}</span></div>` : ""}</div><div><div class="left">${q}</div><div class="small muted" style="text-align:right">${v.missOf ? "missing" : "pcs"}</div></div></div>
     ${stage !== "ironing" ? (stLi ? `<ul class="tl small" style="margin:0">${stLi}</ul>` : "") : (() => {
         const nm = (id) => id === "owner" ? "Owner" : (W(id) || { name: "?" }).name;
         let src = v.from && (v.lot.flow || {})[v.from];
@@ -2585,8 +2612,9 @@ ${url}`;
       let status;
       if (!wh) status = `<span class="chip pending">Pending</span>`;
       else if (full) status = `<span class="chip approved">Completed</span>`;
+      else if (v.missBack) status = `<span class="chip approved">Received ${wh.q}</span> <span class="small muted">${Math.max(0, v.q - wh.q)} missing \xB7 moved back to New lots</span>`;
       else status = `<span class="chip pending">Received ${wh.q}</span> <span class="chip rejected">Not received ${Math.max(0, v.q - wh.q)}</span>`;
-      const missing = wh && !full ? (() => {
+      const missing = wh && !full && !v.missBack ? (() => {
         const o = {};
         for (const [k, n] of Object.entries(v.sz || {})) {
           const d = (+n || 0) - (+(wh.sz || {})[k] || 0);
@@ -2670,9 +2698,12 @@ ${url}`;
       const btn = e.target.querySelector("[type=submit]");
       btn.disabled = true;
       try {
-        await S.db.doc("lots/" + lid).update({ flow: { [fid]: { wh: { q: r.t, sz: r.sz, short: Math.max(0, s.q - r.t), by: me().id, at: (/* @__PURE__ */ new Date()).toISOString(), note: $("#wNote", sh).value.trim() } } } });
+        const whRec = { q: r.t, sz: r.sz, short: Math.max(0, s.q - r.t), by: me().id, at: (/* @__PURE__ */ new Date()).toISOString(), note: $("#wNote", sh).value.trim() };
+        const back = whRec.short > 0 ? missBackPatch(__spreadProps(__spreadValues({}, s), { wh: whRec }), fid, me().id) : null;
+        if (back) back[fid] = { wh: whRec, missBack: back[fid].missBack };
+        await S.db.doc("lots/" + lid).update({ flow: back || { [fid]: { wh: whRec } } });
         closeSheet();
-        toast(r.t + " pcs received in warehouse" + (s.q - r.t ? " \xB7 " + (s.q - r.t) + " short" : ""));
+        toast(r.t + " pcs received in warehouse" + (s.q - r.t ? " \xB7 " + (s.q - r.t) + " missing sent back to ironing" : ""));
       } catch (x) {
         btn.disabled = false;
         writeErr(x);
@@ -3518,7 +3549,7 @@ ${url}`;
       else if (v.st === "done" && !v.wh) add(sent, v.sz);
       if (v.wh) {
         add(whs, v.wh.sz);
-        for (const [k, n] of Object.entries(v.sz || {})) sh[k] = (sh[k] || 0) + Math.max(0, (+n || 0) - (+(v.wh.sz || {})[k] || 0));
+        if (!v.missBack) for (const [k, n] of Object.entries(v.sz || {})) sh[k] = (sh[k] || 0) + Math.max(0, (+n || 0) - (+(v.wh.sz || {})[k] || 0));
       }
     }
     for (const [w, c] of Object.entries(irs)) push("fin", "Ironing", nm(w), c);
