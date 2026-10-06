@@ -2909,7 +2909,10 @@ ${url}`;
     for (const r of recs) {
       const d = pool[r.lot.design] || {};
       const base = {};
-      for (const [k, n] of Object.entries(nz(r.wh.sz))) {
+      const lock = r.wh.lockUw || {};
+      for (const [k, n0] of Object.entries(nz(r.wh.sz))) {
+        const n = Math.max(0, +n0 - (+lock[k] || 0));
+        if (!n) continue;
         const take = Math.min(+n, d[k] || 0);
         if (take) d[k] -= take;
         if (+n - take > 0) base[k] = +n - take;
@@ -2917,7 +2920,8 @@ ${url}`;
       r.base = base;
       r.baseQ = Object.values(base).reduce((a, b) => a + b, 0);
       r.split = r.wh.split || null;
-      const done = r.wh.uwDone || {};
+      const done = {};
+      for (const [k, n] of Object.entries(r.wh.uwDone || {})) done[k] = Math.max(0, (+n || 0) - (+lock[k] || 0));
       const left = {};
       if (r.split) for (const [k, n] of Object.entries(nz(r.split.uw))) if (+n - (+done[k] || 0) > 0) left[k] = +n - (+done[k] || 0);
       r.uwLeft = left;
@@ -3111,16 +3115,18 @@ ${url}`;
   function whCanUndoSplit(key) {
     if (!canUwPush()) return false;
     const r = whRecFind(key);
-    return !!(r && r.split && !Object.values(r.wh.uwDone || {}).some((n) => +n > 0));
+    return !!(r && r.split && r.uwLeftQ > 0);
   }
   async function whUndoSplit(key) {
     const r = whRecFind(key);
-    if (!r || !whCanUndoSplit(key)) return toast("Can't undo \u2013 some pieces are already pushed to Uniware.");
+    if (!r || !whCanUndoSplit(key)) return toast("Can't undo \u2013 all pieces are already pushed to Uniware.");
     const kill = {};
     for (const [id, p] of Object.entries((S.cfg || {}).uwPush || {})) if (p && p.rec === key && p.fac === "B2B") kill[id] = null;
     if (Object.keys(kill).length) await S.db.doc("config/main").update({ uwPush: kill });
-    await S.db.doc("lots/" + r.lot.id).update(whRecPatch(r, { split: null }));
-    toast(r.lot.lotNo + " is back in Received in Warehouse");
+    const lockUw = {};
+    for (const [k, n] of Object.entries(r.wh.uwDone || {})) if (+n > 0) lockUw[k] = +n;
+    await S.db.doc("lots/" + r.lot.id).update(whRecPatch(r, Object.keys(lockUw).length ? { split: null, lockUw } : { split: null }));
+    toast(r.lot.lotNo + " is back in Received in Warehouse" + (Object.keys(lockUw).length ? " (pieces already pushed stay pushed)" : ""));
   }
   function uwHistView() {
     const cur = ym(/* @__PURE__ */ new Date());
