@@ -2934,7 +2934,7 @@ ${url}`;
   function whRecCard(r, cells, q, extra, btn) {
     const by = W(r.wh.by);
     return `<div class="card list" style="gap:8px">
-    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.15rem">${esc(r.lot.lotNo)}</span> ${bunTitle(r.lot, cells)}
+    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(r.lot.design, szCols(nz(cells)))}<div style="min-width:0;flex:1"><span class="lotno" style="font-size:1.15rem">${esc(r.lot.lotNo)}</span> ${bunTitle(r.lot, cells)}
     <ul class="tl small" style="margin:4px 0 0"><li>Received by: ${by ? esc(by.name) : r.wh.by === "owner" ? "Owner" : "?"} (${fmtDT(r.wh.at)})</li>${extra || ""}</ul></div>
     <div><div class="left">${q}</div><div class="small muted" style="text-align:right">pcs</div></div></div>${btn}</div>`;
   }
@@ -3140,7 +3140,7 @@ ${url}`;
       const l = p.lot && S.lots[p.lot];
       const skus = Object.entries(p.ok || {}).filter(([, q]) => +q > 0).map(([k, q]) => `<span class="chip line">${esc(uwSku(p.design, ...splitCK(k)))} <b>${q}</b></span>`).join("");
       const canUndo = p.rec && whCanUndoSplit(p.rec);
-      return `<div class="card list" style="gap:6px"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0">${p.lotNo || l ? `<span class="lotno">${esc(p.lotNo || l.lotNo)}</span> ` : ""}<span class="dname">${esc(p.design)}</span>
+      return `<div class="card list" style="gap:6px"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(p.design, szCols(nz(p.ok || {})))}<div style="min-width:0;flex:1">${p.lotNo || l ? `<span class="lotno">${esc(p.lotNo || l.lotNo)}</span> ` : ""}<span class="dname">${esc(p.design)}</span>
       <ul class="tl small" style="margin:4px 0 0"><li>${p.fac === "B2B" ? "B2B merchant took" : "Pushed to: <b>" + esc(facName(p.fac)) + "</b>"}</li><li>By: ${esc(p.byName || (W(p.by) || { name: "?" }).name)} (${fmtDT(p.at)})</li>${p.failed ? `<li style="color:var(--bad)">${p.failed} SKU failed</li>` : ""}</ul></div>
       <div><div class="left">${n}</div><div class="small muted" style="text-align:right">pcs</div></div></div><div class="row" style="gap:5px;flex-wrap:wrap">${skus}</div>${canUndo ? `<button class="btn alt sm" data-whundo="${esc(p.rec)}" style="align-self:flex-start">Undo split</button>` : ""}</div>`;
     }).join("");
