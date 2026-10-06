@@ -2693,7 +2693,7 @@ ${url}`;
         }
         return o;
       })() : null;
-      return `<div class="card list" style="gap:6px"><div class="row spread" style="align-items:flex-start"><span><span class="lotno">${esc(v.lot.lotNo)}</span> ${bunTitle(v.lot, v.sz)} <span class="small muted" style="display:block">sent ${fmtDT(v.doneAt)}${v.irAltQ ? " \xB7 " + v.irAltQ + " alter back to stitcher" : ""}${(() => {
+      return `<div class="card list" style="gap:6px"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(v.lot.design, szCols(nz(v.sz)))}<span style="min-width:0;flex:1"><span class="lotno">${esc(v.lot.lotNo)}</span> ${bunTitle(v.lot, v.sz)} <span class="small muted" style="display:block">sent ${fmtDT(v.doneAt)}${v.irAltQ ? " \xB7 " + v.irAltQ + " alter back to stitcher" : ""}${(() => {
         const r = rateOf(v.lot), g = v.wh ? Math.min(+v.wh.q || 0, +v.q || 0) : 0;
         return r != null && g ? " \xB7 <b>" + inr(g * r) + "</b>" : "";
       })()}</span></span><b>${v.q} pcs</b></div>
