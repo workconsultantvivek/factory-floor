@@ -4110,7 +4110,7 @@ ${url}`;
       const r = lotWhere(l);
       return `${markedCellRows(l, r)}${whereBar(r.grp, r.total)}${whereChips(r.grp)}`;
     })() : cellRows(l, null)}
-    ${!(o && o.where) && canEditCut(l) ? `<button type="button" class="btn alt sm" data-editcut="${l.id}" style="align-self:flex-start">Edit</button>` : ""}
+    ${!(o && o.where) && canEditCut(l) ? `<button type="button" class="btn accent sm" data-editcut="${l.id}" style="align-self:flex-start">Edit</button>` : ""}
   </div>`;
   }
   function stitchPay(lot, wid) {
