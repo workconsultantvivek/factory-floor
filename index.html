@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0510-1912";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="0710-1830";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -3923,17 +3923,20 @@ ${url}`;
     <label class="f">Stitcher (who actually got this bundle)<select id="eaW"></select></label>
     <div class="card list" style="gap:12px" id="eaBox"></div>
     <label class="row small" id="eaCutWrap" style="gap:8px;display:none;flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="eaCut" checked> <span id="eaCutTxt"></span></label>
+    <label class="row small" id="eaGotWrap" style="gap:8px;display:none;flex-wrap:nowrap;align-items:flex-start"><input type="checkbox" id="eaGot"> <span id="eaGotTxt"></span></label>
     <div id="eaErr" class="err"></div>
     <button class="btn accent big" type="submit">Save</button>
     <button class="btn alt" type="button" id="eaSize">Change size instead</button></form>`, { short: true });
     $("#eaSize", sh).onclick = () => editSizeSheet(lid, a.w);
-    let a, used, free, keys;
+    let a, used, free, keys, oaLeft = 0, gotAuto = null;
     const load = () => {
       const lot = S.lots[lid];
       a = recvList(lot, "stitching").find((x) => x.rid === $("#eaR", sh).value);
       const sts = activeWorkers().filter((w) => w.role === "Stitcher" || w.id === a.w);
       $("#eaW", sh).innerHTML = sts.map((w) => `<option value="${w.id}" ${w.id === a.w ? "selected" : ""}>${esc(w.name)}${w.id === a.w ? " (now)" : ""}</option>`).join("");
       const oa = allocOpen(lot, a.w).find((x) => x.rid === a.rid) || { left: {} };
+      oaLeft = +oa.total || 0;
+      gotAuto = null;
       used = {};
       for (const [k, q] of Object.entries(a.sz || {})) used[k] = Math.max(0, (+q || 0) - (+oa.left[k] || 0));
       free = toReceive(lot, "stitching").left;
@@ -3964,9 +3967,24 @@ ${url}`;
       const ex = Object.entries(r.extra);
       $("#eaCutWrap", sh).style.display = ex.length ? "" : "none";
       $("#eaCutTxt", sh).innerHTML = ex.length ? `The lot has no more ${ex.map(([k]) => esc(splitCK(k)[1])).join(", ")} left to give. Also add <b>${ex.map(([k, n]) => n + " " + esc(splitCK(k)[1])).join(", ")}</b> to the cut lot (cutting count was short).` : "";
+      const usedT = Object.values(used).reduce((x, y) => x + y, 0);
+      const open = {};
+      let openT = 0, raised = 0;
+      for (const k of keys) {
+        const n = Math.max(0, (r.o[k] || 0) - (used[k] || 0));
+        if (n) { open[k] = n; openT += n; }
+        raised += Math.max(0, (r.o[k] || 0) - (+a.sz[k] || 0));
+      }
+      const gw = W($("#eaW", sh).value || a.w) || { name: "the stitcher" };
+      const showGot = usedT > 0 && openT > 0;
+      $("#eaGotWrap", sh).style.display = showGot ? "" : "none";
+      $("#eaGotTxt", sh).innerHTML = showGot ? `${esc(gw.name)} already handed over these <b>${openT} pcs</b> (${fmtCells(open, l.design)}) \u2014 add them to ${esc(gw.name)}'s Completed as received now. Leave unticked if they are still being stitched.` : "";
+      const auto = showGot && raised > 0 && oaLeft === 0;
+      if (gotAuto !== auto) { gotAuto = auto; $("#eaGot", sh).checked = auto; }
       $("#eaErr", sh).textContent = r.bad;
     };
     $("#eaR", sh).onchange = load;
+    $("#eaW", sh).onchange = () => upd();
     sh.addEventListener("input", (e) => {
       if (e.target.dataset.eak != null) upd();
     });
@@ -3981,7 +3999,15 @@ ${url}`;
       const q = Object.values(r.o).reduce((x, y) => x + y, 0);
       if (!q) return $("#eaErr", sh).textContent = "To take back the whole lot, use Cancel in Allocated.";
       const nw = $("#eaW", sh).value || a.w, moveW = nw !== a.w;
-      if (!moveW && keys.every((k) => r.o[k] === (+a.sz[k] || 0))) return closeSheet();
+      const gotOn = $("#eaGotWrap", sh).style.display !== "none" && $("#eaGot", sh).checked;
+      const gotSz = {};
+      let gotQ = 0;
+      if (gotOn) for (const k of keys) {
+        const n = Math.max(0, (r.o[k] || 0) - (used[k] || 0));
+        if (n) { gotSz[k] = n; gotQ += n; }
+      }
+      const same = keys.every((k) => r.o[k] === (+a.sz[k] || 0));
+      if (!moveW && same && !gotQ) return closeSheet();
       const lot = S.lots[lid];
       const patch = { recv: { stitching: { [a.rid]: moveW ? { sz: r.o, q, w: nw } : { sz: r.o, q } } } };
       const moves = [];
@@ -4010,11 +4036,28 @@ ${url}`;
         if (ce) patch.prog = { cutting: { [ce[0]]: { sz: lot.cells ? ch : nc, q: total } } };
         fix.cutAdded = Object.fromEntries(ex);
       }
+      let gotEid = null, gotEnt = null, gotMon = "";
+      if (gotQ) {
+        const now = (/* @__PURE__ */ new Date()).toISOString(), date = today(), m = me();
+        const rate = lot.rates && lot.rates.stitching != null ? +lot.rates.stitching : null;
+        gotEid = uid("e");
+        gotMon = date.slice(0, 7);
+        fix.handedOver = gotSz;
+        ((patch.prog = patch.prog || {}).stitching = patch.prog.stitching || {})[gotEid] = { w: nw, q: gotQ, sz: gotSz, st: "received", date, at: now, rid: a.rid, rate, rq: gotQ, short: 0, rby: m.id, rat: now, rNote: "added with bundle edit" };
+        gotEnt = { date, lotId: lid, stage: "stitching", qty: gotQ, sz: gotSz, rej: 0, note: "added with bundle edit", status: "received", rate, at: now, by: (W(nw) || {}).name || "", rid: a.rid, submitted: gotQ, short: 0, receivedBy: m.name, receivedAt: now, receiveNote: "added with bundle edit" };
+      }
       patch.fixes = { [uid("x")]: fix };
       const btn = e.target.querySelector("[type=submit]");
       btn.disabled = true;
       try {
         await S.db.doc("lots/" + lid).update(patch);
+        if (gotEid) {
+          try {
+            await upsert("work/" + nw + "_" + gotMon, { entries: { [gotEid]: gotEnt } }, { workerId: nw, month: gotMon });
+          } catch (x) {
+            console.warn("work doc", x);
+          }
+        }
         for (const [eid, mon] of moves) {
           try {
             const from = await S.db.doc("work/" + a.w + "_" + mon).get();
@@ -4028,7 +4071,7 @@ ${url}`;
           }
         }
         closeSheet();
-        toast((moveW ? "Bundle moved from " + nm(a.w) + " to " + nm(nw) + " \xB7 " : "") + nm(nw) + " now has " + q + " pcs from " + l.lotNo + (ex.length ? " \xB7 cut lot updated" : ""));
+        toast((moveW ? "Bundle moved from " + nm(a.w) + " to " + nm(nw) + " \xB7 " : "") + nm(nw) + " now has " + q + " pcs from " + l.lotNo + (ex.length ? " \xB7 cut lot updated" : "") + (gotQ ? " \xB7 " + gotQ + " pcs added to Completed" : ""));
         render();
       } catch (x) {
         btn.disabled = false;
