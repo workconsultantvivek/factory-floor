@@ -1087,11 +1087,23 @@ ${url}`;
     }).join("");
     return h;
   }
+  const subBusy = /* @__PURE__ */ new Set();
   async function submitAlloc(lid, rid) {
+    if (subBusy.has(lid + "|" + rid)) return 0;
+    subBusy.add(lid + "|" + rid);
+    try {
+      return await submitAllocOnce(lid, rid);
+    } finally {
+      setTimeout(() => subBusy.delete(lid + "|" + rid), 5e3);
+    }
+  }
+  async function submitAllocOnce(lid, rid) {
     const m = me();
     const st = "stitching";
     const lot = S.lots[lid];
     if (!lot) return 0;
+    const recent = Object.values((lot.prog || {})[st] || {}).some((v) => v && v.rid === rid && v.w === m.id && v.st !== "withdrawn" && v.st !== "rejected" && Date.now() - Date.parse(v.at || 0) < 3e5);
+    if (recent) return 0;
     const a = allocOpen(lot, m.id).find((x) => x.rid === rid);
     if (!a || !a.total) return 0;
     const sz = {};
@@ -1696,7 +1708,27 @@ ${url}`;
     for (const l of lotsSorted()) for (const [eid, v] of Object.entries((l.prog || {}).stitching || {})) if (v && (Array.isArray(status) ? status.includes(v.st) : v.st === status)) out.push(__spreadValues({ lot: l, eid }, v));
     return out;
   }
+  function dupOf(s) {
+    if (!s || !s.rid) return null;
+    const key = JSON.stringify(nz(s.sz || {}));
+    const t = Date.parse(s.at || 0);
+    for (const [eid, u] of Object.entries((s.lot.prog || {}).stitching || {})) {
+      if (eid === s.eid || !u || u.st === "withdrawn" || u.st === "rejected") continue;
+      if (u.rid !== s.rid || u.w !== s.w || +u.q !== +s.q || JSON.stringify(nz(u.sz || {})) !== key) continue;
+      const tu = Date.parse(u.at || 0);
+      if (Math.abs(tu - t) > 3e5) continue;
+      if (tu < t || tu === t && eid < s.eid) return eid;
+    }
+    return null;
+  }
+  function dupBtns(s, btns) {
+    if (!dupOf(s)) return btns;
+    const m = me();
+    const can = m && (isBoss() || m.role === "Checker" || m.role === "Lot receiver");
+    return `<span class="chip rejected">Duplicate \u2013 same submission saved twice</span>${can ? `<button class="btn bad sm" data-deldup="${s.lot.id}|${s.eid}">Remove duplicate</button>` : ""}`;
+  }
   function subCard(s, btns, extra) {
+    btns = dupBtns(s, btns);
     const nm = (id) => id === "owner" ? "Owner" : (W(id) || { name: "?" }).name;
     const a = s.rid && ((s.lot.recv || {}).stitching || {})[s.rid];
     return `<div class="card list" style="gap:8px">
@@ -5384,7 +5416,7 @@ ${url}`;
         }
         t.disabled = true;
         const q = await submitAlloc(lid, rid);
-        toast(q + " pcs submitted \xB7 the lot receiver will count them");
+        toast(q ? q + " pcs submitted \xB7 the lot receiver will count them" : "Already submitted");
         halfSel = null;
         S.month = ym(/* @__PURE__ */ new Date());
         S.tab = "done";
@@ -5463,6 +5495,25 @@ ${url}`;
       }
       if (d.alloc) {
         allocSheet(d.alloc);
+        return;
+      }
+      if (d.deldup) {
+        if (!t.dataset.sure) {
+          t.dataset.sure = "1";
+          t.textContent = "Tap again to remove";
+          return;
+        }
+        const [lid, eid] = d.deldup.split("|");
+        const v = ((S.lots[lid] || {}).prog || {}).stitching && S.lots[lid].prog.stitching[eid];
+        if (!v || !dupOf(__spreadValues({ lot: __spreadValues({ id: lid }, S.lots[lid]), eid }, v))) {
+          toast("Not a duplicate any more");
+          return;
+        }
+        t.disabled = true;
+        await S.db.doc("lots/" + lid).update({ prog: { stitching: { [eid]: { st: "withdrawn", q: 0, dup: true } } } });
+        await S.db.doc("work/" + v.w + "_" + String(v.date || "").slice(0, 7)).update({ entries: { [eid]: { status: "withdrawn", dup: true } } });
+        toast("Duplicate removed");
+        render();
         return;
       }
       if (d.chkstart) {
