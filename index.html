@@ -1180,15 +1180,22 @@ ${url}`;
       irl.push(__spreadValues({ lot: l, id }, v));
     }
     irl.sort((a, b) => String(b.at).localeCompare(String(a.at)));
-    const irH = irl.map((v) => {
+    const wrl = [];
+    for (const l of lotsSorted()) for (const [id, v] of Object.entries(l.whRej || {})) if (v && v.w === m.id && Object.keys(nz(v.sz)).length && String(v.at || "").slice(0, 7) >= ym(new Date(Date.now() - 40 * 864e5))) wrl.push(__spreadValues({ lot: l, id }, v));
+    wrl.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+    const wrH = wrl.map((v) => `<div class="card list" style="gap:8px">
+      <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(v.lot.design, szCols(v.sz))}<div style="min-width:0;flex:1"><span class="lotno" style="font-size:1.15rem">${esc(v.lot.lotNo)}</span> ${bunTitle(v.lot, v.sz)}<div class="small muted">rejected at warehouse ${fmtDT(v.at)}${W(v.by) ? " by " + esc(W(v.by).name) : ""}</div></div><div style="text-align:right"><div class="left">${v.q}</div><div class="small muted">rejected</div></div></div>
+      ${v.note ? `<div class="small">Note: ${esc(v.note)}</div>` : ""}
+      <div class="small"><span class="chip rejected">Rejected ${v.q}</span> not paid</div></div>`).join("");
+    const irH = wrH + irl.map((v) => {
       const by = W(v.by);
       return `<div class="card list" style="gap:8px">
-      <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(v.lot.design, szCols(v.sz))}<div style="min-width:0;flex:1"><span class="lotno" style="font-size:1.15rem">${esc(v.lot.lotNo)}</span> ${bunTitle(v.lot, v.sz)}<div class="small muted">sent back from ironing ${fmtDT(v.at)}${by ? " by " + esc(by.name) : ""}</div></div><div style="text-align:right"><div class="left">${v.q}</div><div class="small muted">alter</div></div></div>
+      <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(v.lot.design, szCols(v.sz))}<div style="min-width:0;flex:1"><span class="lotno" style="font-size:1.15rem">${esc(v.lot.lotNo)}</span> ${bunTitle(v.lot, v.sz)}<div class="small muted">sent back from ${v.src === "wh" ? "warehouse" : "ironing"} ${fmtDT(v.at)}${by ? " by " + esc(by.name) : ""}</div></div><div style="text-align:right"><div class="left">${v.q}</div><div class="small muted">alter</div></div></div>
       ${v.note ? `<div class="small">Note: ${esc(v.note)}</div>` : ""}
-      ${v.st === "sent" ? `<div class="small"><span class="chip pending">Waiting \xB7 ${v.ckr ? "checker to allocate" : "checker to receive from ironing"}</span></div>` : `<div class="small"><span class="chip approved">Allocated ${fmtDT(v.rat)}</span> Fix them and submit from <b>New lots</b>.</div>`}
+      ${v.st === "sent" ? `<div class="small"><span class="chip pending">Waiting \xB7 ${v.ckr ? "checker to allocate" : "checker to receive from " + (v.src === "wh" ? "warehouse" : "ironing")}</span></div>` : `<div class="small"><span class="chip approved">Allocated ${fmtDT(v.rat)}</span> Fix them and submit from <b>New lots</b>.</div>`}
     </div>`;
     }).join("");
-    if (!list.length && !irl.length) return h + `<div class="empty"><h3>Nothing sent back</h3>When the checker or ironing marks pieces alter or reject, they show here.</div>`;
+    if (!list.length && !irl.length && !wrl.length) return h + `<div class="empty"><h3>Nothing sent back</h3>When the checker or ironing marks pieces alter or reject, they show here.</div>`;
     return h + irH + list.map((s) => {
       const l = s.lot;
       const open = myOpen(l, "stitching", m.id).total;
@@ -1774,7 +1781,7 @@ ${url}`;
         if (!v || v.st !== "sent") continue;
         const cells = nz(v.sz || {});
         const n = Object.values(cells).reduce((a, b) => a + (+b || 0), 0);
-        if (n) out.push({ kind: "ir", lot: l, id, w: v.w, cells, n, at: v.at, by: v.by, note: v.note, ckr: v.ckr, ckrBy: v.ckrBy });
+        if (n) out.push({ kind: "ir", lot: l, id, w: v.w, cells, n, at: v.at, by: v.by, note: v.note, ckr: v.ckr, ckrBy: v.ckrBy, src: v.src });
       }
     }
     return out.sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")));
@@ -1784,7 +1791,7 @@ ${url}`;
     const nm = (id) => id === "owner" ? "Owner" : (W(id) || { name: "?" }).name;
     let all = altQueue();
     const tot = all.reduce((a, x) => a + x.n, 0);
-    let h = `<div class="row spread"><h2>Allocate alter</h2><span class="small muted">${all.length} bundle${all.length === 1 ? "" : "s"} \xB7 ${tot} pcs</span></div><p class="small muted" style="margin:0">Alter pieces from checking and ironing. Ironing alter: first tap Receive when the ironing person hands the pieces to you. Then hand them back to the stitcher and tap Allocate – they then show in that stitcher's New lots.</p>`;
+    let h = `<div class="row spread"><h2>Allocate alter</h2><span class="small muted">${all.length} bundle${all.length === 1 ? "" : "s"} \xB7 ${tot} pcs</span></div><p class="small muted" style="margin:0">Alter pieces from checking, ironing and the warehouse. Ironing / warehouse alter: first tap Receive when the pieces are handed to you. Then hand them back to the stitcher and tap Allocate – they then show in that stitcher's New lots.</p>`;
     if (!all.length) return h + `<div class="empty"><h3>No alter pieces</h3>Pieces marked alter show here until you allocate them back.</div>`;
     return h + `<input class="search" type="search" id="altQ" placeholder="Search stitcher, lot no. or SKU" value="${esc(q)}" autocomplete="off"><div id="altList">${altListHtml()}</div>`;
   }
@@ -1795,7 +1802,7 @@ ${url}`;
     if (ql) all = all.filter((x) => [nm(x.w), x.lot.lotNo, x.lot.design, skuHay(x.lot.design, x.cells)].some((s) => String(s || "").toLowerCase().includes(ql)));
     if (!all.length) return `<div class="empty">No alter pieces match.</div>`;
     return `<div class="list">${all.map((x) => `<div class="card list" style="gap:8px">
-      <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(x.lot.design, szCols(x.cells))}<div style="min-width:0;flex:1"><b style="font-size:1.1rem">${esc(nm(x.w))}</b><div><span class="lotno">${esc(x.lot.lotNo)}</span> ${bunTitle(x.lot, x.cells)}</div><div class="small muted">${x.kind === "ir" ? "from ironing" : "checked"}${x.at ? " " + fmtDT(x.at) : ""}${x.by ? " by " + esc(nm(x.by)) : ""}</div></div><div style="text-align:right;flex:none"><div class="left">${x.n}</div><div class="small warn">alter</div></div></div>
+      <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(x.lot.design, szCols(x.cells))}<div style="min-width:0;flex:1"><b style="font-size:1.1rem">${esc(nm(x.w))}</b><div><span class="lotno">${esc(x.lot.lotNo)}</span> ${bunTitle(x.lot, x.cells)}</div><div class="small muted">${x.kind === "ir" ? (x.src === "wh" ? "from warehouse" : "from ironing") : "checked"}${x.at ? " " + fmtDT(x.at) : ""}${x.by ? " by " + esc(nm(x.by)) : ""}</div></div><div style="text-align:right;flex:none"><div class="left">${x.n}</div><div class="small warn">alter</div></div></div>
       ${x.note ? `<div class="small">Note: ${esc(x.note)}</div>` : ""}
       ${x.kind === "ir" && !x.ckr ? `<button class="btn go" data-altrecv="${x.lot.id}|${x.id}" style="align-self:flex-start">Receive alter from ${esc(nm(x.by))}</button>` : `${x.kind === "ir" ? `<div class="small"><span class="chip approved">Received from ${esc(nm(x.by))}</span> ${fmtDT(x.ckr)}${x.ckrBy ? " by " + esc(nm(x.ckrBy)) : ""}</div>` : ""}<button class="btn go" data-altalloc="${x.kind}|${x.lot.id}|${x.id}" style="align-self:flex-start">Allocate ${x.n} pcs to ${esc(nm(x.w))}</button>`}
     </div>`).join("")}</div>`;
@@ -3043,6 +3050,36 @@ ${url}`;
     if (!list.length) return h + `<div class="empty"><h3>Nothing to split</h3>Stock shows here once the sub manager receives it in the warehouse.</div>`;
     return h + list.map((r) => whRecCard(r, r.base, r.baseQ, r.wh.note ? `<li>Note: ${esc(r.wh.note)}</li>` : "", `<button class="btn accent" data-whsplit="${esc(whRecKey(r))}" style="align-self:flex-start">Split B2B / Uniware</button>`)).join("");
   }
+  function whMakers(r, keys) {
+    const l = r.lot, made = {};
+    let exact = false;
+    if (r.kind === "prog") {
+      const e = ((l.prog || {}).stitching || {})[r.id];
+      if (e && e.w) {
+        made[e.w] = 1;
+        exact = true;
+      }
+    } else {
+      const seen = /* @__PURE__ */ new Set();
+      let f = (l.flow || {})[r.id];
+      while (f && !seen.has(f)) {
+        seen.add(f);
+        if (f.eid) {
+          const e = ((l.prog || {}).stitching || {})[f.eid];
+          if (e && e.w) {
+            made[e.w] = 1;
+            exact = true;
+          }
+          break;
+        }
+        f = f.from ? (l.flow || {})[f.from] : null;
+      }
+    }
+    if (!Object.keys(made).length) for (const a of recvList(l, "stitching")) for (const k of keys) if (+((a.sz || {})[k]) > 0) made[a.w] = (made[a.w] || 0) + +a.sz[k];
+    if (!Object.keys(made).length) for (const e of Object.values((l.prog || {}).stitching || {})) if (e && e.st === "approved") for (const k of keys) if (+((e.sz || {})[k]) > 0) made[e.w] = (made[e.w] || 0) + +e.sz[k];
+    const ids = Object.keys(made).filter((id) => W(id)).sort((a, b) => made[b] - made[a]);
+    return { ids, exact };
+  }
   function whSplitSheet(key) {
     const r = whRecFind(key);
     if (!r || r.split) return toast("Already split.");
@@ -3050,38 +3087,80 @@ ${url}`;
       const [ca, za] = splitCK(a), [cb, zb] = splitCK(b);
       return ca.localeCompare(cb) || (SIZE_ORDER.indexOf(za) + 1 || 99) - (SIZE_ORDER.indexOf(zb) + 1 || 99);
     });
+    const mk = whMakers(r, keys);
+    const choices = mk.ids.length ? mk.ids : activeWorkers().filter((w) => w.role === "Stitcher").map((w) => w.id);
+    let picked = mk.ids.length === 1 ? mk.ids.slice() : [];
+    const sku = (k) => uwSku(r.lot.design, ...splitCK(k));
     const sh = sheet("Split " + r.lot.lotNo, `<form id="wsForm" class="list" novalidate>
     <div class="card list" style="gap:6px"><div>${bunTitle(r.lot, r.base)}</div><b>${r.baseQ} pcs received</b></div>
-    <div class="hint">Enter the pieces a B2B merchant took. The rest goes to <b>Push Uniware</b>.</div>
+    <div class="hint">Enter the pieces a B2B merchant took, and any <b>alter</b> or <b>reject</b> pieces found here. Alter goes back to the stitcher through the checker. Reject is cut from the stitcher's pay and never sold. The rest goes to <b>Push Uniware</b>.</div>
     <div class="tablewrap"><table class="dtab uwtab"><thead><tr><th>SKU</th><th>Pcs</th><th>B2B taken</th><th>Uniware</th></tr></thead><tbody>
-    ${keys.map((k) => `<tr><td><b>${esc(uwSku(r.lot.design, ...splitCK(k)))}</b></td><td>${r.base[k]}</td><td><input type="number" inputmode="numeric" min="0" max="${r.base[k]}" data-wsb="${esc(k)}" placeholder="0" style="width:56px;text-align:right;padding:6px 4px"></td><td class="wsu-${safeId(k)}">${r.base[k]}</td></tr>`).join("")}
+    ${keys.map((k) => `<tr><td><b>${esc(sku(k))}</b></td><td>${r.base[k]}</td><td><input type="number" inputmode="numeric" min="0" max="${r.base[k]}" data-wsb="${esc(k)}" placeholder="0" style="width:56px;text-align:right;padding:6px 4px"></td><td class="wsu-${safeId(k)}">${r.base[k]}</td></tr>`).join("")}
     </tbody></table></div>
+    <div class="card list" style="gap:10px"><b>Alter / reject found? Stitcher</b><div class="small muted">${mk.exact ? "Stitcher who made this bundle." : mk.ids.length ? "Stitchers who got this colour/size in " + esc(r.lot.lotNo) + ". Tap the one(s) whose pieces are bad." : "No stitcher found for this lot – pick one."}</div><div class="colchips" id="wsPick"></div></div>
+    <div id="wsAR"></div>
+    <label class="f">Note for stitcher (optional)<input id="wsNote" maxlength="120" placeholder="e.g. stain on front, side seam open"></label>
     <div class="row spread"><span class="small" id="wsSum"></span></div>
     <div id="wsErr" class="err"></div>
     <button class="btn accent big" type="submit">Save split</button></form>`);
+    const keep = () => {
+      const o = {};
+      sh.querySelectorAll("[data-wsx]").forEach((i) => {
+        if (i.value) o[i.dataset.wsx + "#" + i.dataset.k + "#" + i.dataset.who] = i.value;
+      });
+      return o;
+    };
     const read = () => {
-      const b2b = {}, uw = {};
-      let tb = 0, tu = 0, bad = "";
+      const b2b = {}, uw = {}, alt = {}, rej = {};
+      let tb = 0, tu = 0, ta = 0, tr = 0, bad = "";
+      const used = {};
+      sh.querySelectorAll("[data-wsx]").forEach((i) => {
+        const n = Math.round(Math.max(0, +i.value || 0));
+        if (!n) return;
+        const tgt = i.dataset.wsx === "a" ? alt : rej;
+        (tgt[i.dataset.who] = tgt[i.dataset.who] || {})[i.dataset.k] = n;
+        used[i.dataset.k] = (used[i.dataset.k] || 0) + n;
+        if (i.dataset.wsx === "a") ta += n;
+        else tr += n;
+      });
       for (const k of keys) {
         const b = Math.round(Math.max(0, +(sh.querySelector(`[data-wsb="${CSS.escape(k)}"]`) || {}).value || 0));
-        if (b > r.base[k]) bad = uwSku(r.lot.design, ...splitCK(k)) + ": B2B is more than " + r.base[k] + ".";
-        const u = Math.max(0, r.base[k] - b);
-        if (b) b2b[k] = Math.min(b, r.base[k]);
+        const bd = b + (used[k] || 0);
+        if (bd > r.base[k]) bad = sku(k) + ": B2B + alter + reject is more than " + r.base[k] + ".";
+        const u = Math.max(0, r.base[k] - bd);
+        if (b) b2b[k] = b;
         if (u) uw[k] = u;
-        tb += Math.min(b, r.base[k]);
+        tb += b;
         tu += u;
         const c = sh.querySelector(".wsu-" + safeId(k));
         if (c) c.textContent = u;
       }
-      return { b2b, uw, tb, tu, bad };
+      return { b2b, uw, alt, rej, tb, tu, ta, tr, bad };
     };
     const upd = () => {
       const x = read();
-      $("#wsSum", sh).innerHTML = `<b>${x.tu}</b> pcs to Uniware · <b>${x.tb}</b> B2B taken`;
+      $("#wsSum", sh).innerHTML = `<b>${x.tu}</b> pcs to Uniware · <b>${x.tb}</b> B2B taken${x.ta ? ` · <span class="warn"><b>${x.ta}</b> alter</span>` : ""}${x.tr ? ` · <span style="color:var(--bad)"><b>${x.tr}</b> reject</span>` : ""}`;
       $("#wsErr", sh).textContent = x.bad;
     };
-    upd();
+    const draw = () => {
+      $("#wsPick", sh).innerHTML = choices.map((id) => `<button type="button" class="colchip ${picked.includes(id) ? "on" : ""}" data-wspk="${id}">${picked.includes(id) ? "✓ " : ""}${esc(W(id).name)}</button>`).join("") || `<span class="small muted">Add stitchers in Team first.</span>`;
+      const k0 = keep();
+      $("#wsAR", sh).innerHTML = picked.length ? `<div class="tablewrap"><table class="dtab uwtab"><thead><tr><th>SKU</th>${picked.map((id) => `<th>Alter · ${esc(W(id).name)}</th><th>Reject · ${esc(W(id).name)}</th>`).join("")}</tr></thead><tbody>${keys.map((k) => `<tr><td><b>${esc(sku(k))}</b></td>${picked.map((id) => ["a", "r"].map((t) => `<td><input type="number" inputmode="numeric" min="0" max="${r.base[k]}" data-wsx="${t}" data-k="${esc(k)}" data-who="${id}" placeholder="0" style="width:56px;text-align:right;padding:6px 4px"></td>`).join("")).join("")}</tr>`).join("")}</tbody></table></div>` : "";
+      sh.querySelectorAll("[data-wsx]").forEach((i) => {
+        const v = k0[i.dataset.wsx + "#" + i.dataset.k + "#" + i.dataset.who];
+        if (v) i.value = v;
+      });
+      upd();
+    };
+    draw();
     sh.addEventListener("input", upd);
+    sh.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-wspk]");
+      if (!b) return;
+      const id = b.dataset.wspk;
+      picked = picked.includes(id) ? picked.filter((x) => x !== id) : picked.concat(id);
+      draw();
+    });
     $("#wsForm", sh).addEventListener("submit", async (e) => {
       e.preventDefault();
       e.stopPropagation();
@@ -3092,11 +3171,23 @@ ${url}`;
       const btn = e.target.querySelector("[type=submit]");
       btn.disabled = true;
       const now = (/* @__PURE__ */ new Date()).toISOString();
+      const note = $("#wsNote", sh).value.trim();
+      const sumSz = (o) => { const t = {}; for (const sz of Object.values(o)) for (const [k, n] of Object.entries(sz)) t[k] = (t[k] || 0) + n; return t; };
+      const patch = whRecPatch(r, { split: { b2b: x.b2b, uw: x.uw, alt: sumSz(x.alt), rej: sumSz(x.rej), at: now, by: me().id } });
+      const qOf = (sz) => Object.values(sz).reduce((a, b) => a + b, 0);
+      if (x.ta) {
+        patch.irAlt = {};
+        for (const [w, sz] of Object.entries(x.alt)) patch.irAlt[uid("ia")] = { w, sz, q: qOf(sz), st: "sent", by: me().id, at: now, src: "wh", rec: key, note };
+      }
+      if (x.tr) {
+        patch.whRej = {};
+        for (const [w, sz] of Object.entries(x.rej)) patch.whRej[uid("wr")] = { w, sz, q: qOf(sz), by: me().id, at: now, rec: key, note };
+      }
       try {
-        await S.db.doc("lots/" + r.lot.id).update(whRecPatch(r, { split: { b2b: x.b2b, uw: x.uw, at: now, by: me().id } }));
+        await S.db.doc("lots/" + r.lot.id).update(patch);
         if (x.tb) await S.db.doc("config/main").update({ uwPush: { [uid("u")]: { design: r.lot.design, fac: "B2B", ok: x.b2b, failed: 0, at: now, by: me().id, byName: me().name, rec: key, lot: r.lot.id, lotNo: r.lot.lotNo } } });
         closeSheet();
-        toast(x.tu + " pcs ready to push" + (x.tb ? " · " + x.tb + " B2B" : ""));
+        toast(x.tu + " pcs ready to push" + (x.tb ? " · " + x.tb + " B2B" : "") + (x.ta ? " · " + x.ta + " alter" : "") + (x.tr ? " · " + x.tr + " reject" : ""));
       } catch (er) {
         btn.disabled = false;
         writeErr(er);
@@ -3209,40 +3300,53 @@ ${url}`;
   function whCanUndoSplit(key) {
     if (!canUwPush()) return false;
     const r = whRecFind(key);
-    return !!(r && r.split && (r.uwLeftQ > 0 || Object.keys(nz(r.split.b2b || {})).length > 0));
+    if (!(r && r.split)) return false;
+    if (Object.values(r.lot.irAlt || {}).some((v) => v && v.rec === key && (v.ckr || v.st !== "sent"))) return false;
+    return r.uwLeftQ > 0 || Object.keys(nz(r.split.b2b || {})).length > 0 || Object.keys(nz(r.split.alt || {})).length > 0 || Object.keys(nz(r.split.rej || {})).length > 0;
   }
   async function whUndoSplit(key) {
     const r = whRecFind(key);
-    if (!r || !whCanUndoSplit(key)) return toast("Can't undo \u2013 all pieces are already pushed to Uniware and nothing went to B2B.");
+    if (!r || !whCanUndoSplit(key)) return toast("Can't undo \u2013 pieces are already pushed, or the checker already received the alter pieces.");
     const kill = {};
     for (const [id, p] of Object.entries((S.cfg || {}).uwPush || {})) if (p && p.rec === key && p.fac === "B2B") kill[id] = null;
     if (Object.keys(kill).length) await S.db.doc("config/main").update({ uwPush: kill });
     const lockUw = {};
     for (const [k, n] of Object.entries(r.wh.uwDone || {})) if (+n > 0) lockUw[k] = +n;
-    await S.db.doc("lots/" + r.lot.id).update(whRecPatch(r, Object.keys(lockUw).length ? { split: null, lockUw } : { split: null }));
+    const patch = whRecPatch(r, Object.keys(lockUw).length ? { split: null, lockUw } : { split: null });
+    for (const [id, v] of Object.entries(r.lot.irAlt || {})) if (v && v.rec === key) (patch.irAlt = patch.irAlt || {})[id] = null;
+    for (const [id, v] of Object.entries(r.lot.whRej || {})) if (v && v.rec === key) (patch.whRej = patch.whRej || {})[id] = null;
+    await S.db.doc("lots/" + r.lot.id).update(patch);
     toast(r.lot.lotNo + " is back in Received in Warehouse" + (Object.keys(lockUw).length ? " (pieces already pushed stay pushed)" : ""));
   }
   function uwHistView() {
     const cur = ym(/* @__PURE__ */ new Date());
     const facName = (f) => f === "B2B" ? "B2B merchant" : (UW_FAC.find((x) => x[0] === f) || [0, f])[1];
-    const list = Object.values((S.cfg || {}).uwPush || {}).filter((p) => p && String(p.at).slice(0, 7) === S.month).sort((a, b) => String(b.at).localeCompare(String(a.at)));
-    let up = 0, bb = 0;
+    const list = Object.values((S.cfg || {}).uwPush || {}).filter((p) => p && String(p.at).slice(0, 7) === S.month);
+    for (const l of lotsSorted()) {
+      for (const v of Object.values(l.irAlt || {})) if (v && v.src === "wh" && String(v.at).slice(0, 7) === S.month) list.push({ fac: "ALT", w: v.w, design: l.design, ok: nz(v.sz), at: v.at, by: v.by, lot: l.id, lotNo: l.lotNo, rec: v.rec, note: v.note });
+      for (const v of Object.values(l.whRej || {})) if (v && String(v.at).slice(0, 7) === S.month) list.push({ fac: "REJ", w: v.w, design: l.design, ok: nz(v.sz), at: v.at, by: v.by, lot: l.id, lotNo: l.lotNo, rec: v.rec, note: v.note });
+    }
+    list.sort((a, b) => String(b.at).localeCompare(String(a.at)));
+    let up = 0, bb = 0, aa = 0, rr = 0;
     for (const p of list) {
       const n = Object.values(p.ok || {}).reduce((a, b) => a + (+b || 0), 0);
       if (p.fac === "B2B") bb += n;
+      else if (p.fac === "ALT") aa += n;
+      else if (p.fac === "REJ") rr += n;
       else up += n;
     }
     let h = `<div class="row spread"><h2>Pushed</h2><div class="row" style="gap:6px"><button class="btn alt sm" data-month="-1" aria-label="Previous month">‹</button><b>${monthLabel(S.month)}</b><button class="btn alt sm" data-month="1" aria-label="Next month" ${S.month >= cur ? "disabled" : ""}>›</button></div></div>
-    <div class="stats"><div class="stat"><span>Pushes</span><b>${list.filter((p) => p.fac !== "B2B").length}</b></div><div class="stat"><span>To Uniware</span><b>${up}</b></div><div class="stat"><span>B2B taken</span><b>${bb}</b></div></div>`;
+    <div class="stats"><div class="stat"><span>Pushes</span><b>${list.filter((p) => p.fac !== "B2B").length}</b></div><div class="stat"><span>To Uniware</span><b>${up}</b></div><div class="stat"><span>B2B taken</span><b>${bb}</b></div>${aa ? `<div class="stat"><span>Alter</span><b>${aa}</b></div>` : ""}${rr ? `<div class="stat"><span>Rejected</span><b>${rr}</b></div>` : ""}</div>`;
     if (!list.length) return h + `<div class="empty">Nothing pushed this month.</div>`;
     return h + list.map((p) => {
       const n = Object.values(p.ok || {}).reduce((a, b) => a + (+b || 0), 0);
       const l = p.lot && S.lots[p.lot];
       const skus = Object.entries(p.ok || {}).filter(([, q]) => +q > 0).map(([k, q]) => `<span class="chip line">${esc(uwSku(p.design, ...splitCK(k)))} <b>${q}</b></span>`).join("");
       const ur = p.rec ? whRecFind(p.rec) : null;
-      const canUndo = !!ur && whCanUndoSplit(p.rec) && (p.fac === "B2B" || ur.uwLeftQ > 0);
+      const canUndo = !!ur && whCanUndoSplit(p.rec) && (p.fac === "B2B" || p.fac === "ALT" || p.fac === "REJ" || ur.uwLeftQ > 0);
+      const wn = p.w ? (W(p.w) || { name: "?" }).name : "";
       return `<div class="card list" style="gap:6px"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap;gap:10px">${skuImgs(p.design, szCols(nz(p.ok || {})))}<div style="min-width:0;flex:1">${p.lotNo || l ? `<span class="lotno">${esc(p.lotNo || l.lotNo)}</span> ` : ""}<span class="dname">${esc(p.design)}</span>
-      <ul class="tl small" style="margin:4px 0 0"><li>${p.fac === "B2B" ? "B2B merchant took" : "Pushed to: <b>" + esc(facName(p.fac)) + "</b>"}</li><li>By: ${esc(p.byName || (W(p.by) || { name: "?" }).name)} (${fmtDT(p.at)})</li>${p.failed ? `<li style="color:var(--bad)">${p.failed} SKU failed</li>` : ""}</ul></div>
+      <ul class="tl small" style="margin:4px 0 0"><li>${p.fac === "B2B" ? "B2B merchant took" : p.fac === "ALT" ? `<span class="warn">Alter</span> \u2192 back to <b>${esc(wn)}</b>` : p.fac === "REJ" ? `<span style="color:var(--bad)">Rejected</span> \u00B7 cut from <b>${esc(wn)}</b>'s pay` : "Pushed to: <b>" + esc(facName(p.fac)) + "</b>"}</li>${p.note ? `<li>Note: ${esc(p.note)}</li>` : ""}<li>By: ${esc(p.byName || (W(p.by) || { name: "?" }).name)} (${fmtDT(p.at)})</li>${p.failed ? `<li style="color:var(--bad)">${p.failed} SKU failed</li>` : ""}</ul></div>
       <div><div class="left">${n}</div><div class="small muted" style="text-align:right">pcs</div></div></div><div class="row" style="gap:5px;flex-wrap:wrap">${skus}</div>${canUndo ? `<button class="btn alt sm" data-whundo="${esc(p.rec)}" style="align-self:flex-start">Undo split</button>` : ""}</div>`;
     }).join("");
   }
@@ -4303,7 +4407,7 @@ ${url}`;
     const cap = sumCells(recvList(lot, "stitching").filter((v) => v.w === wid));
     const seen = {}, owed = {}, out = {}, hist = {};
     const ents = Object.entries((lot.prog || {}).stitching || {}).filter(([, v]) => v && v.w === wid && (v.st === "received" || v.st === "approved"));
-    const evs = ents.map(([eid, v]) => ({ t: String(v.rat || v.at || v.date || ""), o: 0, eid, v })).concat(Object.values(lot.irAlt || {}).filter((v) => v && v.w === wid && v.at).map((v) => ({ t: String(v.at), o: 1, ir: v }))).sort((x, y) => x.t.localeCompare(y.t) || x.o - y.o);
+    const evs = ents.map(([eid, v]) => ({ t: String(v.rat || v.at || v.date || ""), o: 0, eid, v })).concat(Object.values(lot.irAlt || {}).filter((v) => v && v.w === wid && v.at).map((v) => ({ t: String(v.at), o: 1, ir: v }))).concat(Object.values(lot.whRej || {}).filter((v) => v && v.w === wid && v.at).map((v) => ({ t: String(v.at), o: 1, ir: v, rej: true }))).sort((x, y) => x.t.localeCompare(y.t) || x.o - y.o);
     for (const ev of evs) {
       if (ev.ir) {
         for (const [k, n] of Object.entries(nz(ev.ir.sz || {}))) {
@@ -4316,7 +4420,7 @@ ${url}`;
             out[hs[i].eid][k] -= d;
             if (!out[hs[i].eid][k]) delete out[hs[i].eid][k];
             need -= d;
-            owed[k] = (owed[k] || 0) + d;
+            if (!ev.rej) owed[k] = (owed[k] || 0) + d;
           }
         }
         continue;
@@ -4504,7 +4608,7 @@ ${url}`;
       }
       if (lot) for (const v of Object.values(lot.irAlt || {})) {
         const a = v && v.w === m.id ? +((v.sz || {})[g.k] || 0) : 0;
-        if (a) ev.push({ t: String(v.at || ""), o: 1, it: { src: "Ironing", n: a, at: v.at, alloc: v.st === "recv", allocAt: v.rat, allocBy: v.rby, fixes: [] } });
+        if (a) ev.push({ t: String(v.at || ""), o: 1, it: { src: v.src === "wh" ? "Warehouse" : "Ironing", n: a, at: v.at, alloc: v.st === "recv", allocAt: v.rat, allocBy: v.rby, fixes: [] } });
       }
       ev.sort((p, q) => p.t.localeCompare(q.t) || p.o - q.o);
       const pool = [];
