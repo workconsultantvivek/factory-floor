@@ -1653,20 +1653,20 @@ ${url}`;
       if (k === "ck") {
         for (const [eid, v] of Object.entries(prog)) {
           if (!v || v.st !== "pending" && v.st !== "received") continue;
-          out.push({ lot: l, cells: nz(v.sz), total: +v.q || 0, who: v.w, when: v.at || v.date, chip: v.st === "pending" ? ["pending", "With lot receiver"] : [v.chkStart ? "pending" : "pending", v.chkStart ? "Checking" : "With checker"], bullets: [["Stitcher", nm(v.w)], ["Submitted", fmtDT(v.at || v.date)], v.rby ? ["Received by", nm(v.rby) + " \xB7 " + fmtDT(v.rat)] : null, v.chkStart ? ["Check started", nm(v.chkBy) + " \xB7 " + fmtDT(v.chkStart)] : null] });
+          out.push({ lot: l, eid, cells: nz(v.sz), total: +v.q || 0, who: v.w, when: v.at || v.date, chip: v.st === "pending" ? ["pending", "With lot receiver"] : [v.chkStart ? "pending" : "pending", v.chkStart ? "Checking" : "With checker"], bullets: [["Stitcher", nm(v.w)], ["Submitted", fmtDT(v.at || v.date)], v.rby ? ["Received by", nm(v.rby) + " \xB7 " + fmtDT(v.rat)] : null, v.chkStart ? ["Check started", nm(v.chkBy) + " \xB7 " + fmtDT(v.chkStart)] : null] });
         }
-        for (const b of bundlesToReceive(l)) out.push({ lot: l, cells: b.left, total: b.total, who: b.v.w, when: b.v.at2, chip: ["approved", "Checked & Yet To Receive"], bullets: [["Stitcher", nm(b.v.w)], ["Checker", nm(b.v.by2) + (b.v.at2 ? " \xB7 " + fmtDT(b.v.at2) : "")]] });
+        for (const b of bundlesToReceive(l)) out.push({ lot: l, eid: b.eid, cells: b.left, total: b.total, who: b.v.w, when: b.v.at2, chip: ["approved", "Checked & Yet To Receive"], bullets: [["Stitcher", nm(b.v.w)], ["Checker", nm(b.v.by2) + (b.v.at2 ? " \xB7 " + fmtDT(b.v.at2) : "")]] });
       } else if (k === "th") {
         for (const w of activeWorkers().filter(isThreadW)) for (const b of threadBundles(l, w.id)) {
           const src = b.v.eid && prog[b.v.eid];
-          out.push({ lot: l, cells: b.left, total: b.total, who: src ? src.w : null, when: b.v.at, chip: ["line ph-fin", b.v.tc ? "With " + nm(b.v.tc) : "With " + w.name], bullets: [src ? ["Stitcher", nm(src.w)] : null, ["Checker", nm(b.v.by)], ["Received by", w.name + " \xB7 " + fmtDT(b.v.at)], b.v.tc ? ["Thread cutter", nm(b.v.tc) + " \xB7 " + fmtDT(b.v.tcAt)] : null] });
+          out.push({ lot: l, eid: b.v.eid, cells: b.left, total: b.total, who: src ? src.w : null, when: b.v.at, chip: ["line ph-fin", b.v.tc ? "With " + nm(b.v.tc) : "With " + w.name], bullets: [src ? ["Stitcher", nm(src.w)] : null, ["Checker", nm(b.v.by)], ["Received by", w.name + " \xB7 " + fmtDT(b.v.at)], b.v.tc ? ["Thread cutter", nm(b.v.tc) + " \xB7 " + fmtDT(b.v.tcAt)] : null] });
         }
       } else if (k === "ir") {
         for (const v of Object.values(l.flow || {})) {
           if (!v || v.stage !== "ironing" || v.st !== "given") continue;
           const from = v.from && (l.flow || {})[v.from];
           const src = from && from.eid && prog[from.eid];
-          out.push({ lot: l, cells: nz(v.sz), total: +v.q || 0, who: src ? src.w : null, when: v.at, chip: ["line ph-fin", "With " + nm(v.w)], bullets: [src ? ["Stitcher", nm(src.w)] : null, from && from.tc ? ["Thread cutter", nm(from.tc)] : null, ["Ironing", nm(v.w) + " \xB7 given " + fmtDT(v.at)], v.by ? ["Given by", nm(v.by)] : null] });
+          out.push({ lot: l, eid: from && from.eid, cells: nz(v.sz), total: +v.q || 0, who: src ? src.w : null, when: v.at, chip: ["line ph-fin", "With " + nm(v.w)], bullets: [src ? ["Stitcher", nm(src.w)] : null, from && from.tc ? ["Thread cutter", nm(from.tc)] : null, ["Ironing", nm(v.w) + " \xB7 given " + fmtDT(v.at)], v.by ? ["Given by", nm(v.by)] : null] });
         }
       }
     }
@@ -3839,13 +3839,13 @@ ${url}`;
   }
   function stagesAll() {
     const out = {};
-    const add = (lid, w, label, cls, cells) => {
+    const add = (lid, w, label, cls, cells, eid) => {
       if (!w || !cells) return;
       const a = ((out[lid] = out[lid] || {})[w] = out[lid][w] || []);
-      a.push([label, cls, nz(cells)]);
+      a.push([label, cls, nz(cells), eid || null]);
     };
     const prefix = { ck: "", th: "Thread cutting \xB7 ", ir: "Ironing \xB7 " };
-    for (const sk of ["ck", "th", "ir"]) for (const cd of stageCards(sk)) add(cd.lot.id, cd.who, sk === "ck" && /^Passed/.test(cd.chip[1]) ? "Checked & Yet To Receive" : prefix[sk] + cd.chip[1], sk === "ck" ? "ph-qc" : "ph-fin", cd.cells);
+    for (const sk of ["ck", "th", "ir"]) for (const cd of stageCards(sk)) add(cd.lot.id, cd.who, sk === "ck" && /^Passed/.test(cd.chip[1]) ? "Checked & Yet To Receive" : prefix[sk] + cd.chip[1], sk === "ck" ? "ph-qc" : "ph-fin", cd.cells, cd.eid);
     for (const [lid, l] of Object.entries(S.lots)) {
       if (!l || l.deleted) continue;
       const prog0 = (l.prog || {}).stitching || {};
@@ -3854,16 +3854,17 @@ ${url}`;
         const from = v.from && (l.flow || {})[v.from];
         const src = from && from.eid && prog0[from.eid];
         if (!src) continue;
-        if (v.wh) add(lid, src.w, "In warehouse", "ph-wh", v.wh.sz);
-        else if (v.st === "done") add(lid, src.w, "Sent to warehouse, not counted yet", "ph-wh", v.sz);
+        if (v.wh) add(lid, src.w, "In warehouse", "ph-wh", v.wh.sz, from.eid);
+        else if (v.st === "done") add(lid, src.w, "Sent to warehouse, not counted yet", "ph-wh", v.sz, from.eid);
       }
-      for (const v of Object.values(prog0)) if (v && v.st === "approved" && v.wh) add(lid, v.w, "In warehouse", "ph-wh", v.wh.sz);
+      for (const [eid, v] of Object.entries(prog0)) if (v && v.st === "approved" && v.wh) add(lid, v.w, "In warehouse", "ph-wh", v.wh.sz, eid);
     }
     return out;
   }
-  function nowAtFor(all, lid, w, k, passed) {
+  function nowAtFor(all, lid, w, k, passed, eid) {
     const st = [];
-    for (const [lb, cls, cells] of ((all[lid] || {})[w] || [])) {
+    for (const [lb, cls, cells, ce] of ((all[lid] || {})[w] || [])) {
+      if (eid && ce !== eid) continue;
       const n = +cells[k] || 0;
       if (!n) continue;
       const e = st.find((x) => x[0] === lb);
@@ -4604,11 +4605,12 @@ ${url}`;
         ev.push({ t: String(x.e.at || x.e.date), o: 0, x });
         const p = pe(x);
         const a = +((x.e.altSz || {})[g.k] || 0);
-        if (a) ev.push({ t: String(p && p.at2 || x.e.at || x.e.date), o: 1, it: { src: "Checker", n: a, at: p && p.at2, alloc: !!(p && p.altRecv), allocAt: p && p.altRat, allocBy: p && p.altBy, fixes: [] } });
+        if (a) ev.push({ t: String(p && p.at2 || x.e.at || x.e.date), o: 1, it: { eid: x.e.eid, src: "Checker", n: a, at: p && p.at2, alloc: !!(p && p.altRecv), allocAt: p && p.altRat, allocBy: p && p.altBy, fixes: [] } });
       }
       if (lot) for (const v of Object.values(lot.irAlt || {})) {
         const a = v && v.w === m.id ? +((v.sz || {})[g.k] || 0) : 0;
-        if (a) ev.push({ t: String(v.at || ""), o: 1, it: { src: v.src === "wh" ? "Warehouse" : "Ironing", n: a, at: v.at, alloc: v.st === "recv", allocAt: v.rat, allocBy: v.rby, fixes: [] } });
+        const fl = lot.flow || {}, f0 = v && v.fid && fl[v.fid], f1 = f0 && f0.from && fl[f0.from];
+        if (a) ev.push({ t: String(v.at || ""), o: 1, it: { eid: f1 && f1.eid || null, src: v.src === "wh" ? "Warehouse" : "Ironing", n: a, at: v.at, alloc: v.st === "recv", allocAt: v.rat, allocBy: v.rby, fixes: [] } });
       }
       ev.sort((p, q) => p.t.localeCompare(q.t) || p.o - q.o);
       const pool = [];
@@ -4634,19 +4636,21 @@ ${url}`;
     const isGot = (e) => e.status === "received" || e.status === "approved";
     const waitE = list.filter((e) => e.status === "pending" && (+e.qty || 0) - (fixQ[e.eid] || 0) > 0);
     h += `<div class="stats"><div class="stat"><span>Pieces</span><b>${t.pcs}</b></div><div class="stat"><span>Received</span><b>${t.got}</b></div><div class="stat"><span>Earned</span><b>${inr(t.amt)}</b></div></div>${t.pcs > t.got ? `<div class="small muted list" style="gap:4px"><span>${t.pcs - t.got} pcs are still with the lot receiver. They show here once received, and the amount is added then.</span>${waitE.map((e) => { const l = S.lots[e.lotId] || { lotNo: "?", design: "" }; return `<span class="row" style="gap:6px"><span class="lotno">${esc(l.lotNo)}</span> ${(+e.qty || 0) - (fixQ[e.eid] || 0)} pcs \xB7 ${fmtDT(e.at || e.date)} <button class="btn alt sm" data-withdraw="${e.docId}|${e.eid}">Undo</button></span>`; }).join("")}</div>` : ""}${t.norate ? `<p class="small warn" style="margin:0">Rate is not set for some designs, so their amount is not counted yet.</p>` : ""}`;
-    const gl = Object.values(groups).filter((g) => g.subs.some((x) => isGot(x.e) && x.n - x.fix > 0)).map((g) => {
+    const gl = [];
+    for (const g of Object.values(groups)) {
       g.subs.sort((x, y) => String(x.e.at || x.e.date).localeCompare(String(y.e.at || y.e.date)));
-      g.main = g.subs.filter((x) => isGot(x.e) && x.n - x.fix > 0);
-      g.last = g.main[g.main.length - 1].e.at || g.main[g.main.length - 1].e.date;
-      return g;
-    }).sort((x, y) => String(y.last).localeCompare(String(x.last)));
+      const main = g.subs.filter((x) => isGot(x.e) && x.n - x.fix > 0);
+      if (!main.length) continue;
+      const ids = new Set(main.map((x) => x.e.eid));
+      for (const x of main) gl.push({ g, x, alters: g.alters.filter((it) => it.eid === x.e.eid || x === main[main.length - 1] && !ids.has(it.eid)), last: x.e.at || x.e.date });
+    }
+    gl.sort((p, q) => String(q.last).localeCompare(String(p.last)));
     if (!gl.length) return h + `<div class="empty">No received work on ${range} ${monthLabel(S.month)} yet.</div>`;
     const ALLST = stagesAll();
     const stChip = (e) => `<span class="chip ${e.status === "pending" ? "pending" : "approved"}">${e.status === "pending" ? "Pending \xB7 with receiver" : e.status === "received" ? "Received" : "Received \xB7 checked"}</span>`;
-    const altHtml = (g) => {
-      if (!g.alters.length) return "";
-      const lot = S.lots[g.lotId] || {};
-      return `<div class="list" style="gap:6px;border-top:1px dashed var(--line);padding-top:8px"><b class="small warn">Alter pieces</b>${g.alters.map((it) => {
+    const altHtml = (alters) => {
+      if (!alters.length) return "";
+      return `<div class="list" style="gap:6px;border-top:1px dashed var(--line);padding-top:8px"><b class="small warn">Alter pieces</b>${alters.map((it) => {
         const fixed = it.fixes.reduce((a, f) => a + f.q, 0);
         const by = {};
         for (const f of it.fixes) by[f.e.status] = (by[f.e.status] || 0) + f.q;
@@ -4660,32 +4664,26 @@ ${url}`;
         return `<div class="list" style="gap:4px"><span class="small"><b>${it.n} alter</b> <span class="muted">by ${it.src.toLowerCase()}${it.at ? " \xB7 " + fmtDT(it.at) : ""}</span></span><span class="row" style="gap:6px">${chips.join("")}${und}</span></div>`;
       }).join("")}</div>`;
     };
-    h += `<div class="list">${gl.map((g) => {
+    h += `<div class="list">${gl.map(({ g, x, alters }) => {
       const lot = S.lots[g.lotId] || { lotNo: "(lot removed)", design: "" };
       const [c, z] = splitCK(g.k);
-      const als = g.main.map((x) => allocFor(lot, x.e, m.id)).filter(Boolean).sort();
-      const al = als[0] || null;
-      const pcs = g.main.reduce((a, x) => a + x.n - x.fix, 0);
-      let amt = null;
-      g.subs.forEach((x) => {
-        const e = x.e;
-        const p = payOf(e);
-        if (p.rate != null && isGot(e)) amt = (amt || 0) + Math.round((e.stage === "stitching" && S.lots[e.lotId] ? p.sz[g.k] || 0 : e.qty * x.share) * p.rate);
-      });
-      const first = g.main[0].e.at || g.main[0].e.date;
-      const lastE = g.main[g.main.length - 1].e;
-      const rcvs = g.main.map((x) => (pe(x) || {}).rat).filter(Boolean).sort();
-      const rcv = rcvs[0] || null;
-      const alt = g.subs.reduce((a, x) => a + +((x.e.altSz || {})[g.k] || 0), 0), rej = g.subs.reduce((a, x) => a + +((x.e.rejSz || {})[g.k] || 0), 0);
+      const e = x.e, p0 = pe(x) || {};
+      const al = allocFor(lot, e, m.id) || null;
+      const pcs = x.n - x.fix;
+      const p = payOf(e);
+      const amt = p.rate != null ? Math.round((e.stage === "stitching" && S.lots[e.lotId] ? p.sz[g.k] || 0 : e.qty * x.share) * p.rate) : null;
+      const first = e.at || e.date;
+      const rcv = p0.rat || null;
+      const alt = +((e.altSz || {})[g.k] || 0), rej = +((e.rejSz || {})[g.k] || 0);
       const pic = skuImg(lot.design || "", c);
       return `<div class="card donecard">
       ${pic ? `<img class="skuimg tall" src="${esc(pic)}" alt="" loading="lazy" data-zoomimg="${esc(pic)}" data-zoomt="${esc(skuOf(lot.design || "", c))}" onerror="this.remove()">` : ""}
       <div class="list" style="gap:6px;flex:1;min-width:0">
       <div class="row spread" style="flex-wrap:nowrap;gap:8px;align-items:flex-start"><div style="min-width:0"><div class="small muted lotno">${esc(lot.lotNo)}</div><div class="sku">${esc(skuOf(lot.design || "", c, z))}</div></div><div style="text-align:right;flex:none"><div class="left" style="font-size:1.35rem">${pcs + alt + rej}</div><div class="small muted">pcs</div></div></div>
       <ul class="tl small"><li>Allocated: <b>${al ? fmtDT(al) : "—"}</b></li><li>Submitted: <b>${fmtDT(first)}</b></li><li>Received: <b>${rcv ? fmtDT(rcv) : "not yet"}</b></li><li>Time taken: <b>${al && rcv ? dur(al, rcv) : "—"}</b></li></ul>
-      ${nowAtFor(ALLST, g.lotId, m.id, g.k, g.subs.reduce((a, x) => a + ((pe(x) || {}).st === "approved" ? +((pe(x).sz || {})[g.k] || 0) : 0), 0))}
-      <div class="row spread" style="gap:6px"><span class="row" style="gap:6px">${stChip(lastE)}${rej ? `<span class="small" style="color:var(--bad)">${rej} rej</span>` : ""}</span><span class="row" style="gap:6px">${amt != null ? `<b style="font-size:1.05rem">${inr(amt)}</b>` : ""}</span></div>
-      ${altHtml(g)}
+      ${nowAtFor(ALLST, g.lotId, m.id, g.k, p0.st === "approved" ? +((p0.sz || {})[g.k] || 0) : 0, e.eid)}
+      <div class="row spread" style="gap:6px"><span class="row" style="gap:6px">${stChip(e)}${rej ? `<span class="small" style="color:var(--bad)">${rej} rej</span>` : ""}</span><span class="row" style="gap:6px">${amt != null ? `<b style="font-size:1.05rem">${inr(amt)}</b>` : ""}</span></div>
+      ${altHtml(alters)}
       </div>
     </div>`;
     }).join("")}</div>`;
