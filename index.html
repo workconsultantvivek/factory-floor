@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="1610-1620";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="1610-1640";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -3911,6 +3911,142 @@ ${url}`;
       }
     });
   }
+  function fabAllRolls(f) {
+    const out = [];
+    for (const i of fLive(f.inv)) invRolls(i).forEach((r, k) => out.push({ key: i.id + "|" + r.id, inv: i, r, k: k + 1 }));
+    return out;
+  }
+  function rollsTaken(f, exceptPid) {
+    const s = /* @__PURE__ */ new Map();
+    for (const p of fLive(f.prog)) if (p.id !== exceptPid) for (const x of p.rolls || []) s.set(x.k, p);
+    return s;
+  }
+  function progRollsForm(fid, pid) {
+    const f = fabGet(fid);
+    const cur = pid ? (f.prog || {})[pid] || {} : {};
+    const all = fabAllRolls(f);
+    const taken = rollsTaken(f, pid);
+    const asg = {};
+    (cur.rolls || []).forEach((x) => asg[x.k] = x.c);
+    let cols = (cur.cols || []).map((x) => x.c).filter(Boolean);
+    let showTaken = false;
+    const lots = [...new Set(fLive(f.grey).map((g) => String(g.lot || "").trim()).filter(Boolean))];
+    const sh = sheet(pid ? "Edit dyeing program" : "Dyeing program from rolls", `<form id="prF" class="list" novalidate>
+    <div class="grid2"><label class="f">Program no. (optional)<input id="pNo" value="${esc(cur.no || "")}" autocomplete="off"></label><label class="f">Date<input id="pDate" type="date" value="${esc(cur.date || today())}" max="${today()}"></label></div>
+    <label class="f">Mill lot no. ${lots.length ? "" : "(add later if the mill hasn't given it yet)"}<input id="pLot" value="${esc(cur.lot || (lots.length === 1 ? lots[0] : ""))}" autocomplete="off">${lots.length ? `<span class="fchips">${lots.map((l) => `<button type="button" class="chip pick" data-plot="${esc(l)}">${esc(l)}</button>`).join("")}</span>` : ""}</label>
+    <div class="card list" style="gap:8px"><b>1 \xB7 Colours in this program</b><div id="pCols" class="fchips"></div>
+    <div class="row" style="flex-wrap:nowrap;gap:8px"><input id="pColNew" class="search" list="fdl_colour" placeholder="Add colour, e.g. Black" style="flex:1;min-width:0" autocomplete="off"><button type="button" class="btn alt" data-pcadd>Add</button></div></div>
+    <div class="card list" style="gap:8px"><div class="row spread"><b>2 \xB7 Tap a colour for each roll</b><span class="small muted" id="pLeft"></span></div><div id="pRolls" class="list" style="gap:6px"></div></div>
+    <div class="card list" style="gap:6px"><b>Program total</b><div id="pTot" class="small"></div></div>
+    <label class="f">Note (optional)<input id="pNote" value="${esc(cur.note || "")}"></label>
+    <div id="pErr" class="err"></div><button class="btn accent big" type="submit">Save program</button>
+    ${pid ? `<button type="button" class="btn alt" data-pdel style="color:var(--bad)">Delete program</button>` : ""}
+    <button type="button" class="btn alt sm" data-pmanual style="align-self:center">Enter colour meters by hand instead</button></form>${fabSuggest()}`);
+    const totals = () => {
+      const o = {};
+      cols.forEach((c) => o[c] = { c, t: 0, m: 0 });
+      for (const x of all) {
+        const c = asg[x.key];
+        if (c && o[c]) {
+          o[c].t++;
+          o[c].m += fnum(x.r.m);
+        }
+      }
+      return cols.map((c) => o[c]);
+    };
+    const draw = () => {
+      const tot = totals();
+      $("#pCols", sh).innerHTML = cols.length ? cols.map((c, i) => {
+        const t = tot[i];
+        return `<span class="chip line" style="gap:6px;display:inline-flex;align-items:center"><b>${esc(c)}</b> ${t.t} tk \xB7 ${fmtM(t.m)} m <button type="button" class="btn alt sm" data-pcfill="${esc(c)}" style="padding:2px 6px">All left</button><button type="button" class="btn alt sm" data-pcdel="${esc(c)}" style="padding:2px 6px">✕</button></span>`;
+      }).join("") : `<span class="small muted">Add the colours first.</span>`;
+      const free = all.filter((x) => !taken.has(x.key));
+      const left = free.filter((x) => !asg[x.key]);
+      $("#pLeft", sh).textContent = free.length ? left.length + " of " + free.length + " rolls not given a colour" : "All rolls are already in a program";
+      let lastInv = null;
+      const rows = all.filter((x) => showTaken || !taken.has(x.key)).map((x) => {
+        const head = lastInv !== x.inv.id ? `<div class="small muted" style="margin-top:6px"><b>Inv ${esc(x.inv.no)}</b>${x.inv.lr ? " \xB7 LR " + esc(x.inv.lr) : ""}</div>` : "";
+        lastInv = x.inv.id;
+        const tp = taken.get(x.key);
+        return head + `<div class="row spread" style="gap:6px;border-bottom:1px solid var(--line);padding-bottom:6px;${tp ? "opacity:.45" : ""}"><span class="small" style="min-width:0"><b>#${x.k}</b> ${esc(x.r.pc || "")} \xB7 <b>${fmtM(x.r.m)} m</b></span>${tp ? `<span class="small muted">in ${tp.no ? "program " + esc(tp.no) : "another program"}</span>` : `<span class="fchips" style="margin:0;justify-content:flex-end">${cols.map((c) => `<button type="button" class="chip pick ${asg[x.key] === c ? "on" : ""}" data-pasg="${x.key}" data-c="${esc(c)}">${esc(c)}</button>`).join("")}</span>`}</div>`;
+      });
+      $("#pRolls", sh).innerHTML = all.length ? rows.join("") + (taken.size ? `<button type="button" class="btn alt sm" data-ptaken style="align-self:flex-start">${showTaken ? "Hide" : "Show"} rolls already in other programs (${taken.size})</button>` : "") : `<div class="small muted">No rolls added in the invoices yet.</div>`;
+      const tm = tot.reduce((a, t) => a + t.m, 0), tt = tot.reduce((a, t) => a + t.t, 0);
+      $("#pTot", sh).innerHTML = `${tot.map((t) => `${esc(t.c)} <b>${t.t}</b> tk \xB7 <b>${fmtM(t.m)}</b> m`).join("<br>")}${tot.length ? "<br>" : ""}<b>${tt} taka \xB7 ${fmtM(tm)} m</b>`;
+    };
+    draw();
+    const addCol = () => {
+      const i = $("#pColNew", sh);
+      const c = i.value.trim();
+      if (!c) return;
+      if (!cols.some((x) => x.toLowerCase() === c.toLowerCase())) cols.push(c);
+      i.value = "";
+      draw();
+      i.focus();
+    };
+    $("#pColNew", sh).addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        addCol();
+      }
+    });
+    sh.addEventListener("click", async (e) => {
+      const t = e.target.closest("button");
+      if (!t) return;
+      const d = t.dataset;
+      if (d.pcadd != null) return addCol();
+      if (d.plot != null) return $("#pLot", sh).value = d.plot;
+      if (d.ptaken != null) {
+        showTaken = !showTaken;
+        return draw();
+      }
+      if (d.pasg) {
+        asg[d.pasg] = asg[d.pasg] === d.c ? void 0 : d.c;
+        return draw();
+      }
+      if (d.pcfill) {
+        all.forEach((x) => {
+          if (!taken.has(x.key) && !asg[x.key]) asg[x.key] = d.pcfill;
+        });
+        return draw();
+      }
+      if (d.pcdel) {
+        cols = cols.filter((c) => c !== d.pcdel);
+        Object.keys(asg).forEach((k) => asg[k] === d.pcdel && delete asg[k]);
+        return draw();
+      }
+      if (d.pmanual != null) return fabForm(fid, "prog", pid, true);
+      if (d.pdel != null) {
+        if (!confirm("Delete this dyeing program?")) return;
+        try {
+          await S.db.doc("fabric/" + fid).update({ prog: { [pid]: { del: true, delAt: (/* @__PURE__ */ new Date()).toISOString(), delBy: me().id } } });
+          toast("Program deleted");
+          fabDetail(fid);
+        } catch (x) {
+          writeErr(x);
+        }
+      }
+    });
+    $("#prF", sh).onsubmit = async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const er = (x) => $("#pErr", sh).textContent = x;
+      const tot = totals().filter((t) => t.t);
+      if (!tot.length) return er("Give a colour to at least one roll.");
+      const empty = totals().filter((t) => !t.t).map((t) => t.c);
+      if (empty.length && !confirm("No rolls given to " + empty.join(", ") + ". Save without " + (empty.length > 1 ? "them" : "it") + "?")) return;
+      const rolls = all.filter((x) => !taken.has(x.key) && asg[x.key] && tot.some((t) => t.c === asg[x.key])).map((x) => ({ k: x.key, c: asg[x.key], m: fnum(x.r.m), pc: x.r.pc || "" }));
+      const now = (/* @__PURE__ */ new Date()).toISOString();
+      const d = { lot: $("#pLot", sh).value.trim(), date: $("#pDate", sh).value || today(), no: $("#pNo", sh).value.trim(), note: $("#pNote", sh).value.trim(), cols: tot.map((t) => ({ c: t.c, t: t.t, m: Math.round(t.m * 100) / 100 })), rolls, byRolls: true };
+      try {
+        await S.db.doc("fabric/" + fid).update({ prog: { [pid || uid("e")]: Object.assign(d, pid ? { editAt: now, editBy: me().id } : { at: now, by: me().id }) } });
+        toast("Program saved \xB7 " + rolls.length + " rolls");
+        fabDetail(fid);
+      } catch (x) {
+        writeErr(x);
+      }
+    };
+  }
   function fabCalc(f) {
     const inv = fLive(f.inv), grey = fLive(f.grey), prog = fLive(f.prog), rcv = fLive(f.rcv);
     const progM = prog.reduce((a, p) => a + colSum(p.cols, "m"), 0);
@@ -4027,10 +4163,11 @@ ${url}`;
       return `<tr><td>${esc(i.no)}</td><td>${fmtM(it.t)} tk<br>${fmtM(it.m)} m</td>${g.n ? `<td>${fmtM(g.t)} tk<br>${fmtM(g.m)} m</td><td>${diffTxt(g.t - it.t, " tk")}<br>${diffTxt(g.m - it.m, " m")}</td>` : `<td colspan="2" class="muted">Not reported yet</td>`}</tr>`;
     }).join("")}</table></div>`;
     const lots = fabLots(f);
-    h += sec("3 \xB7 Dyeing programs", c.prog.length, c.grey.length ? `<button type="button" class="btn accent sm" data-fabe="prog|">+ Program</button>` : "");
+    const hasRolls = fabAllRolls(f).length > 0;
+    h += sec("3 \xB7 Dyeing programs", c.prog.length, c.grey.length || hasRolls ? `<button type="button" class="btn accent sm" data-fabe="prog|">+ Program</button>` : "");
     if (lots.length) h += `<div class="card list" style="gap:6px"><b class="small">Grey balance by mill lot</b><table class="ftbl"><tr><th>Mill lot</th><th>Grey</th><th>Programmed</th><th>Balance</th></tr>${lots.map((l) => `<tr><td>${esc(l.lot)}</td><td>${fmtM(l.t)} tk<br>${fmtM(l.m)} m</td><td>${fmtM(l.pt)} tk<br>${fmtM(l.pm)} m</td><td><b>${fmtM(l.t - l.pt)} tk<br>${fmtM(l.m - l.pm)} m</b></td></tr>`).join("")}</table></div>`;
-    h += c.prog.length ? c.prog.map((p) => `<div class="card list" style="gap:4px"><div class="row spread"><b>${p.no ? "Program " + esc(p.no) : "Program"} \xB7 lot ${esc(p.lot || "?")}</b><span class="row" style="gap:8px"><span class="small muted">${fmtDate(p.date)}</span>${edit("prog", p.id)}</span></div>
-      <div class="row" style="gap:5px">${(p.cols || []).map((x) => `<span class="chip line">${esc(x.c)} <b>${fmtM(x.m)} m</b>${fnum(x.t) ? ` \xB7 ${fmtM(x.t)} tk` : ""}</span>`).join("")}</div><div class="small muted">Total ${fmtM(colSum(p.cols, "t"))} taka \xB7 ${fmtM(colSum(p.cols, "m"))} m${p.note ? " \xB7 " + esc(p.note) : ""}</div></div>`).join("") : `<div class="small muted">${c.grey.length ? "No dyeing program given yet." : "Needs a grey report first."}</div>`;
+    h += c.prog.length ? c.prog.map((p) => `<div class="card list" style="gap:4px"><div class="row spread"><b>${p.no ? "Program " + esc(p.no) : "Program"} \xB7 ${p.lot ? "lot " + esc(p.lot) : '<span class="warn">lot no. not added</span>'}</b><span class="row" style="gap:8px"><span class="small muted">${fmtDate(p.date)}</span>${edit("prog", p.id)}</span></div>
+      <div class="row" style="gap:5px">${(p.cols || []).map((x) => `<span class="chip line">${esc(x.c)} <b>${fmtM(x.m)} m</b>${fnum(x.t) ? ` \xB7 ${fmtM(x.t)} tk` : ""}</span>`).join("")}</div><div class="small muted">Total ${fmtM(colSum(p.cols, "t"))} taka \xB7 ${fmtM(colSum(p.cols, "m"))} m${p.byRolls ? " \xB7 from " + (p.rolls || []).length + " rolls" : ""}${p.note ? " \xB7 " + esc(p.note) : ""}</div></div>`).join("") : `<div class="small muted">${c.grey.length || hasRolls ? "No dyeing program given yet." : "Needs rolls in an invoice or a grey report first."}</div>`;
     h += sec("4 \xB7 Dyed fabric received", c.rcv.length, c.prog.length ? `<button type="button" class="btn accent sm" data-fabe="rcv|">+ Receive</button>` : "");
     h += c.rcv.length ? c.rcv.map((r) => {
       const p = (f.prog || {})[r.prog];
@@ -4055,7 +4192,9 @@ ${url}`;
       if (!b) return;
       if (b.dataset.fabe) {
         const [k, eid] = b.dataset.fabe.split("|");
-        fabForm(id, k, eid || null);
+        const pr = k === "prog" && eid ? (f.prog || {})[eid] : null;
+        if (k === "prog" && (eid ? pr && pr.byRolls : fabAllRolls(f).length)) progRollsForm(id, eid || null);
+        else fabForm(id, k, eid || null);
       } else if (b.dataset.froll != null) {
         const [iid, rid] = b.dataset.froll.split("|");
         rollForm(id, iid, rid || null);
@@ -4082,7 +4221,7 @@ ${url}`;
       return { c: String(n.tagName === "INPUT" ? n.value : n.dataset.v || "").trim(), t: fnum(r.querySelector("[data-ct]").value), m: fnum(r.querySelector("[data-cm]").value) };
     });
   }
-  function fabForm(fid, kind, eid) {
+  function fabForm(fid, kind, eid, manual) {
     const f = fid ? fabGet(fid) : null;
     const cur = kind === "order" ? f || {} : eid ? ((f || {})[kind] || {})[eid] || {} : {};
     const inp = (id, label, v, o) => {
@@ -4113,8 +4252,8 @@ ${url}`;
       <div class="grid2">${inp("fLot", "Mill lot no.", cur.lot, "required")}${dt(cur.date)}</div><div class="grid2">${num("fTaka", "Taka received", cur.taka)}${num("fMtr", "Meters received", cur.mtr)}</div>${inp("fNote", "Note (optional)", cur.note)}`;
     } else if (kind === "prog") {
       title = eid ? "Edit dyeing program" : "Dyeing program";
-      const lots = fabLots(f);
-      body = `<div class="grid2"><label class="f">Mill lot<select id="fLot">${lots.map((l) => `<option value="${esc(l.lot)}" ${cur.lot === l.lot ? "selected" : ""}>${esc(l.lot)} \xB7 ${fmtM(l.m - l.pm)} m left</option>`).join("")}</select></label>${dt(cur.date)}</div>${inp("fNo", "Program no. (optional)", cur.no)}
+      const lots = fabLots(f).filter((l) => l.m > 0);
+      body = `<div class="grid2">${lots.length ? `<label class="f">Mill lot<select id="fLot"><option value="">Not given yet</option>${lots.map((l) => `<option value="${esc(l.lot)}" ${cur.lot === l.lot ? "selected" : ""}>${esc(l.lot)} \xB7 ${fmtM(l.m - l.pm)} m left</option>`).join("")}</select></label>` : inp("fLot", "Mill lot no. (optional)", cur.lot)}${dt(cur.date)}</div>${inp("fNo", "Program no. (optional)", cur.no)}
       <div class="card list" style="gap:8px"><div class="row spread"><b>Colours</b><button type="button" class="btn alt sm" data-addcol>+ Colour</button></div><div id="fCols" class="list" style="gap:8px">${colRowsHtml(cur.cols || [], true)}</div><div class="small muted" id="fColTot"></div></div>${inp("fNote", "Note (optional)", cur.note)}`;
     } else if (kind === "rcv") {
       title = eid ? "Edit dyed fabric receipt" : "Receive dyed fabric";
@@ -4217,7 +4356,7 @@ ${url}`;
         if (lot && used + colSum(cols, "m") > lot.m + 0.01) {
           if (!confirm("This program is more than the grey meters left in lot " + lot.lot + ". Save anyway?")) return;
         }
-        d = { lot: v("fLot"), date, no: v("fNo"), cols, note: v("fNote") };
+        d = { lot: v("fLot"), date, no: v("fNo"), cols, note: v("fNote"), byRolls: false, rolls: [] };
       } else if (kind === "rcv") {
         const cols = readCols(sh);
         if (!cols.some((x) => x.m || x.t)) return er("Enter what was received for at least one colour.");
