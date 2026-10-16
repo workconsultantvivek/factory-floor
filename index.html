@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="1610-1650";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="1610-1700";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -3818,7 +3818,56 @@ ${url}`;
       fr.readAsDataURL(file);
     });
   }
-  function readPackingList(fid, iid) {
+  function invReview(fid, iid, x) {
+    const f = fabGet(fid);
+    let inv = iid ? (f.inv || {})[iid] : null;
+    let matched = false;
+    if (!inv) {
+      const no = String(x.invoice_no || "").trim().toLowerCase(), pl = String(x.pl_no || "").trim().toLowerCase();
+      const hit = fLive(f.inv).find((i) => no && String(i.no || "").trim().toLowerCase() === no || pl && String(i.pl || "").trim().toLowerCase() === pl || no && String(i.pl || "").trim().toLowerCase() === no);
+      if (hit) {
+        inv = hit;
+        iid = hit.id;
+        matched = true;
+      }
+    }
+    const cur = inv || {};
+    const pick = (a, b) => String(a || "").trim() || String(b || "").trim();
+    const v = (z) => esc(z == null ? "" : z);
+    const okDate = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || "") ? d : "";
+    const tot = inv ? invTot(inv) : null;
+    const hasR = tot && tot.rolls.length;
+    const cmp = (a, b, u) => a == null || a === "" ? "" : Math.abs(fnum(a) - b) < 0.01 ? `<span style="color:var(--ok)">matches rolls</span>` : `<span style="color:var(--bad)">rolls: ${fmtM(b)}${u}</span>`;
+    const sh = sheet("Check invoice", `<div class="list">${x.weaver || x.quality ? `<div class="small muted">${esc(x.weaver || "")}${x.quality ? " \xB7 " + esc(x.quality) : ""}</div>` : ""}
+    ${inv ? `<div class="hint">${matched ? "Matched to" : "Updating"} invoice <b>${esc(cur.no || "")}</b>${cur.pl ? " (PL " + esc(cur.pl) + ")" : ""}. Filled boxes below will replace what's saved.</div>` : `<div class="hint">A new invoice will be added to this order.</div>`}
+    <div class="grid2"><label class="f">Invoice no.<input id="ivNo" value="${v(pick(x.invoice_no, cur.no))}"></label><label class="f">Invoice date<input id="ivDate" type="date" value="${v(okDate(x.invoice_date) || cur.idate || "")}" max="${today()}"></label></div>
+    <div class="grid2"><label class="f">Builty (LR) no.<input id="ivLr" value="${v(pick(x.lr_no, cur.lr))}"></label><label class="f">E-way bill no.<input id="ivEwb" inputmode="numeric" value="${v(pick(x.ewb_no, cur.ewb))}"></label></div>
+    <div class="grid2"><label class="f">Transport<input id="ivTr" value="${v(pick(x.transport, cur.transport))}"></label><label class="f">Vehicle no.<input id="ivVeh" value="${v(pick(x.vehicle, cur.vehicle))}" style="text-transform:uppercase"></label></div>
+    <div class="grid2"><label class="f">PL no.<input id="ivPl" value="${v(pick(cur.pl, x.pl_no))}"></label><label class="f">Weaver order no.<input id="ivOrd" value="${v(pick(cur.ord, x.order_no))}"></label></div>
+    <div class="grid2"><label class="f">Taka on invoice ${hasR ? cmp(x.taka, tot.t, "") : ""}<input id="ivT" type="number" inputmode="decimal" step="any" value="${v(x.taka == null ? "" : x.taka)}"></label><label class="f">Meters on invoice ${hasR ? cmp(x.meters, tot.m, " m") : ""}<input id="ivM" type="number" inputmode="decimal" step="any" value="${v(x.meters == null ? "" : x.meters)}"></label></div>
+    ${hasR ? `<div class="small muted">This invoice has ${tot.t} rolls (${fmtM(tot.m)} m). Its taka and meters keep coming from the rolls; the invoice figures are saved alongside for checking.</div>` : ""}
+    <div id="ivErr" class="err"></div><button type="button" class="btn accent big" data-ivsave>Save invoice</button></div>`, { back: () => fabDetail(fid) });
+    $("[data-ivsave]", sh).onclick = async () => {
+      const g = (id) => ($("#" + id, sh).value || "").trim();
+      if (!g("ivNo")) return $("#ivErr", sh).textContent = "Enter the invoice number.";
+      const now = (/* @__PURE__ */ new Date()).toISOString();
+      const d = { no: g("ivNo"), idate: g("ivDate"), lr: g("ivLr"), ewb: g("ivEwb"), transport: g("ivTr"), vehicle: g("ivVeh").toUpperCase(), pl: g("ivPl"), ord: g("ivOrd"), invT: fnum(g("ivT")), invM: fnum(g("ivM")) };
+      if (!hasR) Object.assign(d, { taka: fnum(g("ivT")), mtr: fnum(g("ivM")) });
+      if (inv) {
+        for (const k of Object.keys(d)) if (d[k] === "" || d[k] === 0) delete d[k];
+        d.no = g("ivNo");
+        Object.assign(d, { editAt: now, editBy: me().id });
+      } else Object.assign(d, { date: g("ivDate") || today(), sort: String(x.sort_no || ""), at: now, by: me().id, src: "inv" });
+      try {
+        await S.db.doc("fabric/" + fid).update({ inv: { [iid || uid("e")]: d } });
+        toast("Invoice " + d.no + " saved");
+        fabDetail(fid);
+      } catch (z) {
+        writeErr(z);
+      }
+    };
+  }
+  function readPackingList(fid, iid, kind) {
     const inp = document.createElement("input");
     inp.type = "file";
     inp.accept = "application/pdf,image/*";
@@ -3826,9 +3875,10 @@ ${url}`;
       const file = inp.files && inp.files[0];
       if (!file) return;
       if (file.size > 12e6) return toast("This file is too big. Use the PDF or a normal photo.");
-      sheet("Reading packing list…", `<div class="empty"><h3>Reading ${esc(file.name || "file")}</h3>This takes 10–30 seconds. Keep this screen open.</div>`, { short: true });
+      sheet(kind === "invoice" ? "Reading invoice…" : "Reading packing list…", `<div class="empty"><h3>Reading ${esc(file.name || "file")}</h3>This takes 10–30 seconds. Keep this screen open.</div>`, { short: true });
       try {
         const body = await fileToB64(file);
+        body.kind = kind || "pl";
         const ac = window.AbortController ? new AbortController() : null;
         const tm = ac ? setTimeout(() => ac.abort(), 15e4) : 0;
         let r;
@@ -3839,12 +3889,12 @@ ${url}`;
         }
         const j = await r.json();
         if (!j || !j.ok) throw new Error(j && j.error || "Couldn't read it.");
-        plReview(fid, iid, j.pl || {});
+        kind === "invoice" ? invReview(fid, iid, j.pl || {}) : plReview(fid, iid, j.pl || {});
       } catch (x) {
         console.warn(x);
         sheet("Couldn't read the uploaded packing list", `<div class="list"><p class="small" style="margin:0">${esc(x && x.message || "Check the internet and try again.")}</p><button type="button" class="btn accent" data-retry>Try another file</button><button type="button" class="btn alt" data-manual>Type rolls by hand</button></div>`, { short: true, back: () => fabDetail(fid) });
         const sh = $(".sheet");
-        $("[data-retry]", sh).onclick = () => readPackingList(fid, iid);
+        $("[data-retry]", sh).onclick = () => readPackingList(fid, iid, kind);
         $("[data-manual]", sh).onclick = () => iid ? rollForm(fid, iid, null) : fabForm(fid, "inv", null);
       }
     };
@@ -4141,13 +4191,13 @@ ${url}`;
     <div class="card list" style="gap:6px"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="dname">${esc(f.quality || "")}</span><div class="small muted">${fmtDate(f.date)} \xB7 ${esc(f.weaver || "")}${f.mill ? " → mill " + esc(f.mill) : ""}</div></div><span class="chip ${c.cls}" style="flex:none">${c.st}</span></div>
     <div class="small">Ordered <b>${fmtM(f.mtr)} m</b>${fnum(f.taka) ? ` \xB7 ${fmtM(f.taka)} taka` : ""}</div>${f.note ? `<div class="small">${esc(f.note)}</div>` : ""}
     <div class="row" style="gap:8px">${f.closed ? "" : `<button type="button" class="btn alt sm" data-fabe="order|">Edit order</button>`}<button type="button" class="btn alt sm" data-fabclose="1">${f.closed ? "Reopen order" : "Close order"}</button></div></div>`;
-    h += sec("1 \xB7 Weaver invoices", c.inv.length, `<span class="row" style="gap:6px"><button type="button" class="btn alt sm" data-fpl="">Upload packing list</button><button type="button" class="btn accent sm" data-fabe="inv|">+ Invoice</button></span>`);
+    h += sec("1 \xB7 Weaver invoices", c.inv.length, `<span class="row" style="gap:6px"><button type="button" class="btn alt sm" data-finv="">Upload invoice</button><button type="button" class="btn alt sm" data-fpl="">Upload packing list</button><button type="button" class="btn accent sm" data-fabe="inv|">+ Invoice</button></span>`);
     h += c.inv.length ? c.inv.map((i) => {
       const it = invTot(i);
       return `<div class="card list" style="gap:6px"><div class="row spread"><b>Inv ${esc(i.no)}</b>${edit("inv", i.id)}</div>
       <div class="row" style="gap:2px 14px"><span class="small"><span class="muted">Invoice date</span> ${i.idate ? `<b>${fmtDY(i.idate)}</b>` : '<span class="warn">not added</span>'}</span>${i.date ? `<span class="small"><span class="muted">PL date</span> ${fmtDY(i.date)}</span>` : ""}</div>
-      <div class="small"><b>${fmtM(it.t)}</b> taka \xB7 <b>${fmtM(it.m)}</b> m${it.nw ? ` \xB7 ${fmtM(it.nw)} kg` : ""}</div><div class="row" style="gap:2px 12px">${kv("PL", i.pl)}${kv("Weaver order", i.ord)}${kv("Sort", i.sort)}${kv("Builty", i.lr)}${kv("E-way bill", i.ewb)}${kv("Transport", i.transport)}${kv("Vehicle", i.vehicle)}</div>${i.note ? `<div class="small muted">${esc(i.note)}</div>` : ""}
-      ${rollTable(id, i, !f.closed)}${f.closed ? "" : `<div class="row" style="gap:6px"><button type="button" class="btn accent sm" data-froll="${i.id}|">+ ${it.rolls.length ? "Next roll" : "Add rolls one by one"}</button><button type="button" class="btn alt sm" data-fpl="${i.id}">Upload packing list</button></div>`}</div>`;
+      <div class="small"><b>${fmtM(it.t)}</b> taka \xB7 <b>${fmtM(it.m)}</b> m${it.nw ? ` \xB7 ${fmtM(it.nw)} kg` : ""}${it.rolls.length && (fnum(i.invM) || fnum(i.invT)) ? fnum(i.invM) && Math.abs(fnum(i.invM) - it.m) > 0.01 || fnum(i.invT) && fnum(i.invT) !== it.t ? ` <span style="color:var(--bad)">\xB7 invoice says ${fmtM(i.invT)} tk \xB7 ${fmtM(i.invM)} m</span>` : ` <span style="color:var(--ok)">\xB7 matches invoice</span>` : ""}</div><div class="row" style="gap:2px 12px">${kv("PL", i.pl)}${kv("Weaver order", i.ord)}${kv("Sort", i.sort)}${kv("Builty", i.lr)}${kv("E-way bill", i.ewb)}${kv("Transport", i.transport)}${kv("Vehicle", i.vehicle)}</div>${i.note ? `<div class="small muted">${esc(i.note)}</div>` : ""}
+      ${rollTable(id, i, !f.closed)}${f.closed ? "" : `<div class="row" style="gap:6px"><button type="button" class="btn accent sm" data-froll="${i.id}|">+ ${it.rolls.length ? "Next roll" : "Add rolls one by one"}</button><button type="button" class="btn alt sm" data-fpl="${i.id}">Upload packing list</button><button type="button" class="btn alt sm" data-finv="${i.id}">Upload invoice</button></div>`}</div>`;
     }).join("") : `<div class="small muted">No invoice yet. Tap <b>Upload packing list</b> to fill it from the weaver's PDF or a photo, or <b>+ Invoice</b> to type it.</div>`;
     h += sec("2 \xB7 Grey report at mill", c.grey.length, c.inv.length ? `<button type="button" class="btn accent sm" data-fabe="grey|">+ Grey report</button>` : "");
     h += c.grey.length ? c.grey.map((g) => {
@@ -4200,6 +4250,8 @@ ${url}`;
         rollForm(id, iid, rid || null);
       } else if (b.dataset.fpl != null) {
         readPackingList(id, b.dataset.fpl || null);
+      } else if (b.dataset.finv != null) {
+        readPackingList(id, b.dataset.finv || null, "invoice");
       } else if (b.dataset.fabclose) {
         if (!f.closed && !confirm("Close this fabric order? It moves out of the Open list. You can reopen it any time.")) return;
         try {
