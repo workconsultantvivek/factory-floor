@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="1410-1700";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="1610-1230";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -85,6 +85,8 @@ nav.bottom .ico{display:grid;place-items:center;width:44px;height:28px;border-ra
 label.f,.f{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted);font-weight:500;min-width:0}
 label.f input,label.f select,label.f textarea{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:11px;font-size:1rem;color:var(--ink);width:100%}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:8px;align-items:end}.grid3 .f{min-width:0}.grid3 input{min-width:0;width:100%}
+.ftbl{width:100%;border-collapse:collapse;font-size:.82rem}.ftbl th{text-align:left;font-weight:600;color:var(--muted);padding:4px 6px 4px 0;border-bottom:1px solid var(--line)}.ftbl td{padding:6px 6px 6px 0;border-bottom:1px solid var(--line);vertical-align:top}.ftbl tr:last-child td{border-bottom:0}
 .sizes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .sizebox{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:8px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
 .sizebox .top{display:flex;justify-content:space-between;align-items:baseline;gap:4px;font-size:.85rem}
@@ -219,7 +221,7 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     { k: "thread", n: "Thread cutting", role: "Thread cutter" },
     { k: "ironing", n: "Ironing", role: "Ironing" }
   ];
-  const ROLES = ["Cutting master", "Stitcher", "Thread cutter", "Ironing", "Lot allocator", "Lot receiver", "Checker", "Warehouse receiver", "Warehouse Receiver & Pusher", "Sub manager", "Manager"];
+  const ROLES = ["Cutting master", "Stitcher", "Thread cutter", "Ironing", "Lot allocator", "Lot receiver", "Checker", "Warehouse receiver", "Warehouse Receiver & Pusher", "Sub manager", "Manager", "Fabric staff"];
   const isThreadW = (w) => !!w && (w.role === "Thread cutter" || w.role === "Sub manager");
   const STAGE_BY_ROLE = Object.fromEntries(STAGES.map((s) => [s.role, s.k]));
   const stageName = (k) => (STAGES.find((s) => s.k === k) || { n: k }).n;
@@ -230,7 +232,7 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     done: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M8 15l3 3 5-6"/></svg>',
     team: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5.5 6.5-5.5s5.7 2 6.5 5.5M16 4.5a3.5 3.5 0 010 7M18 14.8c1.9.8 3.1 2.6 3.5 5.2"/></svg>'
   };
-  const S = { db: null, owner: false, loaded: false, cfg: null, catalog: {}, lots: {}, tasks: {}, work: {}, session: null, tab: "add", month: ym(/* @__PURE__ */ new Date()) };
+  const S = { db: null, owner: false, loaded: false, cfg: null, catalog: {}, lots: {}, fabric: {}, tasks: {}, work: {}, session: null, tab: "add", month: ym(/* @__PURE__ */ new Date()) };
   function pad(n) {
     return String(n).padStart(2, "0");
   }
@@ -663,6 +665,12 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
       S.tasks = t;
       schedule();
     }, err);
+    S.db.collection("fabric").onSnapshot((q) => {
+      const f = {};
+      q.docs.forEach((d) => f[d.id] = d.data());
+      S.fabric = f;
+      schedule();
+    }, err);
     S.db.collection("lots").onSnapshot((q) => {
       const l = {};
       q.docs.forEach((d) => l[d.id] = d.data());
@@ -726,8 +734,8 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     const nHo = () => lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0);
     const nTh = () => activeWorkers().filter(isThreadW).reduce((a, w) => a + lotsSorted().reduce((b, l) => b + threadBundles(l, w.id).filter((x) => x.v.tc).length, 0), 0);
     const nTask = () => tasksFor().filter((t) => t.st !== "done").length;
-    const boss = [["alloc", "Allocate", ICON.add, nAlloc() + altQueue().length], ["rinbox", "Receive", ICON.add, nRcv()], ["inbox", "Check", ICON.done, nInbox()], ["handover", "To thread cutter", ICON.lots, nHo()], ["mthread", "To ironing", ICON.lots, nTh()], ["bundles", "Report", ICON.team], ["pend", "Pending", ICON.lots], ["otasks", "Tasks", ICON.done, nTask()], ["dash", "Dashboard", ICON.team, 0, true], ["duty", "Duty hours", ICON.done, 0, true], ["lots", "All lots", ICON.lots, 0, true], ["stock", "Stock", ICON.lots, 0, true]];
-    const tabs = m.id === "owner" ? boss.concat([["team", "Team", ICON.team, 0, true]]) : m.role === "Cutting master" ? [["add", "Add cut lot", ICON.add], ["lots", "All lots", ICON.lots], ["pend", "Pending", ICON.lots], ["mtasks", "Tasks", ICON.done, tasksFor(m.id).filter((t) => t.st !== "done").length]] : m.role === "Lot allocator" ? [["alloc", "Allocate", ICON.add, nAlloc()], ["allocd", "Bundles", ICON.team], ["lots", "All lots", ICON.lots]] : m.role === "Lot receiver" ? [["rinbox", "Receive work", ICON.add, nRcv()], ["rhist", "Received", ICON.done], ["lots", "All lots", ICON.lots]] : m.role === "Warehouse Receiver & Pusher" ? [["whr", "Received in Warehouse", ICON.add, whFlowState().filter((r) => !r.split && r.baseQ > 0).length], ["uwp", "Push Uniware", ICON.lots, whFlowState().filter((r) => r.split && r.uwLeftQ > 0).length], ["uwh", "Pushed", ICON.done]] : m.role === "Warehouse receiver" ? [["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["lots", "All lots", ICON.done]] : m.role === "Checker" ? [["inbox", "Check work", ICON.done, nInbox()], ["altq", "Allocate alter", ICON.add, altQueue().length], ["checked", "Checked", ICON.team]] : m.role === "Sub manager" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "Thread lots", ICON.lots, threadPendCount(m.id)], ["tfin", "To ironing", ICON.done, threadFinCount(m.id)], ["wh", "Receive stock", ICON.add, nWh()], ["stock", "Received in Warehouse", ICON.lots]] : m.role === "Thread cutter" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "New lots", ICON.lots, threadPendCount(m.id)], ["tfin", "To ironing", ICON.done, threadFinCount(m.id)], ["tdone", "Completed", ICON.done]] : m.role === "Ironing" ? [["inew", "New lots", ICON.lots, flowItems("ironing").filter((v) => v.w === m.id && v.st === "given").length], ["ialt", "Allocate alter", ICON.add, irAltMine(m.id).filter((x) => x.st === "sent" && !x.ckr).length], ["idone", "Completed", ICON.done]] : m.role === "Manager" ? boss.filter((t) => !["dash", "handover", "mthread"].includes(t[0])).concat([["links", "Team links", ICON.team, 0, true]]) : RECV_STAGES.includes(myStage()) ? [["add", "New lots", ICON.lots, myLots(m.id).reduce((n, l) => n + allocOpen(l, m.id).filter((a) => a.total > 0).length, 0)], ["alter", "Alter / Rejected", ICON.add, 0], ["done", "Completed", ICON.done]] : myStage() ? [["add", "Add entry", ICON.add], ["lots", "Cut lots", ICON.lots], ["done", "Completed", ICON.done]] : [["lots", "Cut lots", ICON.lots]];
+    const boss = [["alloc", "Allocate", ICON.add, nAlloc() + altQueue().length], ["rinbox", "Receive", ICON.add, nRcv()], ["inbox", "Check", ICON.done, nInbox()], ["handover", "To thread cutter", ICON.lots, nHo()], ["mthread", "To ironing", ICON.lots, nTh()], ["bundles", "Report", ICON.team], ["pend", "Pending", ICON.lots], ["otasks", "Tasks", ICON.done, nTask()], ["dash", "Dashboard", ICON.team, 0, true], ["duty", "Duty hours", ICON.done, 0, true], ["lots", "All lots", ICON.lots, 0, true], ["stock", "Stock", ICON.lots, 0, true], ["fabric", "Fabric", ICON.lots, 0, true]];
+    const tabs = m.id === "owner" ? boss.concat([["team", "Team", ICON.team, 0, true]]) : m.role === "Fabric staff" ? [["fabric", "Fabric", ICON.lots]] : m.role === "Cutting master" ? [["add", "Add cut lot", ICON.add], ["lots", "All lots", ICON.lots], ["pend", "Pending", ICON.lots], ["mtasks", "Tasks", ICON.done, tasksFor(m.id).filter((t) => t.st !== "done").length]] : m.role === "Lot allocator" ? [["alloc", "Allocate", ICON.add, nAlloc()], ["allocd", "Bundles", ICON.team], ["lots", "All lots", ICON.lots]] : m.role === "Lot receiver" ? [["rinbox", "Receive work", ICON.add, nRcv()], ["rhist", "Received", ICON.done], ["lots", "All lots", ICON.lots]] : m.role === "Warehouse Receiver & Pusher" ? [["whr", "Received in Warehouse", ICON.add, whFlowState().filter((r) => !r.split && r.baseQ > 0).length], ["uwp", "Push Uniware", ICON.lots, whFlowState().filter((r) => r.split && r.uwLeftQ > 0).length], ["uwh", "Pushed", ICON.done]] : m.role === "Warehouse receiver" ? [["wh", "Receive stock", ICON.add, nWh()], ["stock", "Stock", ICON.lots], ["lots", "All lots", ICON.done]] : m.role === "Checker" ? [["inbox", "Check work", ICON.done, nInbox()], ["altq", "Allocate alter", ICON.add, altQueue().length], ["checked", "Checked", ICON.team]] : m.role === "Sub manager" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "Thread lots", ICON.lots, threadPendCount(m.id)], ["tfin", "To ironing", ICON.done, threadFinCount(m.id)], ["wh", "Receive stock", ICON.add, nWh()], ["stock", "Received in Warehouse", ICON.lots]] : m.role === "Thread cutter" ? [["trecv", "To receive", ICON.add, lotsSorted().reduce((a, l) => a + bundlesToReceive(l).length, 0)], ["tnew", "New lots", ICON.lots, threadPendCount(m.id)], ["tfin", "To ironing", ICON.done, threadFinCount(m.id)], ["tdone", "Completed", ICON.done]] : m.role === "Ironing" ? [["inew", "New lots", ICON.lots, flowItems("ironing").filter((v) => v.w === m.id && v.st === "given").length], ["ialt", "Allocate alter", ICON.add, irAltMine(m.id).filter((x) => x.st === "sent" && !x.ckr).length], ["idone", "Completed", ICON.done]] : m.role === "Manager" ? boss.filter((t) => !["dash", "handover", "mthread"].includes(t[0])).concat([["links", "Team links", ICON.team, 0, true]]) : RECV_STAGES.includes(myStage()) ? [["add", "New lots", ICON.lots, myLots(m.id).reduce((n, l) => n + allocOpen(l, m.id).filter((a) => a.total > 0).length, 0)], ["alter", "Alter / Rejected", ICON.add, 0], ["done", "Completed", ICON.done]] : myStage() ? [["add", "Add entry", ICON.add], ["lots", "Cut lots", ICON.lots], ["done", "Completed", ICON.done]] : [["lots", "Cut lots", ICON.lots]];
     if (restoreTab) {
       if (tabs.find((t) => t[0] === restoreTab)) S.tab = restoreTab;
       restoreTab = null;
@@ -739,8 +747,8 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
       allocQ = altQ = trecvQ = lotQ = "";
       lastTabSeen = S.tab;
     }
-    const body = { add: addView, lots: lotsView, done: doneView, team: teamView, alter: alterView, alloc: allocView, allocd: bundlesView, duty: dutyView, trecv: threadRecvView, bundles: bundlesView, dash: dashView, inbox: inboxView, checked: checkedView, altq: altAllocView, rinbox: rinboxView, rhist: rhistView, wh: whInboxView, stock: stockView, whr: whRecvdView, uwp: uwQueueView, uwh: uwHistView, handover: handoverView, pending: pendingView, links: linksView, pend: pendView, otasks: bossTasksView, mtasks: masterTasksView, mthread: mgrThreadView, tnew: threadNewView, tfin: threadFinView, tdone: threadDoneView, inew: () => flowNewView("ironing"), ialt: irAltIronView, idone: () => flowDoneView("ironing") }[S.tab]();
-    app.innerHTML = header() + `<main class="wrap">${["dash", "duty", "bundles", "lots", "stock", "team", "links"].includes(S.tab) ? bossLinks(S.tab) : ""}${missingAlert(m)}${body}</main>` + (tabs.length > 1 ? `<nav class="bottom ${tabs.filter((t) => !t[4]).length > 5 ? "many" : ""}"><div class="wrap">${tabs.filter((t) => !t[4]).map((t) => `<button data-tab="${t[0] === "bundles" && m.id === "owner" ? "dash" : t[0]}" aria-current="${S.tab === t[0] || t[0] === "bundles" && isBoss() && ["dash", "duty", "lots", "stock", "team", "links"].includes(S.tab)}"><span class="ico">${t[2]}${t[3] ? `<i class="badge">${t[3]}</i>` : ""}</span>${t[1]}</button>`).join("")}</div></nav>` : "");
+    const body = { add: addView, lots: lotsView, done: doneView, team: teamView, alter: alterView, alloc: allocView, allocd: bundlesView, duty: dutyView, trecv: threadRecvView, bundles: bundlesView, dash: dashView, inbox: inboxView, checked: checkedView, altq: altAllocView, rinbox: rinboxView, rhist: rhistView, wh: whInboxView, stock: stockView, whr: whRecvdView, uwp: uwQueueView, uwh: uwHistView, handover: handoverView, pending: pendingView, links: linksView, pend: pendView, otasks: bossTasksView, mtasks: masterTasksView, mthread: mgrThreadView, tnew: threadNewView, tfin: threadFinView, tdone: threadDoneView, inew: () => flowNewView("ironing"), ialt: irAltIronView, idone: () => flowDoneView("ironing"), fabric: fabView }[S.tab]();
+    app.innerHTML = header() + `<main class="wrap">${["dash", "duty", "bundles", "lots", "stock", "team", "links", "fabric"].includes(S.tab) ? bossLinks(S.tab) : ""}${missingAlert(m)}${body}</main>` + (tabs.length > 1 ? `<nav class="bottom ${tabs.filter((t) => !t[4]).length > 5 ? "many" : ""}"><div class="wrap">${tabs.filter((t) => !t[4]).map((t) => `<button data-tab="${t[0] === "bundles" && m.id === "owner" ? "dash" : t[0]}" aria-current="${S.tab === t[0] || t[0] === "bundles" && isBoss() && ["dash", "duty", "lots", "stock", "team", "links", "fabric"].includes(S.tab)}"><span class="ico">${t[2]}${t[3] ? `<i class="badge">${t[3]}</i>` : ""}</span>${t[1]}</button>`).join("")}</div></nav>` : "");
     addSearch(app);
     for (const [id, v] of Object.entries(draft)) {
       const el = document.getElementById(id);
@@ -3690,6 +3698,326 @@ ${url}`;
     return "ph-wh";
   }
   const WGRP = [["na", "Not given", "", "Cut, not given to any stitcher"], ["st", "Stitching", "ph-st", "With stitchers"], ["qc", "Receive / check", "ph-qc", "Lot receiver and checker"], ["fin", "Thread / ironing", "ph-fin", "Thread cutter, ironing, on the way to warehouse"], ["wh", "Warehouse", "ph-wh", "Counted into stock"], ["bad", "Rejected / short", "ph-bad", "Rejected by checker or short at warehouse"]];
+  // ===== Fabric hisab: order -> weaver invoice -> grey at mill -> dyeing program -> dyed received =====
+  const FAB_ROLE = "Fabric staff";
+  let fabFilter = "open";
+  const fnum = (v) => {
+    const n = parseFloat(v);
+    return isFinite(n) ? n : 0;
+  };
+  const fmtM = (n) => (Math.round(fnum(n) * 100) / 100).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+  const fLive = (o) => Object.entries(o || {}).map(([id, v]) => __spreadValues({ id }, v)).filter((v) => v && !v.del).sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")) || String(a.at || "").localeCompare(String(b.at || "")));
+  function fabOrders() {
+    return Object.entries(S.fabric || {}).map(([id, f]) => __spreadValues({ id }, f)).filter((f) => f && !f.del).sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")) || String(b.at || "").localeCompare(String(a.at || "")));
+  }
+  function fabGet(id) {
+    const f = (S.fabric || {})[id];
+    return f ? __spreadValues({ id }, f) : null;
+  }
+  function fabSum(rows, key) {
+    return rows.reduce((a, r) => a + fnum(r[key]), 0);
+  }
+  function colSum(cols, key) {
+    return (cols || []).reduce((a, c) => a + fnum(c[key]), 0);
+  }
+  function fabCalc(f) {
+    const inv = fLive(f.inv), grey = fLive(f.grey), prog = fLive(f.prog), rcv = fLive(f.rcv);
+    const progM = prog.reduce((a, p) => a + colSum(p.cols, "m"), 0);
+    const rcvM = rcv.reduce((a, r) => a + colSum(r.cols, "m"), 0);
+    const r = { inv, grey, prog, rcv, invM: fabSum(inv, "mtr"), invT: fabSum(inv, "taka"), greyM: fabSum(grey, "mtr"), greyT: fabSum(grey, "taka"), progM, rcvM };
+    let st = "Ordered", cls = "line";
+    if (f.closed) st = "Closed", cls = "approved";
+    else if (rcv.length && prog.every((p) => (p.cols || []).every((c) => progColRcv(f, p.id, c.c).m > 0))) st = "Dyed fabric received", cls = "approved";
+    else if (prog.length) st = rcv.length ? "Part received" : "In dyeing", cls = "ph-fin";
+    else if (grey.length) st = "Grey at mill", cls = "ph-qc";
+    else if (inv.length) st = "In transit", cls = "pending";
+    r.st = st;
+    r.cls = cls;
+    return r;
+  }
+  function progColRcv(f, pid, colour) {
+    const out = { t: 0, m: 0 };
+    for (const r of fLive(f.rcv)) if (r.prog === pid) for (const c of r.cols || []) if (c.c === colour) {
+      out.t += fnum(c.t);
+      out.m += fnum(c.m);
+    }
+    return out;
+  }
+  function invGrey(f, iid) {
+    const g = fLive(f.grey).filter((x) => x.inv === iid);
+    return { n: g.length, t: fabSum(g, "taka"), m: fabSum(g, "mtr") };
+  }
+  function fabLots(f) {
+    const out = {};
+    for (const g of fLive(f.grey)) {
+      const k = String(g.lot || "").trim() || "(no lot no.)";
+      out[k] = out[k] || { lot: k, t: 0, m: 0, pt: 0, pm: 0 };
+      out[k].t += fnum(g.taka);
+      out[k].m += fnum(g.mtr);
+    }
+    for (const p of fLive(f.prog)) {
+      const k = String(p.lot || "").trim() || "(no lot no.)";
+      out[k] = out[k] || { lot: k, t: 0, m: 0, pt: 0, pm: 0 };
+      out[k].pt += colSum(p.cols, "t");
+      out[k].pm += colSum(p.cols, "m");
+    }
+    return Object.values(out);
+  }
+  function diffTxt(d, unit) {
+    d = Math.round(d * 100) / 100;
+    if (!d) return `<span style="color:var(--ok)">match</span>`;
+    return `<span style="color:${d < 0 ? "var(--bad)" : "var(--warn)"}">${d > 0 ? "+" : ""}${fmtM(d)}${unit}</span>`;
+  }
+  function fabSuggest() {
+    const s = { weaver: new Set(), mill: new Set(), quality: new Set(), transport: new Set(), colour: new Set() };
+    for (const f of fabOrders()) {
+      ["weaver", "mill", "quality"].forEach((k) => f[k] && s[k].add(f[k]));
+      fLive(f.inv).forEach((i) => i.transport && s.transport.add(i.transport));
+      fLive(f.prog).forEach((p) => (p.cols || []).forEach((c) => c.c && s.colour.add(c.c)));
+    }
+    for (const l of lotsSorted()) lotColours(l).forEach((c) => c && s.colour.add(c));
+    return `<div hidden>${Object.entries(s).map(([k, v]) => `<datalist id="fdl_${k}">${[...v].sort().map((x) => `<option value="${esc(x)}">`).join("")}</datalist>`).join("")}</div>`;
+  }
+  function fabView() {
+    const all = fabOrders();
+    const ls = fabFilter === "open" ? all.filter((f) => !f.closed) : all;
+    let h = `<div class="row spread"><h2>Fabric</h2><button class="btn accent sm" data-fab="new">+ New order</button></div>
+    <div class="seg"><button type="button" data-fabf="open" class="${fabFilter === "open" ? "on" : ""}">Open</button><button type="button" data-fabf="all" class="${fabFilter === "all" ? "on" : ""}">All</button></div>`;
+    if (!ls.length) return h + `<div class="empty"><h3>${all.length ? "No open fabric orders" : "No fabric orders yet"}</h3>Tap <b>+ New order</b> when you give a fabric order to a weaver.</div>`;
+    return h + `<div class="list">${ls.map(fabCard).join("")}</div>`;
+  }
+  function fabCard(f) {
+    const c = fabCalc(f);
+    const step = (n, v, t) => `<span class="small"><span class="muted">${n}</span> <b>${fmtM(v)} m</b>${t ? ` <span class="muted">(${fmtM(t)} taka)</span>` : ""}</span>`;
+    return `<div class="card list tapcard" style="gap:8px" data-fabopen="${f.id}" role="button" tabindex="0">
+    <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.15rem">${esc(f.no)}</span> <span class="dname">${esc(f.quality || "")}</span>
+    <div class="small muted ell">${fmtDate(f.date)} \xB7 ${esc(f.weaver || "Weaver ?")}${f.mill ? " → " + esc(f.mill) : ""}</div></div><span class="chip ${c.cls}" style="flex:none">${c.st}</span></div>
+    <div class="row" style="gap:4px 14px">${step("Order", f.mtr, f.taka)}${step("Invoiced", c.invM, c.invT)}${step("Grey", c.greyM, c.greyT)}${step("Program", c.progM)}${step("Dyed recd", c.rcvM)}</div></div>`;
+  }
+  function fabDetail(id) {
+    const f = fabGet(id);
+    if (!f) return closeSheet();
+    const c = fabCalc(f);
+    const sec = (t, n, btn) => `<div class="row spread" style="margin-top:6px"><h3 style="margin:0">${t}${n ? ` <span class="muted small">(${n})</span>` : ""}</h3>${f.closed ? "" : btn}</div>`;
+    const edit = (kind, eid) => f.closed ? "" : `<button type="button" class="btn alt sm" data-fabe="${kind}|${eid}">Edit</button>`;
+    const kv = (k, v) => v ? `<span class="small"><span class="muted">${k}</span> ${esc(v)}</span>` : "";
+    let h = `<div class="list" style="gap:12px">
+    <div class="card list" style="gap:6px"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="dname">${esc(f.quality || "")}</span><div class="small muted">${fmtDate(f.date)} \xB7 ${esc(f.weaver || "")}${f.mill ? " → mill " + esc(f.mill) : ""}</div></div><span class="chip ${c.cls}" style="flex:none">${c.st}</span></div>
+    <div class="small">Ordered <b>${fmtM(f.mtr)} m</b>${fnum(f.taka) ? ` \xB7 ${fmtM(f.taka)} taka` : ""}</div>${f.note ? `<div class="small">${esc(f.note)}</div>` : ""}
+    <div class="row" style="gap:8px">${f.closed ? "" : `<button type="button" class="btn alt sm" data-fabe="order|">Edit order</button>`}<button type="button" class="btn alt sm" data-fabclose="1">${f.closed ? "Reopen order" : "Close order"}</button></div></div>`;
+    h += sec("1 \xB7 Weaver invoices", c.inv.length, `<button type="button" class="btn accent sm" data-fabe="inv|">+ Invoice</button>`);
+    h += c.inv.length ? c.inv.map((i) => `<div class="card list" style="gap:4px"><div class="row spread"><b>Inv ${esc(i.no)}</b><span class="row" style="gap:8px"><span class="small muted">${fmtDate(i.date)}</span>${edit("inv", i.id)}</span></div>
+      <div class="small"><b>${fmtM(i.taka)}</b> taka \xB7 <b>${fmtM(i.mtr)}</b> m</div><div class="row" style="gap:2px 12px">${kv("Builty", i.lr)}${kv("E-way bill", i.ewb)}${kv("Transport", i.transport)}${kv("Vehicle", i.vehicle)}</div>${i.note ? `<div class="small muted">${esc(i.note)}</div>` : ""}</div>`).join("") : `<div class="small muted">No invoice yet.</div>`;
+    h += sec("2 \xB7 Grey report at mill", c.grey.length, c.inv.length ? `<button type="button" class="btn accent sm" data-fabe="grey|">+ Grey report</button>` : "");
+    h += c.grey.length ? c.grey.map((g) => {
+      const iv = (f.inv || {})[g.inv];
+      return `<div class="card list" style="gap:4px"><div class="row spread"><b>Mill lot ${esc(g.lot || "?")}</b><span class="row" style="gap:8px"><span class="small muted">${fmtDate(g.date)}</span>${edit("grey", g.id)}</span></div>
+      <div class="small"><b>${fmtM(g.taka)}</b> taka \xB7 <b>${fmtM(g.mtr)}</b> m${iv ? ` <span class="muted">\xB7 against inv ${esc(iv.no)}</span>` : ""}</div>${g.note ? `<div class="small muted">${esc(g.note)}</div>` : ""}</div>`;
+    }).join("") : `<div class="small muted">${c.inv.length ? "Waiting for the mill's grey report." : "Add the weaver's invoice first."}</div>`;
+    if (c.inv.length) h += `<div class="card list" style="gap:6px"><b class="small">Check: invoice vs grey received</b><table class="ftbl"><tr><th>Inv no.</th><th>Invoiced</th><th>Grey recd</th><th>Diff</th></tr>${c.inv.map((i) => {
+      const g = invGrey(f, i.id);
+      return `<tr><td>${esc(i.no)}</td><td>${fmtM(i.taka)} tk<br>${fmtM(i.mtr)} m</td>${g.n ? `<td>${fmtM(g.t)} tk<br>${fmtM(g.m)} m</td><td>${diffTxt(g.t - fnum(i.taka), " tk")}<br>${diffTxt(g.m - fnum(i.mtr), " m")}</td>` : `<td colspan="2" class="muted">Not reported yet</td>`}</tr>`;
+    }).join("")}</table></div>`;
+    const lots = fabLots(f);
+    h += sec("3 \xB7 Dyeing programs", c.prog.length, c.grey.length ? `<button type="button" class="btn accent sm" data-fabe="prog|">+ Program</button>` : "");
+    if (lots.length) h += `<div class="card list" style="gap:6px"><b class="small">Grey balance by mill lot</b><table class="ftbl"><tr><th>Mill lot</th><th>Grey</th><th>Programmed</th><th>Balance</th></tr>${lots.map((l) => `<tr><td>${esc(l.lot)}</td><td>${fmtM(l.t)} tk<br>${fmtM(l.m)} m</td><td>${fmtM(l.pt)} tk<br>${fmtM(l.pm)} m</td><td><b>${fmtM(l.t - l.pt)} tk<br>${fmtM(l.m - l.pm)} m</b></td></tr>`).join("")}</table></div>`;
+    h += c.prog.length ? c.prog.map((p) => `<div class="card list" style="gap:4px"><div class="row spread"><b>${p.no ? "Program " + esc(p.no) : "Program"} \xB7 lot ${esc(p.lot || "?")}</b><span class="row" style="gap:8px"><span class="small muted">${fmtDate(p.date)}</span>${edit("prog", p.id)}</span></div>
+      <div class="row" style="gap:5px">${(p.cols || []).map((x) => `<span class="chip line">${esc(x.c)} <b>${fmtM(x.m)} m</b>${fnum(x.t) ? ` \xB7 ${fmtM(x.t)} tk` : ""}</span>`).join("")}</div><div class="small muted">Total ${fmtM(colSum(p.cols, "t"))} taka \xB7 ${fmtM(colSum(p.cols, "m"))} m${p.note ? " \xB7 " + esc(p.note) : ""}</div></div>`).join("") : `<div class="small muted">${c.grey.length ? "No dyeing program given yet." : "Needs a grey report first."}</div>`;
+    h += sec("4 \xB7 Dyed fabric received", c.rcv.length, c.prog.length ? `<button type="button" class="btn accent sm" data-fabe="rcv|">+ Receive</button>` : "");
+    h += c.rcv.length ? c.rcv.map((r) => {
+      const p = (f.prog || {})[r.prog];
+      return `<div class="card list" style="gap:4px"><div class="row spread"><b>${r.ch ? "Challan " + esc(r.ch) : "Received"}</b><span class="row" style="gap:8px"><span class="small muted">${fmtDate(r.date)}</span>${edit("rcv", r.id)}</span></div>
+      <div class="small muted">${p ? "Against " + (p.no ? "program " + esc(p.no) : "program") + " \xB7 lot " + esc(p.lot || "?") : ""}</div>
+      <div class="row" style="gap:5px">${(r.cols || []).filter((x) => fnum(x.m) || fnum(x.t)).map((x) => `<span class="chip line">${esc(x.c)} <b>${fmtM(x.m)} m</b>${fnum(x.t) ? ` \xB7 ${fmtM(x.t)} tk` : ""}</span>`).join("")}</div>${r.note ? `<div class="small muted">${esc(r.note)}</div>` : ""}</div>`;
+    }).join("") : `<div class="small muted">${c.prog.length ? "Nothing received from the mill yet." : "Needs a dyeing program first."}</div>`;
+    if (c.prog.length) h += `<div class="card list" style="gap:6px"><b class="small">Check: program vs dyed received</b><table class="ftbl"><tr><th>Colour</th><th>Program</th><th>Received</th><th>Diff</th></tr>${c.prog.map((p) => `<tr><td colspan="4" class="muted small" style="padding-top:8px">${p.no ? "Program " + esc(p.no) : "Program"} \xB7 lot ${esc(p.lot || "?")} \xB7 ${fmtDate(p.date)}</td></tr>` + (p.cols || []).map((x) => {
+      const r = progColRcv(f, p.id, x.c);
+      const loss = fnum(x.m) && r.m ? Math.round((fnum(x.m) - r.m) / fnum(x.m) * 1e3) / 10 : null;
+      return `<tr><td>${esc(x.c)}</td><td>${fmtM(x.t)} tk<br>${fmtM(x.m)} m</td>${r.m || r.t ? `<td>${fmtM(r.t)} tk<br>${fmtM(r.m)} m</td><td>${diffTxt(r.t - fnum(x.t), " tk")}<br>${diffTxt(r.m - fnum(x.m), " m")}${loss != null ? `<br><span class="small muted">${loss > 0 ? loss + "% short" : loss < 0 ? -loss + "% extra" : ""}</span>` : ""}</td>` : `<td colspan="2" class="muted">Not received</td>`}</tr>`;
+    }).join("")).join("")}</table></div>`;
+    h += `</div>`;
+    const sh = sheet("Fabric order " + (f.no || ""), h);
+    sh.addEventListener("click", async (e) => {
+      const b = e.target.closest("button");
+      if (!b) return;
+      if (b.dataset.fabe) {
+        const [k, eid] = b.dataset.fabe.split("|");
+        fabForm(id, k, eid || null);
+      } else if (b.dataset.fabclose) {
+        if (!f.closed && !confirm("Close this fabric order? It moves out of the Open list. You can reopen it any time.")) return;
+        try {
+          await S.db.doc("fabric/" + id).update({ closed: !f.closed, closedAt: (/* @__PURE__ */ new Date()).toISOString() });
+          toast(f.closed ? "Order reopened" : "Order closed");
+          fabDetail(id);
+        } catch (x) {
+          writeErr(x);
+        }
+      }
+    });
+  }
+  function colRowsHtml(cols, withName) {
+    return (cols.length ? cols : [{ c: "", t: "", m: "" }]).map((x, i) => `<div class="grid3 fcol" data-ci="${i}">${withName ? `<label class="f">Colour<input data-cc list="fdl_colour" value="${esc(x.c || "")}" autocomplete="off"></label>` : `<div class="f"><span class="small muted">Colour</span><b data-cc data-v="${esc(x.c)}">${esc(x.c)}</b>${x.pm != null ? `<span class="small muted">prog ${fmtM(x.pm)} m${x.got ? ` \xB7 got ${fmtM(x.got)}` : ""}</span>` : ""}</div>`}<label class="f">Taka<input data-ct type="number" inputmode="decimal" min="0" step="any" value="${esc(x.t === 0 ? "" : x.t || "")}" placeholder="0"></label><label class="f">Meters<input data-cm type="number" inputmode="decimal" min="0" step="any" value="${esc(x.m === 0 ? "" : x.m || "")}" placeholder="0"></label></div>`).join("");
+  }
+  function readCols(sh) {
+    return [...sh.querySelectorAll(".fcol")].map((r) => {
+      const n = r.querySelector("[data-cc]");
+      return { c: String(n.tagName === "INPUT" ? n.value : n.dataset.v || "").trim(), t: fnum(r.querySelector("[data-ct]").value), m: fnum(r.querySelector("[data-cm]").value) };
+    });
+  }
+  function fabForm(fid, kind, eid) {
+    const f = fid ? fabGet(fid) : null;
+    const cur = kind === "order" ? f || {} : eid ? ((f || {})[kind] || {})[eid] || {} : {};
+    const inp = (id, label, v, o) => `<label class="f">${label}<input id="${id}" ${o || ""} value="${esc(v == null ? "" : v)}" autocomplete="off"></label>`;
+    const num = (id, label, v) => inp(id, label, v === 0 ? "" : v, `type="number" inputmode="decimal" min="0" step="any" placeholder="0"`);
+    const dt = (v) => inp("fDate", "Date", v || today(), `type="date" max="${today()}"`);
+    let title = "", body = "";
+    if (kind === "order") {
+      title = f ? "Edit fabric order" : "New fabric order";
+      body = `<div class="grid2">${dt(cur.date)}${inp("fWeaver", "Weaver", cur.weaver, 'list="fdl_weaver" required')}</div>
+      <div class="grid2">${inp("fQuality", "Fabric quality", cur.quality, 'list="fdl_quality" placeholder="e.g. Cotton slub 58&quot;"')}${inp("fMill", "Mill (for dyeing)", cur.mill, 'list="fdl_mill"')}</div>
+      <div class="grid2">${num("fTaka", "Order taka", cur.taka)}${num("fMtr", "Order meters", cur.mtr)}</div>${inp("fNote", "Note (optional)", cur.note)}`;
+    } else if (kind === "inv") {
+      title = eid ? "Edit weaver invoice" : "Weaver invoice";
+      body = `<div class="grid2">${inp("fNo", "Invoice no.", cur.no, "required")}${dt(cur.date)}</div><div class="grid2">${num("fTaka", "Taka", cur.taka)}${num("fMtr", "Meters", cur.mtr)}</div>
+      <div class="grid2">${inp("fLr", "Builty (LR) no.", cur.lr)}${inp("fEwb", "E-way bill no.", cur.ewb, 'inputmode="numeric"')}</div><div class="grid2">${inp("fTr", "Transport", cur.transport, 'list="fdl_transport"')}${inp("fVeh", "Vehicle no.", cur.vehicle, 'style="text-transform:uppercase"')}</div>${inp("fNote", "Note (optional)", cur.note)}`;
+    } else if (kind === "grey") {
+      title = eid ? "Edit grey report" : "Grey report from mill";
+      const invs = fLive(f.inv);
+      body = `<label class="f">Against invoice<select id="fInv">${invs.map((i) => `<option value="${i.id}" ${cur.inv === i.id || !cur.inv && i === invs.find((x) => !invGrey(f, x.id).n) ? "selected" : ""}>Inv ${esc(i.no)} \xB7 ${fmtM(i.taka)} tk \xB7 ${fmtM(i.mtr)} m</option>`).join("")}</select></label>
+      <div class="grid2">${inp("fLot", "Mill lot no.", cur.lot, "required")}${dt(cur.date)}</div><div class="grid2">${num("fTaka", "Taka received", cur.taka)}${num("fMtr", "Meters received", cur.mtr)}</div>${inp("fNote", "Note (optional)", cur.note)}`;
+    } else if (kind === "prog") {
+      title = eid ? "Edit dyeing program" : "Dyeing program";
+      const lots = fabLots(f);
+      body = `<div class="grid2"><label class="f">Mill lot<select id="fLot">${lots.map((l) => `<option value="${esc(l.lot)}" ${cur.lot === l.lot ? "selected" : ""}>${esc(l.lot)} \xB7 ${fmtM(l.m - l.pm)} m left</option>`).join("")}</select></label>${dt(cur.date)}</div>${inp("fNo", "Program no. (optional)", cur.no)}
+      <div class="card list" style="gap:8px"><div class="row spread"><b>Colours</b><button type="button" class="btn alt sm" data-addcol>+ Colour</button></div><div id="fCols" class="list" style="gap:8px">${colRowsHtml(cur.cols || [], true)}</div><div class="small muted" id="fColTot"></div></div>${inp("fNote", "Note (optional)", cur.note)}`;
+    } else if (kind === "rcv") {
+      title = eid ? "Edit dyed fabric receipt" : "Receive dyed fabric";
+      const progs = fLive(f.prog);
+      const pickP = cur.prog || (progs.find((p) => (p.cols || []).some((x) => !progColRcv(f, p.id, x.c).m)) || progs[progs.length - 1] || {}).id;
+      body = `<label class="f">Against program<select id="fProg">${progs.map((p) => `<option value="${p.id}" ${p.id === pickP ? "selected" : ""}>${p.no ? "Program " + esc(p.no) : "Program"} \xB7 lot ${esc(p.lot || "?")} \xB7 ${fmtDate(p.date)}</option>`).join("")}</select></label>
+      <div class="grid2">${inp("fCh", "Mill challan no.", cur.ch)}${dt(cur.date)}</div><div class="card list" style="gap:8px"><b>What we counted</b><div id="fCols" class="list" style="gap:8px"></div><div class="small muted" id="fColTot"></div></div>${inp("fNote", "Note (optional)", cur.note)}`;
+    }
+    const canDel = kind !== "order" && eid || kind === "order" && f && !fLive(f.inv).length;
+    const sh = sheet(title, `<form id="fabF" class="list" novalidate>${body}<div id="fErr" class="err"></div><button class="btn accent big" type="submit">Save</button>${canDel ? `<button type="button" class="btn alt" data-fdel style="color:var(--bad)">Delete</button>` : ""}</form>${fabSuggest()}`);
+    const back = () => fid ? fabDetail(fid) : closeSheet();
+    const totals = () => {
+      const t = $("#fColTot", sh);
+      if (!t) return;
+      const cs = readCols(sh);
+      t.textContent = "Total " + fmtM(colSum(cs, "t")) + " taka \xB7 " + fmtM(colSum(cs, "m")) + " m";
+    };
+    const drawRcv = () => {
+      const pid = $("#fProg", sh).value;
+      const p = (f.prog || {})[pid] || {};
+      const prev = (cur.prog === pid ? cur.cols : null) || [];
+      $("#fCols", sh).innerHTML = colRowsHtml((p.cols || []).map((x) => {
+        const o = prev.find((y) => y.c === x.c) || {};
+        const got = progColRcv(f, pid, x.c).m - (eid && cur.prog === pid ? fnum(o.m) : 0);
+        return { c: x.c, t: o.t, m: o.m, pm: fnum(x.m), got };
+      }), false);
+      totals();
+    };
+    if (kind === "rcv") {
+      drawRcv();
+      $("#fProg", sh).onchange = drawRcv;
+    }
+    totals();
+    sh.addEventListener("input", totals);
+    sh.addEventListener("click", async (e) => {
+      if (e.target.closest("[data-addcol]")) {
+        const box = $("#fCols", sh);
+        const cs = readCols(sh);
+        cs.push({ c: "", t: "", m: "" });
+        box.innerHTML = colRowsHtml(cs, true);
+        const last = box.querySelectorAll("[data-cc]");
+        last[last.length - 1].focus();
+        return;
+      }
+      if (e.target.closest("[data-fdel]")) {
+        if (!confirm("Delete this entry?")) return;
+        try {
+          if (kind === "order") await S.db.doc("fabric/" + fid).update({ del: true, delAt: (/* @__PURE__ */ new Date()).toISOString(), delBy: me().id });
+          else await S.db.doc("fabric/" + fid).update({ [kind]: { [eid]: { del: true, delAt: (/* @__PURE__ */ new Date()).toISOString(), delBy: me().id } } });
+          toast("Deleted");
+          kind === "order" ? closeSheet() : back();
+        } catch (x) {
+          writeErr(x);
+        }
+      }
+    });
+    $("#fabF", sh).onsubmit = async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const v = (id) => {
+        const el = $("#" + id, sh);
+        return el ? el.value.trim() : "";
+      };
+      const er = (x) => {
+        $("#fErr", sh).textContent = x;
+      };
+      const now = (/* @__PURE__ */ new Date()).toISOString();
+      const date = v("fDate") || today();
+      let d;
+      if (kind === "order") {
+        if (!v("fWeaver")) return er("Enter the weaver's name.");
+        if (!fnum(v("fMtr")) && !fnum(v("fTaka"))) return er("Enter order meters or taka.");
+        d = { date, weaver: v("fWeaver"), quality: v("fQuality"), mill: v("fMill"), taka: fnum(v("fTaka")), mtr: fnum(v("fMtr")), note: v("fNote") };
+      } else if (kind === "inv") {
+        if (!v("fNo")) return er("Enter the invoice number.");
+        if (!fnum(v("fMtr"))) return er("Enter the meters on the invoice.");
+        d = { no: v("fNo"), date, taka: fnum(v("fTaka")), mtr: fnum(v("fMtr")), lr: v("fLr"), ewb: v("fEwb"), transport: v("fTr"), vehicle: v("fVeh").toUpperCase(), note: v("fNote") };
+      } else if (kind === "grey") {
+        if (!v("fLot")) return er("Enter the mill lot number.");
+        if (!fnum(v("fMtr"))) return er("Enter the meters the mill received.");
+        d = { inv: v("fInv"), lot: v("fLot"), date, taka: fnum(v("fTaka")), mtr: fnum(v("fMtr")), note: v("fNote") };
+      } else if (kind === "prog") {
+        const cols = readCols(sh).filter((x) => x.c || x.t || x.m);
+        if (!cols.length) return er("Add at least one colour.");
+        if (cols.some((x) => !x.c)) return er("Every row needs a colour name.");
+        if (cols.some((x) => !x.m && !x.t)) return er("Enter meters or taka for every colour.");
+        const names = cols.map((x) => x.c.toLowerCase());
+        if (names.some((n, i) => names.indexOf(n) !== i)) return er("The same colour is entered twice.");
+        const lot = fabLots(f).find((l) => l.lot === v("fLot"));
+        const was = eid ? colSum(cur.cols, "m") : 0;
+        const used = lot ? lot.pm - (eid && cur.lot === lot.lot ? was : 0) : 0;
+        if (lot && used + colSum(cols, "m") > lot.m + 0.01) {
+          if (!confirm("This program is more than the grey meters left in lot " + lot.lot + ". Save anyway?")) return;
+        }
+        d = { lot: v("fLot"), date, no: v("fNo"), cols, note: v("fNote") };
+      } else if (kind === "rcv") {
+        const cols = readCols(sh);
+        if (!cols.some((x) => x.m || x.t)) return er("Enter what was received for at least one colour.");
+        d = { prog: v("fProg"), ch: v("fCh"), date, cols, note: v("fNote") };
+      }
+      try {
+        if (kind === "order") {
+          if (f) await S.db.doc("fabric/" + fid).update(d);
+          else {
+            const n = Object.values(S.fabric || {}).reduce((a, x) => Math.max(a, +(String(x.no || "").replace(/\D/g, "")) || 0), 0) + 1;
+            const nid = uid("fo");
+            await S.db.doc("fabric/" + nid).set(Object.assign(d, { no: "FO-" + String(n).padStart(3, "0"), at: now, by: me().id }));
+            toast("Fabric order " + d.no + " added");
+            return fabDetail(nid);
+          }
+        } else {
+          await S.db.doc("fabric/" + fid).update({ [kind]: { [eid || uid("e")]: Object.assign(d, eid ? { editAt: now, editBy: me().id } : { at: now, by: me().id }) } });
+        }
+        toast("Saved");
+        back();
+      } catch (x) {
+        writeErr(x);
+      }
+    };
+  }
+  document.addEventListener("click", (e) => {
+    const t = e.target.closest && e.target.closest("[data-fab],[data-fabf],[data-fabopen]");
+    if (!t || t.closest(".sheet")) return;
+    if (t.dataset.fab === "new") fabForm(null, "order", null);
+    else if (t.dataset.fabf) {
+      fabFilter = t.dataset.fabf;
+      render();
+    } else if (t.dataset.fabopen) fabDetail(t.dataset.fabopen);
+  });
   function isBoss() {
     const m = me();
     return !!m && (m.id === "owner" || m.role === "Manager");
@@ -4397,7 +4725,7 @@ ${url}`;
   function bossLinks(cur) {
     if (!isBoss()) return "";
     const own = me().id === "owner";
-    const ls = [own ? ["dash", "Dashboard"] : null, ["bundles", "Bundles"], ["duty", "Duty hours"], ["lots", "Lots"], ["stock", "Stock"], own ? ["team", "Team"] : S.live ? ["links", "Team links"] : null].filter(Boolean);
+    const ls = [own ? ["dash", "Dashboard"] : null, ["bundles", "Bundles"], ["duty", "Duty hours"], ["lots", "Lots"], ["stock", "Stock"], ["fabric", "Fabric"], own ? ["team", "Team"] : S.live ? ["links", "Team links"] : null].filter(Boolean);
     return `<div class="seg navseg">${ls.map(([k, n]) => `<button type="button" data-tab="${k}" class="${k === cur ? "on" : ""}">${n}</button>`).join("")}</div>`;
   }
   function lotsOverview(ls) {
