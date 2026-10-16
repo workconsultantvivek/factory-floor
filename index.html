@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="1610-1640";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="1610-1650";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -3743,6 +3743,7 @@ ${url}`;
     return `<details class="fdet" data-rinv="${i.id}" ${openRolls.has(i.id) ? "open" : ""}><summary><span><b>${r.length} rolls</b> \xB7 ${fmtM(fabSum(r, "m"))} m${nw ? " \xB7 " + fmtM(fabSum(r, "nw")) + " kg" : ""}</span><span class="small fdet-t"></span></summary><table class="ftbl"><tr><th>#</th><th>Piece no.</th><th>Meters</th>${nw ? "<th>Net wt</th>" : ""}${edit ? "<th></th>" : ""}</tr>${r.map((x, k) => `<tr><td>${k + 1}</td><td>${esc(x.pc || "")}${x.code ? `<br><span class="small muted">${esc(x.code)}</span>` : ""}</td><td>${fmtM(x.m)}</td>${nw ? `<td>${x.nw ? fmtM(x.nw) : ""}</td>` : ""}${edit ? `<td style="text-align:right"><button type="button" class="btn alt sm" data-froll="${i.id}|${x.id}">Edit</button></td>` : ""}</tr>`).join("")}<tr><td></td><td><b>${r.length} taka</b></td><td><b>${fmtM(fabSum(r, "m"))}</b></td>${nw ? `<td><b>${fmtM(fabSum(r, "nw"))}</b></td>` : ""}${edit ? "<td></td>" : ""}</tr></table></details>`;
   }
   const openRolls = /* @__PURE__ */ new Set();
+  const fabScroll = {};
   function rollForm(fid, iid, rid) {
     const f = fabGet(fid);
     const inv = ((f || {}).inv || {})[iid];
@@ -3757,7 +3758,7 @@ ${url}`;
     <div class="grid2"><label class="f">Meters<input id="rM" type="number" inputmode="decimal" min="0" step="any" value="${esc(cur.m || "")}" placeholder="0"></label><label class="f">Net wt (kg)<input id="rNw" type="number" inputmode="decimal" min="0" step="any" value="${esc(cur.nw || "")}" placeholder="optional"></label></div>
     <div id="rErr" class="err"></div>
     ${rid ? `<button class="btn accent big" type="submit" data-rnext="0">Save</button><button type="button" class="btn alt" data-rdel style="color:var(--bad)">Delete roll</button>` : `<button class="btn accent big" type="submit" data-rnext="1">Save & add next roll</button><button class="btn alt" type="submit" data-rnext="0">Save & close</button>`}
-    </form>`, { short: true });
+    </form>`, { short: true, back: () => fabDetail(fid) });
     let next = !rid;
     sh.querySelectorAll("[data-rnext]").forEach((b) => b.addEventListener("click", () => next = b.dataset.rnext === "1"));
     setTimeout(() => {
@@ -3765,10 +3766,6 @@ ${url}`;
       i && i.focus();
     }, 60);
     const back = () => fabDetail(fid);
-    $("[data-close]", sh.parentNode) && $("[data-close]", sh.parentNode).addEventListener("click", (e) => {
-      e.stopPropagation();
-      back();
-    });
     const del = $("[data-rdel]", sh);
     if (del) del.onclick = async () => {
       if (!confirm("Delete this roll?")) return;
@@ -3845,7 +3842,7 @@ ${url}`;
         plReview(fid, iid, j.pl || {});
       } catch (x) {
         console.warn(x);
-        sheet("Couldn't read the uploaded packing list", `<div class="list"><p class="small" style="margin:0">${esc(x && x.message || "Check the internet and try again.")}</p><button type="button" class="btn accent" data-retry>Try another file</button><button type="button" class="btn alt" data-manual>Type rolls by hand</button></div>`, { short: true });
+        sheet("Couldn't read the uploaded packing list", `<div class="list"><p class="small" style="margin:0">${esc(x && x.message || "Check the internet and try again.")}</p><button type="button" class="btn accent" data-retry>Try another file</button><button type="button" class="btn alt" data-manual>Type rolls by hand</button></div>`, { short: true, back: () => fabDetail(fid) });
         const sh = $(".sheet");
         $("[data-retry]", sh).onclick = () => readPackingList(fid, iid);
         $("[data-manual]", sh).onclick = () => iid ? rollForm(fid, iid, null) : fabForm(fid, "inv", null);
@@ -3872,7 +3869,7 @@ ${url}`;
       <label class="f">Transport<input id="plTr" value="${v(pl.transport)}"></label>`;
     const sh = sheet("Check packing list", `<div class="list">${pl.weaver || pl.quality ? `<div class="small muted">${esc(pl.weaver || "")}${pl.quality ? " \xB7 " + esc(pl.quality) : ""}</div>` : ""}${hdr}
     <div class="small muted">Check each roll against the paper. Fix anything read wrong, or tap ✕ to leave a row out.</div><div id="plRows" class="list" style="gap:8px"></div><div id="plErr" class="err"></div>
-    <button type="button" class="btn accent big" data-plsave>Save ${iid ? "rolls" : "invoice with rolls"}</button></div>`);
+    <button type="button" class="btn accent big" data-plsave>Save ${iid ? "rolls" : "invoice with rolls"}</button></div>`, { back: () => fabDetail(fid) });
     draw();
     sh.addEventListener("input", (e) => {
       const p = e.target.dataset.pr;
@@ -3941,7 +3938,7 @@ ${url}`;
     <label class="f">Note (optional)<input id="pNote" value="${esc(cur.note || "")}"></label>
     <div id="pErr" class="err"></div><button class="btn accent big" type="submit">Save program</button>
     ${pid ? `<button type="button" class="btn alt" data-pdel style="color:var(--bad)">Delete program</button>` : ""}
-    <button type="button" class="btn alt sm" data-pmanual style="align-self:center">Enter colour meters by hand instead</button></form>${fabSuggest()}`);
+    <button type="button" class="btn alt sm" data-pmanual style="align-self:center">Enter colour meters by hand instead</button></form>${fabSuggest()}`, { back: () => fabDetail(fid) });
     const totals = () => {
       const o = {};
       cols.forEach((c) => o[c] = { c, t: 0, m: 0 });
@@ -4182,6 +4179,9 @@ ${url}`;
     }).join("")).join("")}</table></div>`;
     h += `</div>`;
     const sh = sheet("Fabric order " + (f.no || ""), h);
+    const sc = sh.closest(".sheet") || sh;
+    if (fabScroll[id]) setTimeout(() => sc.scrollTop = fabScroll[id], 0);
+    sc.addEventListener("scroll", () => fabScroll[id] = sc.scrollTop, { passive: true });
     sh.addEventListener("toggle", (e) => {
       const d = e.target;
       if (!d.dataset || !d.dataset.rinv) return;
@@ -4263,7 +4263,7 @@ ${url}`;
       <div class="grid2">${inp("fCh", "Mill challan no.", cur.ch)}${dt(cur.date)}</div><div class="card list" style="gap:8px"><b>What we counted</b><div id="fCols" class="list" style="gap:8px"></div><div class="small muted" id="fColTot"></div></div>${inp("fNote", "Note (optional)", cur.note)}`;
     }
     const canDel = kind !== "order" && eid || kind === "order" && f && !fLive(f.inv).length;
-    const sh = sheet(title, `<form id="fabF" class="list" novalidate>${body}<div id="fErr" class="err"></div><button class="btn accent big" type="submit">Save</button>${canDel ? `<button type="button" class="btn alt" data-fdel style="color:var(--bad)">Delete</button>` : ""}</form>${fabSuggest()}`);
+    const sh = sheet(title, `<form id="fabF" class="list" novalidate>${body}<div id="fErr" class="err"></div><button class="btn accent big" type="submit">Save</button>${canDel ? `<button type="button" class="btn alt" data-fdel style="color:var(--bad)">Delete</button>` : ""}</form>${fabSuggest()}`, { back: fid ? () => fabDetail(fid) : null });
     const back = () => fid ? fabDetail(fid) : closeSheet();
     const totals = () => {
       const t = $("#fColTot", sh);
@@ -5482,7 +5482,10 @@ ${url}`;
     bg.innerHTML = `<div class="sheet ${opts.short ? "short" : ""}" role="dialog" aria-label="${esc(title)}"><div class="shead row spread"><h2>${esc(title)}</h2><button type="button" class="btn alt sm" data-close>Close</button></div>${html}</div>`;
     document.body.appendChild(bg);
     bg.addEventListener("click", (e) => {
-      if (e.target === bg || e.target.closest("[data-close]")) closeSheet();
+      if (e.target === bg || e.target.closest("[data-close]")) {
+        closeSheet();
+        if (opts.back) opts.back();
+      }
     });
     return bg.querySelector(".sheet");
   }
