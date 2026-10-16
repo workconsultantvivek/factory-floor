@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="1610-1610";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="1610-1620";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -4020,7 +4020,7 @@ ${url}`;
     h += c.grey.length ? c.grey.map((g) => {
       const iv = (f.inv || {})[g.inv];
       return `<div class="card list" style="gap:4px"><div class="row spread"><b>Mill lot ${esc(g.lot || "?")}</b><span class="row" style="gap:8px"><span class="small muted">${fmtDate(g.date)}</span>${edit("grey", g.id)}</span></div>
-      <div class="small"><b>${fmtM(g.taka)}</b> taka \xB7 <b>${fmtM(g.mtr)}</b> m${iv ? ` <span class="muted">\xB7 against inv ${esc(iv.no)}</span>` : ""}</div>${g.note ? `<div class="small muted">${esc(g.note)}</div>` : ""}</div>`;
+      <div class="small"><b>${fmtM(g.taka)}</b> taka \xB7 <b>${fmtM(g.mtr)}</b> m${iv ? ` <span class="muted">\xB7 against inv ${esc(iv.no)}${iv.lr ? " \xB7 LR " + esc(iv.lr) : ""}</span>` : ""}</div>${g.note ? `<div class="small muted">${esc(g.note)}</div>` : ""}</div>`;
     }).join("") : `<div class="small muted">${c.inv.length ? "Waiting for the mill's grey report." : "Add the weaver's invoice first."}</div>`;
     if (c.inv.length) h += `<div class="card list" style="gap:6px"><b class="small">Check: invoice vs grey received</b><table class="ftbl"><tr><th>Inv no.</th><th>Invoiced</th><th>Grey recd</th><th>Diff</th></tr>${c.inv.map((i) => {
       const g = invGrey(f, i.id), it = invTot(i);
@@ -4109,7 +4109,7 @@ ${url}`;
     } else if (kind === "grey") {
       title = eid ? "Edit grey report" : "Grey report from mill";
       const invs = fLive(f.inv);
-      body = `<label class="f">Against invoice<select id="fInv">${invs.map((i) => `<option value="${i.id}" ${cur.inv === i.id || !cur.inv && i === invs.find((x) => !invGrey(f, x.id).n) ? "selected" : ""}>Inv ${esc(i.no)} \xB7 ${fmtM(invTot(i).t)} tk \xB7 ${fmtM(invTot(i).m)} m</option>`).join("")}</select></label>
+      body = `<label class="f">Against invoice<select id="fInv">${invs.map((i) => `<option value="${i.id}" ${cur.inv === i.id || !cur.inv && i === invs.find((x) => !invGrey(f, x.id).n) ? "selected" : ""}>Inv ${esc(i.no)}${i.lr ? " \xB7 LR " + esc(i.lr) : ""} \xB7 ${fmtM(invTot(i).t)} tk \xB7 ${fmtM(invTot(i).m)} m</option>`).join("")}</select></label>
       <div class="grid2">${inp("fLot", "Mill lot no.", cur.lot, "required")}${dt(cur.date)}</div><div class="grid2">${num("fTaka", "Taka received", cur.taka)}${num("fMtr", "Meters received", cur.mtr)}</div>${inp("fNote", "Note (optional)", cur.note)}`;
     } else if (kind === "prog") {
       title = eid ? "Edit dyeing program" : "Dyeing program";
