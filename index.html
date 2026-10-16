@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="1610-1620";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="1610-1550";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -87,6 +87,7 @@ label.f input,label.f select,label.f textarea{border:1px solid var(--line);backg
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .grid3{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:8px;align-items:end}.grid3 .f{min-width:0}.grid3 input{min-width:0;width:100%}
 .fchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.fchips .chip{font-weight:600}
+.fdet{border:1px solid var(--line);border-radius:10px;padding:0 8px;overflow:hidden}.fdet .ftbl td,.fdet .ftbl th{padding-right:4px}.fdet .ftbl td:nth-child(2){word-break:break-all}.fdet .btn.sm{padding:4px 8px;font-size:.78rem}.fdet>summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 0;font-size:.9rem}.fdet>summary::-webkit-details-marker{display:none}.fdet-t::after{content:"Show rolls \25BE";color:var(--muted);font-weight:600}.fdet[open] .fdet-t::after{content:"Hide \25B4"}.fdet[open]>summary{border-bottom:1px solid var(--line)}
 .ftbl{width:100%;border-collapse:collapse;font-size:.82rem}.ftbl th{text-align:left;font-weight:600;color:var(--muted);padding:4px 6px 4px 0;border-bottom:1px solid var(--line)}.ftbl td{padding:6px 6px 6px 0;border-bottom:1px solid var(--line);vertical-align:top}.ftbl tr:last-child td{border-bottom:0}
 .sizes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .sizebox{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:8px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -3736,8 +3737,9 @@ ${url}`;
     const r = invRolls(i);
     if (!r.length) return "";
     const nw = r.some((x) => fnum(x.nw));
-    return `<table class="ftbl"><tr><th>#</th><th>Piece no.</th><th>Meters</th>${nw ? "<th>Net wt</th>" : ""}${edit ? "<th></th>" : ""}</tr>${r.map((x, k) => `<tr><td>${k + 1}</td><td>${esc(x.pc || "")}${x.code ? `<br><span class="small muted">${esc(x.code)}</span>` : ""}</td><td>${fmtM(x.m)}</td>${nw ? `<td>${x.nw ? fmtM(x.nw) : ""}</td>` : ""}${edit ? `<td style="text-align:right"><button type="button" class="btn alt sm" data-froll="${i.id}|${x.id}">Edit</button></td>` : ""}</tr>`).join("")}<tr><td></td><td><b>${r.length} taka</b></td><td><b>${fmtM(fabSum(r, "m"))}</b></td>${nw ? `<td><b>${fmtM(fabSum(r, "nw"))}</b></td>` : ""}${edit ? "<td></td>" : ""}</tr></table>`;
+    return `<details class="fdet" data-rinv="${i.id}" ${openRolls.has(i.id) ? "open" : ""}><summary><span><b>${r.length} rolls</b> \xB7 ${fmtM(fabSum(r, "m"))} m${nw ? " \xB7 " + fmtM(fabSum(r, "nw")) + " kg" : ""}</span><span class="small fdet-t"></span></summary><table class="ftbl"><tr><th>#</th><th>Piece no.</th><th>Meters</th>${nw ? "<th>Net wt</th>" : ""}${edit ? "<th></th>" : ""}</tr>${r.map((x, k) => `<tr><td>${k + 1}</td><td>${esc(x.pc || "")}${x.code ? `<br><span class="small muted">${esc(x.code)}</span>` : ""}</td><td>${fmtM(x.m)}</td>${nw ? `<td>${x.nw ? fmtM(x.nw) : ""}</td>` : ""}${edit ? `<td style="text-align:right"><button type="button" class="btn alt sm" data-froll="${i.id}|${x.id}">Edit</button></td>` : ""}</tr>`).join("")}<tr><td></td><td><b>${r.length} taka</b></td><td><b>${fmtM(fabSum(r, "m"))}</b></td>${nw ? `<td><b>${fmtM(fabSum(r, "nw"))}</b></td>` : ""}${edit ? "<td></td>" : ""}</tr></table></details>`;
   }
+  const openRolls = /* @__PURE__ */ new Set();
   function rollForm(fid, iid, rid) {
     const f = fabGet(fid);
     const inv = ((f || {}).inv || {})[iid];
@@ -4038,6 +4040,11 @@ ${url}`;
     }).join("")).join("")}</table></div>`;
     h += `</div>`;
     const sh = sheet("Fabric order " + (f.no || ""), h);
+    sh.addEventListener("toggle", (e) => {
+      const d = e.target;
+      if (!d.dataset || !d.dataset.rinv) return;
+      d.open ? openRolls.add(d.dataset.rinv) : openRolls.delete(d.dataset.rinv);
+    }, true);
     sh.addEventListener("click", async (e) => {
       const b = e.target.closest("button");
       if (!b) return;
