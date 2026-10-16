@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="1610-1500";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="1610-1510";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -86,6 +86,7 @@ label.f,.f{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var
 label.f input,label.f select,label.f textarea{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:11px;font-size:1rem;color:var(--ink);width:100%}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .grid3{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:8px;align-items:end}.grid3 .f{min-width:0}.grid3 input{min-width:0;width:100%}
+.fchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}.fchips .chip{font-weight:600}
 .ftbl{width:100%;border-collapse:collapse;font-size:.82rem}.ftbl th{text-align:left;font-weight:600;color:var(--muted);padding:4px 6px 4px 0;border-bottom:1px solid var(--line)}.ftbl td{padding:6px 6px 6px 0;border-bottom:1px solid var(--line);vertical-align:top}.ftbl tr:last-child td{border-bottom:0}
 .sizes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .sizebox{border:1px solid var(--line);border-radius:10px;background:var(--bg);padding:8px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
@@ -3771,6 +3772,18 @@ ${url}`;
     if (!d) return `<span style="color:var(--ok)">match</span>`;
     return `<span style="color:${d < 0 ? "var(--bad)" : "var(--warn)"}">${d > 0 ? "+" : ""}${fmtM(d)}${unit}</span>`;
   }
+  function fabPast(k) {
+    const out = [];
+    const add = (x) => {
+      x = String(x || "").trim();
+      if (x && !out.some((y) => y.toLowerCase() === x.toLowerCase())) out.push(x);
+    };
+    for (const f of fabOrders()) {
+      if (k === "transport") fLive(f.inv).slice().reverse().forEach((i) => add(i.transport));
+      else add(f[k]);
+    }
+    return out.slice(0, 15);
+  }
   function fabSuggest() {
     const s = { weaver: new Set(), mill: new Set(), quality: new Set(), transport: new Set(), colour: new Set() };
     for (const f of fabOrders()) {
@@ -3870,14 +3883,18 @@ ${url}`;
   function fabForm(fid, kind, eid) {
     const f = fid ? fabGet(fid) : null;
     const cur = kind === "order" ? f || {} : eid ? ((f || {})[kind] || {})[eid] || {} : {};
-    const inp = (id, label, v, o) => `<label class="f">${label}<input id="${id}" ${o || ""} value="${esc(v == null ? "" : v)}" autocomplete="off"></label>`;
+    const inp = (id, label, v, o) => {
+      const lk = /list="fdl_(\w+)"/.exec(o || "");
+      const past = lk && lk[1] !== "colour" ? fabPast(lk[1]) : [];
+      return `<label class="f">${label}<input id="${id}" ${o || ""} value="${esc(v == null ? "" : v)}" autocomplete="off">${past.length ? `<span class="fchips">${past.map((x) => `<button type="button" class="chip pick ${x === v ? "on" : ""}" data-ffill="${id}" data-v="${esc(x)}">${esc(x)}</button>`).join("")}</span>` : ""}</label>`;
+    };
     const num = (id, label, v) => inp(id, label, v === 0 ? "" : v, `type="number" inputmode="decimal" min="0" step="any" placeholder="0"`);
     const dt = (v) => inp("fDate", "Date", v || today(), `type="date" max="${today()}"`);
     let title = "", body = "";
     if (kind === "order") {
       title = f ? "Edit fabric order" : "New fabric order";
-      body = `<div class="grid2">${dt(cur.date)}${inp("fWeaver", "Weaver", cur.weaver, 'list="fdl_weaver" required')}</div>
-      <div class="grid2">${inp("fQuality", "Fabric quality", cur.quality, 'list="fdl_quality" placeholder="e.g. Cotton slub 58&quot;"')}${inp("fMill", "Mill (for dyeing)", cur.mill, 'list="fdl_mill"')}</div>
+      body = `${inp("fWeaver", "Weaver", cur.weaver, 'list="fdl_weaver" required placeholder="Type a new name or tap one below"')}
+      ${dt(cur.date)}${inp("fQuality", "Fabric quality", cur.quality, 'list="fdl_quality" placeholder="e.g. Cotton slub 58&quot;"')}${inp("fMill", "Mill (for dyeing)", cur.mill, 'list="fdl_mill"')}
       <div class="grid2">${num("fTaka", "Order taka", cur.taka)}${num("fMtr", "Order meters", cur.mtr)}</div>${inp("fNote", "Note (optional)", cur.note)}`;
     } else if (kind === "inv") {
       title = eid ? "Edit weaver invoice" : "Weaver invoice";
@@ -3927,6 +3944,14 @@ ${url}`;
     totals();
     sh.addEventListener("input", totals);
     sh.addEventListener("click", async (e) => {
+      const ff = e.target.closest("[data-ffill]");
+      if (ff) {
+        e.preventDefault();
+        const i = $("#" + ff.dataset.ffill, sh);
+        i.value = ff.dataset.v;
+        ff.parentNode.querySelectorAll("[data-ffill]").forEach((b) => b.classList.toggle("on", b === ff));
+        return;
+      }
       if (e.target.closest("[data-addcol]")) {
         const box = $("#fCols", sh);
         const cs = readCols(sh);
