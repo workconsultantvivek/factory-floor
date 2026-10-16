@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="1610-1510";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="1610-1620";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -3724,11 +3724,192 @@ ${url}`;
   function colSum(cols, key) {
     return (cols || []).reduce((a, c) => a + fnum(c[key]), 0);
   }
+  function invRolls(i) {
+    return fLive(i && i.rolls).sort((a, b) => (+a.n || 0) - (+b.n || 0) || String(a.at || "").localeCompare(String(b.at || "")));
+  }
+  function invTot(i) {
+    const r = invRolls(i);
+    if (r.length) return { t: r.length, m: fabSum(r, "m"), nw: fabSum(r, "nw"), rolls: r };
+    return { t: fnum(i.taka), m: fnum(i.mtr), nw: 0, rolls: r };
+  }
+  function rollTable(fid, i, edit) {
+    const r = invRolls(i);
+    if (!r.length) return "";
+    const nw = r.some((x) => fnum(x.nw));
+    return `<table class="ftbl"><tr><th>#</th><th>Piece no.</th><th>Meters</th>${nw ? "<th>Net wt</th>" : ""}${edit ? "<th></th>" : ""}</tr>${r.map((x, k) => `<tr><td>${k + 1}</td><td>${esc(x.pc || "")}${x.code ? `<br><span class="small muted">${esc(x.code)}</span>` : ""}</td><td>${fmtM(x.m)}</td>${nw ? `<td>${x.nw ? fmtM(x.nw) : ""}</td>` : ""}${edit ? `<td style="text-align:right"><button type="button" class="btn alt sm" data-froll="${i.id}|${x.id}">Edit</button></td>` : ""}</tr>`).join("")}<tr><td></td><td><b>${r.length} taka</b></td><td><b>${fmtM(fabSum(r, "m"))}</b></td>${nw ? `<td><b>${fmtM(fabSum(r, "nw"))}</b></td>` : ""}${edit ? "<td></td>" : ""}</tr></table>`;
+  }
+  function rollForm(fid, iid, rid) {
+    const f = fabGet(fid);
+    const inv = ((f || {}).inv || {})[iid];
+    if (!inv) return fabDetail(fid);
+    const cur = rid ? (inv.rolls || {})[rid] || {} : {};
+    const rows = invRolls(inv);
+    const no = rid ? rows.findIndex((x) => x.id === rid) + 1 : rows.length + 1;
+    const tot = invTot(inv);
+    const sh = sheet((rid ? "Edit roll " : "Roll ") + no + " \xB7 Inv " + (inv.no || ""), `<form id="rollF" class="list" novalidate>
+    <div class="hint">${rows.length ? `So far: <b>${tot.t}</b> taka \xB7 <b>${fmtM(tot.m)}</b> m${tot.nw ? ` \xB7 ${fmtM(tot.nw)} kg` : ""}${rows.length && !rid ? ` \xB7 last piece ${esc(rows[rows.length - 1].pc || "")}` : ""}` : "First roll of this invoice."}</div>
+    <label class="f">Piece no.<input id="rPc" value="${esc(cur.pc || "")}" autocomplete="off" inputmode="text"></label>
+    <div class="grid2"><label class="f">Meters<input id="rM" type="number" inputmode="decimal" min="0" step="any" value="${esc(cur.m || "")}" placeholder="0"></label><label class="f">Net wt (kg)<input id="rNw" type="number" inputmode="decimal" min="0" step="any" value="${esc(cur.nw || "")}" placeholder="optional"></label></div>
+    <div id="rErr" class="err"></div>
+    ${rid ? `<button class="btn accent big" type="submit" data-rnext="0">Save</button><button type="button" class="btn alt" data-rdel style="color:var(--bad)">Delete roll</button>` : `<button class="btn accent big" type="submit" data-rnext="1">Save & add next roll</button><button class="btn alt" type="submit" data-rnext="0">Save & close</button>`}
+    </form>`, { short: true });
+    let next = !rid;
+    sh.querySelectorAll("[data-rnext]").forEach((b) => b.addEventListener("click", () => next = b.dataset.rnext === "1"));
+    setTimeout(() => {
+      const i = $("#rPc", sh);
+      i && i.focus();
+    }, 60);
+    const back = () => fabDetail(fid);
+    $("[data-close]", sh.parentNode) && $("[data-close]", sh.parentNode).addEventListener("click", (e) => {
+      e.stopPropagation();
+      back();
+    });
+    const del = $("[data-rdel]", sh);
+    if (del) del.onclick = async () => {
+      if (!confirm("Delete this roll?")) return;
+      try {
+        await S.db.doc("fabric/" + fid).update({ inv: { [iid]: { rolls: { [rid]: { del: true, delAt: (/* @__PURE__ */ new Date()).toISOString(), delBy: me().id } } } } });
+        toast("Roll deleted");
+        back();
+      } catch (x) {
+        writeErr(x);
+      }
+    };
+    $("#rollF", sh).onsubmit = async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const pc = $("#rPc", sh).value.trim(), m = fnum($("#rM", sh).value), nw = fnum($("#rNw", sh).value);
+      const er = (x) => $("#rErr", sh).textContent = x;
+      if (!m) return er("Enter the meters of this roll.");
+      if (pc && rows.some((x) => x.id !== rid && String(x.pc || "").toLowerCase() === pc.toLowerCase()) && !confirm("Piece no. " + pc + " is already added in this invoice. Add it again?")) return;
+      const now = (/* @__PURE__ */ new Date()).toISOString();
+      const d = rid ? { pc, m, nw, editAt: now, editBy: me().id } : { n: (rows.reduce((a, x) => Math.max(a, +x.n || 0), 0) || rows.length) + 1, pc, m, nw, at: now, by: me().id };
+      try {
+        await S.db.doc("fabric/" + fid).update({ inv: { [iid]: { rolls: { [rid || uid("r")]: d } } } });
+        toast((rid ? "Roll saved" : "Roll " + no + " added") + " \xB7 " + fmtM(m) + " m");
+        next ? rollForm(fid, iid, null) : back();
+      } catch (x) {
+        writeErr(x);
+      }
+    };
+  }
+  const PL_URL = () => (window.FFR_API && window.FFR_API.url || "").replace(/factory-api$/, "factory-read-pl");
+  function fileToB64(file) {
+    return new Promise((res, rej) => {
+      const isImg = /^image\//.test(file.type);
+      const fr = new FileReader();
+      fr.onerror = () => rej(new Error("Couldn't open this file."));
+      fr.onload = () => {
+        if (!isImg) return res({ file: String(fr.result).split(",")[1], mime: file.type || "application/pdf" });
+        const im = new Image();
+        im.onload = () => {
+          const k = Math.min(1, 2000 / Math.max(im.width, im.height));
+          const cv = document.createElement("canvas");
+          cv.width = Math.round(im.width * k);
+          cv.height = Math.round(im.height * k);
+          cv.getContext("2d").drawImage(im, 0, 0, cv.width, cv.height);
+          res({ file: cv.toDataURL("image/jpeg", 0.85).split(",")[1], mime: "image/jpeg" });
+        };
+        im.onerror = () => rej(new Error("Couldn't open this photo."));
+        im.src = fr.result;
+      };
+      fr.readAsDataURL(file);
+    });
+  }
+  function readPackingList(fid, iid) {
+    const inp = document.createElement("input");
+    inp.type = "file";
+    inp.accept = "application/pdf,image/*";
+    inp.onchange = async () => {
+      const file = inp.files && inp.files[0];
+      if (!file) return;
+      if (file.size > 12e6) return toast("This file is too big. Use the PDF or a normal photo.");
+      sheet("Reading packing list…", `<div class="empty"><h3>Reading ${esc(file.name || "file")}</h3>This takes 10–30 seconds. Keep this screen open.</div>`, { short: true });
+      try {
+        const body = await fileToB64(file);
+        const ac = window.AbortController ? new AbortController() : null;
+        const tm = ac ? setTimeout(() => ac.abort(), 15e4) : 0;
+        let r;
+        try {
+          r = await fetch(PL_URL(), { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), cache: "no-store", signal: ac ? ac.signal : void 0 });
+        } finally {
+          clearTimeout(tm);
+        }
+        const j = await r.json();
+        if (!j || !j.ok) throw new Error(j && j.error || "Couldn't read it.");
+        plReview(fid, iid, j.pl || {});
+      } catch (x) {
+        console.warn(x);
+        sheet("Couldn't read the packing list", `<div class="list"><p class="small" style="margin:0">${esc(x && x.message || "Check the internet and try again.")}</p><button type="button" class="btn accent" data-retry>Try another file</button><button type="button" class="btn alt" data-manual>Type rolls by hand</button></div>`, { short: true });
+        const sh = $(".sheet");
+        $("[data-retry]", sh).onclick = () => readPackingList(fid, iid);
+        $("[data-manual]", sh).onclick = () => iid ? rollForm(fid, iid, null) : fabForm(fid, "inv", null);
+      }
+    };
+    inp.click();
+  }
+  function plReview(fid, iid, pl) {
+    const f = fabGet(fid);
+    const inv = iid ? (f.inv || {})[iid] : null;
+    const have = inv ? invRolls(inv) : [];
+    let rows = (pl.rolls || []).map((x) => ({ pc: String(x.pc || "").trim(), code: String(x.code && x.code !== x.pc ? x.code : "").trim(), m: fnum(x.m), gw: fnum(x.gw), nw: fnum(x.nw), dup: have.some((h) => h.pc && String(h.pc) === String(x.pc || "").trim()) }));
+    const v = (x) => esc(x == null ? "" : x);
+    const draw = () => {
+      const keep = rows.filter((x) => !x.skip);
+      const tm = fabSum(keep, "m"), tn = fabSum(keep, "nw");
+      const pm = fnum(pl.total_m);
+      $("#plRows", sh).innerHTML = `<table class="ftbl"><tr><th>#</th><th>Piece no.</th><th>Meters</th><th>Net wt</th><th></th></tr>${rows.map((x, k) => `<tr style="${x.skip ? "opacity:.4" : ""}"><td>${k + 1}</td><td><input data-pr="${k}|pc" value="${v(x.pc)}" style="width:100%;min-width:0">${x.dup ? '<br><span class="small warn">already added</span>' : ""}</td><td><input data-pr="${k}|m" type="number" inputmode="decimal" step="any" value="${v(x.m || "")}" style="width:100%;min-width:0"></td><td><input data-pr="${k}|nw" type="number" inputmode="decimal" step="any" value="${v(x.nw || "")}" style="width:100%;min-width:0"></td><td><button type="button" class="btn alt sm" data-pskip="${k}">${x.skip ? "Keep" : "✕"}</button></td></tr>`).join("")}</table>
+      <div class="row spread small"><span><b>${keep.length}</b> taka \xB7 <b>${fmtM(tm)}</b> m${tn ? ` \xB7 ${fmtM(tn)} kg` : ""}</span>${pm ? Math.abs(pm - tm) < 0.01 ? '<span style="color:var(--ok)">matches printed total</span>' : `<span style="color:var(--bad)">printed total ${fmtM(pm)} m</span>` : ""}</div>`;
+    };
+    const hdr = iid ? `<div class="hint">Adding rolls to invoice <b>${esc(inv.no || "")}</b>${have.length ? ` (it already has ${have.length} rolls)` : ""}.</div>` : `<div class="grid2"><label class="f">Invoice no.<input id="plInv" value="${v(pl.invoice_no || pl.pl_no)}"></label><label class="f">Date<input id="plDate" type="date" value="${v(/^\d{4}-\d{2}-\d{2}$/.test(pl.date || "") ? pl.date : today())}" max="${today()}"></label></div>
+      <div class="grid2"><label class="f">PL no.<input id="plNo" value="${v(pl.pl_no)}"></label><label class="f">Weaver order no.<input id="plOrd" value="${v(pl.order_no)}"></label></div>
+      <div class="grid2"><label class="f">Sort no.<input id="plSort" value="${v(pl.sort_no)}"></label><label class="f">Transport<input id="plTr" value="${v(pl.transport)}"></label></div>`;
+    const sh = sheet("Check packing list", `<div class="list">${pl.weaver || pl.quality ? `<div class="small muted">${esc(pl.weaver || "")}${pl.quality ? " \xB7 " + esc(pl.quality) : ""}</div>` : ""}${hdr}
+    <div class="small muted">Check each roll against the paper. Fix anything read wrong, or tap ✕ to leave a row out.</div><div id="plRows" class="list" style="gap:8px"></div><div id="plErr" class="err"></div>
+    <button type="button" class="btn accent big" data-plsave>Save ${iid ? "rolls" : "invoice with rolls"}</button></div>`);
+    draw();
+    sh.addEventListener("input", (e) => {
+      const p = e.target.dataset.pr;
+      if (!p) return;
+      const [k, key] = p.split("|");
+      rows[+k][key] = key === "pc" ? e.target.value.trim() : fnum(e.target.value);
+    });
+    sh.addEventListener("change", (e) => {
+      if (e.target.dataset.pr) draw();
+    });
+    sh.addEventListener("click", async (e) => {
+      const sk = e.target.closest("[data-pskip]");
+      if (sk) {
+        const x = rows[+sk.dataset.pskip];
+        x.skip = !x.skip;
+        return draw();
+      }
+      if (!e.target.closest("[data-plsave]")) return;
+      const keep = rows.filter((x) => !x.skip && x.m);
+      if (!keep.length) return $("#plErr", sh).textContent = "No rolls with meters to save.";
+      const now = (/* @__PURE__ */ new Date()).toISOString();
+      let n = have.reduce((a, x) => Math.max(a, +x.n || 0), 0) || have.length;
+      const rolls = {};
+      keep.forEach((x) => rolls[uid("r")] = { n: ++n, pc: x.pc, code: x.code, m: x.m, gw: x.gw, nw: x.nw, at: now, by: me().id, src: "pl" });
+      const val = (id) => ($("#" + id, sh) || {}).value || "";
+      try {
+        if (iid) await S.db.doc("fabric/" + fid).update({ inv: { [iid]: Object.assign({ rolls }, inv.pl ? {} : { pl: pl.pl_no || "", ord: pl.order_no || "", sort: pl.sort_no || "" }) } });
+        else {
+          if (!val("plInv").trim()) return $("#plErr", sh).textContent = "Enter the invoice number.";
+          await S.db.doc("fabric/" + fid).update({ inv: { [uid("e")]: { no: val("plInv").trim(), date: val("plDate") || today(), pl: val("plNo").trim(), ord: val("plOrd").trim(), sort: val("plSort").trim(), transport: val("plTr").trim(), vehicle: String(pl.vehicle || "").toUpperCase(), lr: "", ewb: "", note: "", taka: 0, mtr: 0, rolls, at: now, by: me().id, src: "pl" } } });
+        }
+        toast(keep.length + " rolls saved \xB7 " + fmtM(fabSum(keep, "m")) + " m");
+        fabDetail(fid);
+      } catch (x) {
+        writeErr(x);
+      }
+    });
+  }
   function fabCalc(f) {
     const inv = fLive(f.inv), grey = fLive(f.grey), prog = fLive(f.prog), rcv = fLive(f.rcv);
     const progM = prog.reduce((a, p) => a + colSum(p.cols, "m"), 0);
     const rcvM = rcv.reduce((a, r) => a + colSum(r.cols, "m"), 0);
-    const r = { inv, grey, prog, rcv, invM: fabSum(inv, "mtr"), invT: fabSum(inv, "taka"), greyM: fabSum(grey, "mtr"), greyT: fabSum(grey, "taka"), progM, rcvM };
+    const r = { inv, grey, prog, rcv, invM: inv.reduce((a, i) => a + invTot(i).m, 0), invT: inv.reduce((a, i) => a + invTot(i).t, 0), greyM: fabSum(grey, "mtr"), greyT: fabSum(grey, "taka"), progM, rcvM };
     let st = "Ordered", cls = "line";
     if (f.closed) st = "Closed", cls = "approved";
     else if (rcv.length && prog.every((p) => (p.cols || []).every((c) => progColRcv(f, p.id, c.c).m > 0))) st = "Dyed fabric received", cls = "approved";
@@ -3821,9 +4002,13 @@ ${url}`;
     <div class="card list" style="gap:6px"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="dname">${esc(f.quality || "")}</span><div class="small muted">${fmtDate(f.date)} \xB7 ${esc(f.weaver || "")}${f.mill ? " → mill " + esc(f.mill) : ""}</div></div><span class="chip ${c.cls}" style="flex:none">${c.st}</span></div>
     <div class="small">Ordered <b>${fmtM(f.mtr)} m</b>${fnum(f.taka) ? ` \xB7 ${fmtM(f.taka)} taka` : ""}</div>${f.note ? `<div class="small">${esc(f.note)}</div>` : ""}
     <div class="row" style="gap:8px">${f.closed ? "" : `<button type="button" class="btn alt sm" data-fabe="order|">Edit order</button>`}<button type="button" class="btn alt sm" data-fabclose="1">${f.closed ? "Reopen order" : "Close order"}</button></div></div>`;
-    h += sec("1 \xB7 Weaver invoices", c.inv.length, `<button type="button" class="btn accent sm" data-fabe="inv|">+ Invoice</button>`);
-    h += c.inv.length ? c.inv.map((i) => `<div class="card list" style="gap:4px"><div class="row spread"><b>Inv ${esc(i.no)}</b><span class="row" style="gap:8px"><span class="small muted">${fmtDate(i.date)}</span>${edit("inv", i.id)}</span></div>
-      <div class="small"><b>${fmtM(i.taka)}</b> taka \xB7 <b>${fmtM(i.mtr)}</b> m</div><div class="row" style="gap:2px 12px">${kv("Builty", i.lr)}${kv("E-way bill", i.ewb)}${kv("Transport", i.transport)}${kv("Vehicle", i.vehicle)}</div>${i.note ? `<div class="small muted">${esc(i.note)}</div>` : ""}</div>`).join("") : `<div class="small muted">No invoice yet.</div>`;
+    h += sec("1 \xB7 Weaver invoices", c.inv.length, `<span class="row" style="gap:6px"><button type="button" class="btn alt sm" data-fpl="">Read packing list</button><button type="button" class="btn accent sm" data-fabe="inv|">+ Invoice</button></span>`);
+    h += c.inv.length ? c.inv.map((i) => {
+      const it = invTot(i);
+      return `<div class="card list" style="gap:6px"><div class="row spread"><b>Inv ${esc(i.no)}</b><span class="row" style="gap:8px"><span class="small muted">${fmtDate(i.date)}</span>${edit("inv", i.id)}</span></div>
+      <div class="small"><b>${fmtM(it.t)}</b> taka \xB7 <b>${fmtM(it.m)}</b> m${it.nw ? ` \xB7 ${fmtM(it.nw)} kg` : ""}</div><div class="row" style="gap:2px 12px">${kv("PL", i.pl)}${kv("Weaver order", i.ord)}${kv("Sort", i.sort)}${kv("Builty", i.lr)}${kv("E-way bill", i.ewb)}${kv("Transport", i.transport)}${kv("Vehicle", i.vehicle)}</div>${i.note ? `<div class="small muted">${esc(i.note)}</div>` : ""}
+      ${rollTable(id, i, !f.closed)}${f.closed ? "" : `<div class="row" style="gap:6px"><button type="button" class="btn accent sm" data-froll="${i.id}|">+ ${it.rolls.length ? "Next roll" : "Add rolls one by one"}</button><button type="button" class="btn alt sm" data-fpl="${i.id}">Read packing list</button></div>`}</div>`;
+    }).join("") : `<div class="small muted">No invoice yet. Tap <b>Read packing list</b> to fill it from the weaver's PDF or a photo, or <b>+ Invoice</b> to type it.</div>`;
     h += sec("2 \xB7 Grey report at mill", c.grey.length, c.inv.length ? `<button type="button" class="btn accent sm" data-fabe="grey|">+ Grey report</button>` : "");
     h += c.grey.length ? c.grey.map((g) => {
       const iv = (f.inv || {})[g.inv];
@@ -3831,8 +4016,8 @@ ${url}`;
       <div class="small"><b>${fmtM(g.taka)}</b> taka \xB7 <b>${fmtM(g.mtr)}</b> m${iv ? ` <span class="muted">\xB7 against inv ${esc(iv.no)}</span>` : ""}</div>${g.note ? `<div class="small muted">${esc(g.note)}</div>` : ""}</div>`;
     }).join("") : `<div class="small muted">${c.inv.length ? "Waiting for the mill's grey report." : "Add the weaver's invoice first."}</div>`;
     if (c.inv.length) h += `<div class="card list" style="gap:6px"><b class="small">Check: invoice vs grey received</b><table class="ftbl"><tr><th>Inv no.</th><th>Invoiced</th><th>Grey recd</th><th>Diff</th></tr>${c.inv.map((i) => {
-      const g = invGrey(f, i.id);
-      return `<tr><td>${esc(i.no)}</td><td>${fmtM(i.taka)} tk<br>${fmtM(i.mtr)} m</td>${g.n ? `<td>${fmtM(g.t)} tk<br>${fmtM(g.m)} m</td><td>${diffTxt(g.t - fnum(i.taka), " tk")}<br>${diffTxt(g.m - fnum(i.mtr), " m")}</td>` : `<td colspan="2" class="muted">Not reported yet</td>`}</tr>`;
+      const g = invGrey(f, i.id), it = invTot(i);
+      return `<tr><td>${esc(i.no)}</td><td>${fmtM(it.t)} tk<br>${fmtM(it.m)} m</td>${g.n ? `<td>${fmtM(g.t)} tk<br>${fmtM(g.m)} m</td><td>${diffTxt(g.t - it.t, " tk")}<br>${diffTxt(g.m - it.m, " m")}</td>` : `<td colspan="2" class="muted">Not reported yet</td>`}</tr>`;
     }).join("")}</table></div>`;
     const lots = fabLots(f);
     h += sec("3 \xB7 Dyeing programs", c.prog.length, c.grey.length ? `<button type="button" class="btn accent sm" data-fabe="prog|">+ Program</button>` : "");
@@ -3859,6 +4044,11 @@ ${url}`;
       if (b.dataset.fabe) {
         const [k, eid] = b.dataset.fabe.split("|");
         fabForm(id, k, eid || null);
+      } else if (b.dataset.froll != null) {
+        const [iid, rid] = b.dataset.froll.split("|");
+        rollForm(id, iid, rid || null);
+      } else if (b.dataset.fpl != null) {
+        readPackingList(id, b.dataset.fpl || null);
       } else if (b.dataset.fabclose) {
         if (!f.closed && !confirm("Close this fabric order? It moves out of the Open list. You can reopen it any time.")) return;
         try {
@@ -3898,12 +4088,15 @@ ${url}`;
       <div class="grid2">${num("fTaka", "Order taka", cur.taka)}${num("fMtr", "Order meters", cur.mtr)}</div>${inp("fNote", "Note (optional)", cur.note)}`;
     } else if (kind === "inv") {
       title = eid ? "Edit weaver invoice" : "Weaver invoice";
-      body = `<div class="grid2">${inp("fNo", "Invoice no.", cur.no, "required")}${dt(cur.date)}</div><div class="grid2">${num("fTaka", "Taka", cur.taka)}${num("fMtr", "Meters", cur.mtr)}</div>
+      const hasR = eid && invRolls(cur).length;
+      body = `<div class="grid2">${inp("fNo", "Invoice no.", cur.no, "required")}${dt(cur.date)}</div>
+      <div class="grid2">${inp("fPl", "Packing list no.", cur.pl)}${inp("fOrd", "Weaver order no.", cur.ord)}</div>${inp("fSort", "Sort no.", cur.sort)}
+      ${hasR ? `<div class="hint">Taka and meters come from the ${invRolls(cur).length} rolls added.</div>` : `<div class="grid2">${num("fTaka", "Total taka", cur.taka)}${num("fMtr", "Total meters", cur.mtr)}</div><div class="small muted" style="margin-top:-6px">Leave blank if you will add the rolls one by one after saving.</div>`}
       <div class="grid2">${inp("fLr", "Builty (LR) no.", cur.lr)}${inp("fEwb", "E-way bill no.", cur.ewb, 'inputmode="numeric"')}</div><div class="grid2">${inp("fTr", "Transport", cur.transport, 'list="fdl_transport"')}${inp("fVeh", "Vehicle no.", cur.vehicle, 'style="text-transform:uppercase"')}</div>${inp("fNote", "Note (optional)", cur.note)}`;
     } else if (kind === "grey") {
       title = eid ? "Edit grey report" : "Grey report from mill";
       const invs = fLive(f.inv);
-      body = `<label class="f">Against invoice<select id="fInv">${invs.map((i) => `<option value="${i.id}" ${cur.inv === i.id || !cur.inv && i === invs.find((x) => !invGrey(f, x.id).n) ? "selected" : ""}>Inv ${esc(i.no)} \xB7 ${fmtM(i.taka)} tk \xB7 ${fmtM(i.mtr)} m</option>`).join("")}</select></label>
+      body = `<label class="f">Against invoice<select id="fInv">${invs.map((i) => `<option value="${i.id}" ${cur.inv === i.id || !cur.inv && i === invs.find((x) => !invGrey(f, x.id).n) ? "selected" : ""}>Inv ${esc(i.no)} \xB7 ${fmtM(invTot(i).t)} tk \xB7 ${fmtM(invTot(i).m)} m</option>`).join("")}</select></label>
       <div class="grid2">${inp("fLot", "Mill lot no.", cur.lot, "required")}${dt(cur.date)}</div><div class="grid2">${num("fTaka", "Taka received", cur.taka)}${num("fMtr", "Meters received", cur.mtr)}</div>${inp("fNote", "Note (optional)", cur.note)}`;
     } else if (kind === "prog") {
       title = eid ? "Edit dyeing program" : "Dyeing program";
@@ -3992,8 +4185,8 @@ ${url}`;
         d = { date, weaver: v("fWeaver"), quality: v("fQuality"), mill: v("fMill"), taka: fnum(v("fTaka")), mtr: fnum(v("fMtr")), note: v("fNote") };
       } else if (kind === "inv") {
         if (!v("fNo")) return er("Enter the invoice number.");
-        if (!fnum(v("fMtr"))) return er("Enter the meters on the invoice.");
-        d = { no: v("fNo"), date, taka: fnum(v("fTaka")), mtr: fnum(v("fMtr")), lr: v("fLr"), ewb: v("fEwb"), transport: v("fTr"), vehicle: v("fVeh").toUpperCase(), note: v("fNote") };
+        d = { no: v("fNo"), date, pl: v("fPl"), ord: v("fOrd"), sort: v("fSort"), lr: v("fLr"), ewb: v("fEwb"), transport: v("fTr"), vehicle: v("fVeh").toUpperCase(), note: v("fNote") };
+        if ($("#fMtr", sh)) Object.assign(d, { taka: fnum(v("fTaka")), mtr: fnum(v("fMtr")) });
       } else if (kind === "grey") {
         if (!v("fLot")) return er("Enter the mill lot number.");
         if (!fnum(v("fMtr"))) return er("Enter the meters the mill received.");
@@ -4028,7 +4221,12 @@ ${url}`;
             return fabDetail(nid);
           }
         } else {
-          await S.db.doc("fabric/" + fid).update({ [kind]: { [eid || uid("e")]: Object.assign(d, eid ? { editAt: now, editBy: me().id } : { at: now, by: me().id }) } });
+          const nid = eid || uid("e");
+          await S.db.doc("fabric/" + fid).update({ [kind]: { [nid]: Object.assign(d, eid ? { editAt: now, editBy: me().id } : { at: now, by: me().id }) } });
+          if (kind === "inv" && !eid && !fnum(d.mtr)) {
+            toast("Invoice saved. Now add roll 1.");
+            return rollForm(fid, nid, null);
+          }
         }
         toast("Saved");
         back();
