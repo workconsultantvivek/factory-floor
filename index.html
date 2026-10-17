@@ -12,7 +12,7 @@ setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start th
 /* Layout: phone-first app shell — navy header with tape strip, one work column (max 640px), fixed bottom tab bar, full-height sheets for pickers and forms */
 :root{
   --bg:#EEF0F3; --surface:#FFFFFF; --sunk:#E4E7EC; --ink:#17223A; --muted:#5A6377; --line:#D5DAE3;
-  --accent:#E2A417; --accent-ink:#221802; --btn:#17223A; --btn-ink:#FFFFFF; --head:#17223A; --head-ink:#EEF0F3;
+  --accent:#E2A417; --accent-ink:#221802; --alt-bg:#DCE5F5; --alt-ink:#1E3F8A; --alt-line:#AFC0E0; --btn:#17223A; --btn-ink:#FFFFFF; --head:#17223A; --head-ink:#EEF0F3;
   --ok:#1D7A4C; --ok-bg:#E1F2E8; --warn:#9A6200; --warn-bg:#FBF0D9; --bad:#B42318; --bad-bg:#FBE4E1;
   --display:"Barlow Semi Condensed","Arial Narrow",system-ui,sans-serif;
   --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -21,11 +21,11 @@ setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start th
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0E1420; --surface:#161F30; --sunk:#1D2839; --ink:#E6EBF3; --muted:#98A2B6; --line:#2A3650;
-  --accent:#F0B43A; --accent-ink:#1E1502; --btn:#E6EBF3; --btn-ink:#0E1420; --head:#1B2538; --head-ink:#E6EBF3;
+  --accent:#F0B43A; --accent-ink:#1E1502; --alt-bg:#22324F; --alt-ink:#C3D4F5; --alt-line:#3A4E78; --btn:#E6EBF3; --btn-ink:#0E1420; --head:#1B2538; --head-ink:#E6EBF3;
   --ok:#4CC38A; --ok-bg:#15301F; --warn:#E8AE4E; --warn-bg:#35280F; --bad:#F07A6E; --bad-bg:#3A1A18; --yel:#4A3B0E; --yel-ink:#F6D77A; --grn:#163826; --grn-ink:#8FE0B3; --gry:#262F40; --gry-ink:#8C95A8; --fin:#1B2B4D; --fin-ink:#A9C4FF; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0E1420; --surface:#161F30; --sunk:#1D2839; --ink:#E6EBF3; --muted:#98A2B6; --line:#2A3650;
-  --accent:#F0B43A; --accent-ink:#1E1502; --btn:#E6EBF3; --btn-ink:#0E1420; --head:#1B2538; --head-ink:#E6EBF3;
+  --accent:#F0B43A; --accent-ink:#1E1502; --alt-bg:#22324F; --alt-ink:#C3D4F5; --alt-line:#3A4E78; --btn:#E6EBF3; --btn-ink:#0E1420; --head:#1B2538; --head-ink:#E6EBF3;
   --ok:#4CC38A; --ok-bg:#15301F; --warn:#E8AE4E; --warn-bg:#35280F; --bad:#F07A6E; --bad-bg:#3A1A18; --yel:#4A3B0E; --yel-ink:#F6D77A; --grn:#163826; --grn-ink:#8FE0B3; --gry:#262F40; --gry-ink:#8C95A8; --fin:#1B2B4D; --fin-ink:#A9C4FF; color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
@@ -66,7 +66,8 @@ nav.bottom .ico{display:grid;place-items:center;width:44px;height:28px;border-ra
 .ell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lotno{font-family:var(--display);font-weight:500;letter-spacing:.02em;color:var(--muted)}
 .btn{border:1px solid var(--btn);background:var(--btn);color:var(--btn-ink);border-radius:10px;padding:10px 14px;font-weight:600}
-.btn.alt{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.alt{background:var(--alt-bg);color:var(--alt-ink);border-color:var(--alt-line)}
+.btn.alt:active{filter:brightness(.95)}
 .btn.bad{background:var(--bad);border-color:var(--bad);color:#fff}
 .btn.accent{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .btn.go{background:#1D7A4C;border-color:#1D7A4C;color:#fff}
