@@ -4114,6 +4114,8 @@ ${url}`;
   }
   function progShareText(f, p) {
     const byCol = progShareData(f, p);
+    const cols = p.cols || [];
+    const pad = (v, n, left) => { v = String(v); return left ? v.padEnd(n) : v.padStart(n); };
     const L = [];
     L.push("*DYEING PROGRAM" + (p.no ? " " + p.no : "") + "*");
     L.push("Date: " + fmtDY(p.date));
@@ -4124,20 +4126,74 @@ ${url}`;
     if (f.weaver) L.push("Weaver: " + f.weaver);
     L.push("Order: " + (f.no || ""));
     L.push("");
-    for (const c of p.cols || []) {
-      L.push("*" + c.c + "* – " + fmtM(c.t) + " taka – " + fmtM(c.m) + " m");
-      const rs = byCol[c.c] || [];
-      let lastInv = null;
-      rs.forEach((r, i) => {
-        if (r.inv !== lastInv && (r.inv || r.lr)) L.push("  Inv " + r.inv + (r.lr ? " / LR " + r.lr : ""));
-        lastInv = r.inv;
-        L.push("   " + (i + 1) + ") " + (r.pc || "-") + " – " + fmtM(r.m) + " m");
-      });
+    // Summary: one line per colour, aligned
+    const cw = Math.max(5, ...cols.map((c) => String(c.c).length));
+    const tT = fmtM(colSum(cols, "t")), tM = fmtM(colSum(cols, "m"));
+    const tw = Math.max(4, String(tT).length, ...cols.map((c) => String(fmtM(c.t)).length));
+    const mw = Math.max(6, String(tM).length + 2, ...cols.map((c) => String(fmtM(c.m)).length + 2));
+    L.push("*SUMMARY*");
+    L.push("```");
+    L.push(pad("Colour", cw, 1) + "  " + pad("Taka", tw) + "  " + pad("Meters", mw));
+    for (const c of cols) L.push(pad(c.c, cw, 1) + "  " + pad(fmtM(c.t), tw) + "  " + pad(fmtM(c.m) + " m", mw));
+    L.push("-".repeat(cw + tw + mw + 4));
+    L.push(pad("TOTAL", cw, 1) + "  " + pad(tT, tw) + "  " + pad(tM + " m", mw));
+    L.push("```");
+    // Detail: taka list per colour, grouped by invoice
+    cols.forEach((c, ci) => {
       L.push("");
-    }
-    L.push("*Total: " + fmtM(colSum(p.cols, "t")) + " taka – " + fmtM(colSum(p.cols, "m")) + " m*");
+      L.push("━━━━━━━━━━━━━━");
+      L.push("*" + (ci + 1) + ". " + String(c.c).toUpperCase() + "* — " + fmtM(c.t) + " taka · " + fmtM(c.m) + " m");
+      const rs = byCol[c.c] || [];
+      if (!rs.length) return;
+      const groups = [];
+      for (const r of rs) {
+        const k = r.inv + "|" + r.lr;
+        if (!groups.length || groups[groups.length - 1].k !== k) groups.push({ k, inv: r.inv, lr: r.lr, rs: [] });
+        groups[groups.length - 1].rs.push(r);
+      }
+      const nw = String(rs.length).length, pw = Math.max(5, ...rs.map((r) => String(r.pc || "-").length)), ww = Math.max(...rs.map((r) => String(fmtM(r.m)).length));
+      let n = 0;
+      for (const g of groups) {
+        if (g.inv || g.lr) L.push("_Inv " + (g.inv || "-") + (g.lr ? " · LR " + g.lr : "") + "_");
+        L.push("```");
+        for (const r of g.rs) { n++; L.push(pad(n, nw) + ")  " + pad(r.pc || "-", pw, 1) + "  " + pad(fmtM(r.m), ww) + " m"); }
+        L.push("```");
+      }
+    });
+    L.push("");
+    L.push("━━━━━━━━━━━━━━");
+    L.push("*TOTAL: " + tT + " taka · " + tM + " m*");
     if (p.note) L.push("Note: " + p.note);
     return L.join("\n");
+  }
+  function progPreviewHtml(f, p) {
+    const byCol = progShareData(f, p);
+    const cols = p.cols || [];
+    const e = esc;
+    const th = "text-align:left;padding:6px 8px;font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);border-bottom:1px solid var(--line)";
+    const td = "padding:6px 8px;border-bottom:1px solid var(--line)";
+    const num = "text-align:right;font-variant-numeric:tabular-nums";
+    const kv = (k, v) => v ? `<div><div class="small muted">${k}</div><div style="font-weight:600">${e(v)}</div></div>` : "";
+    let h = `<div class="card" style="padding:12px 14px"><div style="font-family:var(--display);font-size:1.25rem;font-weight:700">Dyeing program ${e(p.no || "")}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;margin-top:8px">${kv("Date", fmtDY(p.date))}${kv("Mill lot", p.lot || "-")}${kv("Mill", f.mill)}${kv("Quality", f.quality)}${kv("Weaver", f.weaver)}${kv("Order", f.no)}</div>
+      ${fabSpecText(f) ? `<div class="small muted" style="margin-top:8px">Spec: ${e(fabSpecText(f))}</div>` : ""}</div>`;
+    h += `<div class="card" style="padding:4px 6px"><table style="width:100%;border-collapse:collapse"><tr><th style="${th}">Colour</th><th style="${th};${num}">Taka</th><th style="${th};${num}">Meters</th></tr>
+      ${cols.map((c) => `<tr><td style="${td};font-weight:600">${e(c.c)}</td><td style="${td};${num}">${fmtM(c.t)}</td><td style="${td};${num}">${fmtM(c.m)} m</td></tr>`).join("")}
+      <tr><td style="padding:8px;font-weight:700">Total</td><td style="padding:8px;font-weight:700;${num}">${fmtM(colSum(cols, "t"))}</td><td style="padding:8px;font-weight:700;${num}">${fmtM(colSum(cols, "m"))} m</td></tr></table></div>`;
+    cols.forEach((c, ci) => {
+      const rs = byCol[c.c] || [];
+      let body = "", lastK = null, n = 0;
+      for (const r of rs) {
+        const k = r.inv + "|" + r.lr;
+        if (k !== lastK && (r.inv || r.lr)) body += `<tr><td colspan="3" style="padding:8px 8px 4px;font-size:.78rem;color:var(--muted);font-weight:600;background:var(--sunk)">Inv ${e(r.inv || "-")}${r.lr ? " · LR " + e(r.lr) : ""}</td></tr>`;
+        lastK = k; n++;
+        body += `<tr><td style="${td};color:var(--muted);width:2.2em">${n}</td><td style="${td};font-variant-numeric:tabular-nums">${e(r.pc || "-")}</td><td style="${td};${num}">${fmtM(r.m)} m</td></tr>`;
+      }
+      h += `<details class="card" style="padding:0;overflow:hidden"${ci === 0 ? " open" : ""}><summary style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 14px;cursor:pointer;list-style:none"><span style="font-weight:700;font-size:1.02rem">${ci + 1}. ${e(c.c)}</span><span class="chip line">${fmtM(c.t)} taka · <b>${fmtM(c.m)} m</b></span></summary>
+        ${rs.length ? `<table style="width:100%;border-collapse:collapse;font-size:.92rem"><tr><th style="${th}">#</th><th style="${th}">Piece no.</th><th style="${th};${num}">Meters</th></tr>${body}</table>` : `<div class="small muted" style="padding:0 14px 12px">No rolls listed</div>`}</details>`;
+    });
+    if (p.note) h += `<div class="small muted">Note: ${e(p.note)}</div>`;
+    return h;
   }
   function progPrint(f, p) {
     const byCol = progShareData(f, p);
@@ -4159,7 +4215,7 @@ ${url}`;
     const p = (f.prog || {})[pid];
     if (!p) return;
     const txt = progShareText(f, p);
-    const sh = sheet("Share dyeing program", `<div class="list"><pre style="white-space:pre-wrap;font:inherit;font-size:.85rem;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px;margin:0;max-height:50vh;overflow:auto">${esc(txt)}</pre>
+    const sh = sheet("Share dyeing program", `<div class="list">${progPreviewHtml(f, p)}
     <a class="btn accent big" style="text-decoration:none;text-align:center" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(txt)}">Send on WhatsApp</a>
     <div class="row" style="gap:8px">${navigator.share ? '<button type="button" class="btn alt" data-pshare>Share…</button>' : ""}<button type="button" class="btn alt" data-pcopy>Copy text</button><button type="button" class="btn alt" data-pprint>Print / PDF</button></div></div>`, { back: () => fabDetail(fid) });
     sh.addEventListener("click", async (e) => {
