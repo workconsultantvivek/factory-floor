@@ -4120,6 +4120,7 @@ ${url}`;
     if (f.mill) L.push("Mill: " + f.mill);
     L.push("Mill lot: " + (p.lot || "-"));
     if (f.quality) L.push("Quality: " + f.quality);
+    if (fabSpecText(f)) L.push("Spec: " + fabSpecText(f));
     if (f.weaver) L.push("Weaver: " + f.weaver);
     L.push("Order: " + (f.no || ""));
     L.push("");
@@ -4146,7 +4147,7 @@ ${url}`;
       return `<h3>${e(c.c)} <span>${fmtM(c.t)} taka \xB7 ${fmtM(c.m)} m</span></h3>${rs.length ? `<table><tr><th>#</th><th>Piece no.</th><th>Meters</th><th>Invoice</th><th>LR</th></tr>${rs.map((r, i) => `<tr><td>${i + 1}</td><td>${e(r.pc)}</td><td>${fmtM(r.m)}</td><td>${e(r.inv)}</td><td>${e(r.lr)}</td></tr>`).join("")}</table>` : ""}`;
     }).join("");
     const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dyeing program ${e(p.no || "")}</title><style>body{font:14px/1.4 Arial,sans-serif;color:#111;margin:24px}h1{font-size:20px;margin:0 0 6px}h3{font-size:15px;margin:18px 0 6px;border-bottom:2px solid #111;padding-bottom:3px}h3 span{font-weight:400;float:right}table{width:100%;border-collapse:collapse}th,td{border:1px solid #999;padding:4px 6px;text-align:left}th{background:#eee}.meta{display:grid;grid-template-columns:1fr 1fr;gap:2px 16px}.tot{margin-top:16px;font-size:16px;font-weight:700}button{margin:16px 0;padding:10px 16px;font-size:15px}@media print{button{display:none}}</style></head><body>
-    <h1>Dyeing program ${e(p.no || "")}</h1><div class="meta"><div>Date: <b>${fmtDY(p.date)}</b></div><div>Mill lot: <b>${e(p.lot || "-")}</b></div>${f.mill ? `<div>Mill: <b>${e(f.mill)}</b></div>` : ""}${f.quality ? `<div>Quality: <b>${e(f.quality)}</b></div>` : ""}${f.weaver ? `<div>Weaver: <b>${e(f.weaver)}</b></div>` : ""}<div>Order: <b>${e(f.no || "")}</b></div></div>
+    <h1>Dyeing program ${e(p.no || "")}</h1><div class="meta"><div>Date: <b>${fmtDY(p.date)}</b></div><div>Mill lot: <b>${e(p.lot || "-")}</b></div>${f.mill ? `<div>Mill: <b>${e(f.mill)}</b></div>` : ""}${f.quality ? `<div>Quality: <b>${e(f.quality)}</b></div>` : ""}${fabSpecText(f) ? `<div>Spec: <b>${e(fabSpecText(f))}</b></div>` : ""}${f.weaver ? `<div>Weaver: <b>${e(f.weaver)}</b></div>` : ""}<div>Order: <b>${e(f.no || "")}</b></div></div>
     ${rows}<div class="tot">Total: ${fmtM(colSum(p.cols, "t"))} taka \xB7 ${fmtM(colSum(p.cols, "m"))} m</div>${p.note ? `<p>Note: ${e(p.note)}</p>` : ""}<button onclick="print()">Print / Save as PDF</button></body></html>`;
     const w = window.open("", "_blank");
     if (!w) return toast("Allow pop-ups to open the print page.");
@@ -4262,7 +4263,7 @@ ${url}`;
     const step = (n, v, t) => `<span class="small"><span class="muted">${n}</span> <b>${fmtM(v)} m</b>${t ? ` <span class="muted">(${fmtM(t)} taka)</span>` : ""}</span>`;
     return `<div class="card list tapcard" style="gap:8px" data-fabopen="${f.id}" role="button" tabindex="0">
     <div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="lotno" style="font-size:1.15rem">${esc(f.no)}</span> <span class="dname">${esc(f.quality || "")}</span>
-    <div class="small muted ell">${fmtDate(f.date)} \xB7 ${esc(f.weaver || "Weaver ?")}${f.mill ? " → " + esc(f.mill) : ""}</div></div><span class="chip ${c.cls}" style="flex:none">${c.st}</span></div>
+    <div class="small muted ell">${fmtDate(f.date)} \xB7 ${esc(f.weaver || "Weaver ?")}${f.mill ? " → " + esc(f.mill) : ""}</div>${fabSpecText(f) ? `<div class="small muted ell">${esc(fabSpecText(f))}</div>` : ""}</div><span class="chip ${c.cls}" style="flex:none">${c.st}</span></div>
     <div class="row" style="gap:4px 14px">${step("Order", f.mtr, f.taka)}${step("Invoiced", c.invM, c.invT)}${step("Grey", c.greyM, c.greyT)}${step("Program", c.progM)}${step("Dyed recd", c.rcvM)}</div></div>`;
   }
   function fabDetail(id) {
@@ -4274,7 +4275,7 @@ ${url}`;
     const kv = (k, v) => v ? `<span class="small"><span class="muted">${k}</span> ${esc(v)}</span>` : "";
     let h = `<div class="list" style="gap:12px">
     <div class="card list" style="gap:6px"><div class="row spread" style="align-items:flex-start;flex-wrap:nowrap"><div style="min-width:0"><span class="dname">${esc(f.quality || "")}</span><div class="small muted">${fmtDate(f.date)} \xB7 ${esc(f.weaver || "")}${f.mill ? " → mill " + esc(f.mill) : ""}</div></div><span class="chip ${c.cls}" style="flex:none">${c.st}</span></div>
-    <div class="small">Ordered <b>${fmtM(f.mtr)} m</b>${fnum(f.taka) ? ` \xB7 ${fmtM(f.taka)} taka` : ""}</div>${f.note ? `<div class="small">${esc(f.note)}</div>` : ""}
+    ${fabSpecText(f) ? `<div class="small">${esc(fabSpecText(f))}</div>` : ""}<div class="small">Ordered <b>${fmtM(f.mtr)} m</b>${fnum(f.taka) ? ` \xB7 ${fmtM(f.taka)} taka` : ""}</div>${f.note ? `<div class="small">${esc(f.note)}</div>` : ""}
     <div class="row" style="gap:8px">${f.closed ? "" : `<button type="button" class="btn alt sm" data-fabe="order|">Edit order</button>`}<button type="button" class="btn alt sm" data-fabclose="1">${f.closed ? "Reopen order" : "Close order"}</button></div></div>`;
     h += sec("1 \xB7 Weaver invoices", c.inv.length, `<span class="row" style="gap:6px"><button type="button" class="btn alt sm" data-finv="">Upload invoice</button><button type="button" class="btn alt sm" data-fpl="">Upload packing list</button><button type="button" class="btn accent sm" data-fabe="inv|">+ Invoice</button></span>`);
     h += c.inv.length ? c.inv.map((i) => {
@@ -4362,6 +4363,26 @@ ${url}`;
       return { c: String(n.tagName === "INPUT" ? n.value : n.dataset.v || "").trim(), t: fnum(r.querySelector("[data-ct]").value), m: fnum(r.querySelector("[data-cm]").value) };
     });
   }
+  function fabSpecGuess(q, skipId) {
+    const key = String(q || "").trim().toLowerCase();
+    const past = Object.entries(S.fabric || {}).map(([id, x]) => __spreadValues({ id }, x)).filter((x) => x && !x.del && x.id !== skipId && String(x.quality || "").trim().toLowerCase() === key && (x.reed || x.pick || x.width || x.gsm)).sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")))[0];
+    if (past) return { reed: past.reed, pick: past.pick, width: past.width, gsm: past.gsm };
+    const o = {};
+    const rp = /(\d{2,3})\s*[xX×*]\s*(\d{2,3})(?!\s*["”])/.exec(q.replace(/\d+\s*(?:vis|c|s|d)\b/gi, " "));
+    if (rp) Object.assign(o, { reed: +rp[1], pick: +rp[2] });
+    const w = /(\d{2,3}(?:\.\d+)?)\s*(?:["”]|inch|in\b)/i.exec(q);
+    if (w) o.width = +w[1];
+    const g = /(\d{2,3})\s*gsm/i.exec(q);
+    if (g) o.gsm = +g[1];
+    return o;
+  }
+  function fabSpecText(f) {
+    const a = [];
+    if (fnum(f.reed) || fnum(f.pick)) a.push((fnum(f.reed) ? fmtM(f.reed) : "?") + " \xD7 " + (fnum(f.pick) ? fmtM(f.pick) : "?") + " (reed \xD7 pick)");
+    if (fnum(f.width)) a.push(fmtM(f.width) + '" width');
+    if (fnum(f.gsm)) a.push(fmtM(f.gsm) + " GSM");
+    return a.join(" \xB7 ");
+  }
   function fabForm(fid, kind, eid, manual) {
     const f = fid ? fabGet(fid) : null;
     const cur = kind === "order" ? f || {} : eid ? ((f || {})[kind] || {})[eid] || {} : {};
@@ -4377,6 +4398,8 @@ ${url}`;
       title = f ? "Edit fabric order" : "New fabric order";
       body = `${inp("fWeaver", "Weaver", cur.weaver, 'list="fdl_weaver" required placeholder="Type a new name or tap one below"')}
       ${dt(cur.date)}${inp("fQuality", "Fabric quality", cur.quality, 'list="fdl_quality" placeholder="e.g. Cotton slub 58&quot;"')}${inp("fMill", "Mill (for dyeing)", cur.mill, 'list="fdl_mill"')}
+      <div class="grid2">${num("fReed", "Reed (rid)", cur.reed)}${num("fPick", "Pick (peak)", cur.pick)}</div>
+      <div class="grid2">${num("fWidth", 'Width (inches)', cur.width)}${num("fGsm", "GSM", cur.gsm)}</div>
       <div class="grid2">${num("fTaka", "Order taka", cur.taka)}${num("fMtr", "Order meters", cur.mtr)}</div>${inp("fNote", "Note (optional)", cur.note)}`;
     } else if (kind === "inv") {
       title = eid ? "Edit weaver invoice" : "Weaver invoice";
@@ -4427,6 +4450,19 @@ ${url}`;
       drawRcv();
       $("#fProg", sh).onchange = drawRcv;
     }
+    const fillSpecs = () => {
+      const q = ($("#fQuality", sh) || {}).value;
+      if (!q) return;
+      const sp = fabSpecGuess(q, fid);
+      for (const [id, k] of [["fReed", "reed"], ["fPick", "pick"], ["fWidth", "width"], ["fGsm", "gsm"]]) {
+        const el = $("#" + id, sh);
+        if (el && !el.value && sp[k]) el.value = sp[k];
+      }
+    };
+    if (kind === "order") {
+      const q = $("#fQuality", sh);
+      if (q) q.addEventListener("change", fillSpecs);
+    }
     totals();
     sh.addEventListener("input", totals);
     sh.addEventListener("click", async (e) => {
@@ -4436,6 +4472,7 @@ ${url}`;
         const i = $("#" + ff.dataset.ffill, sh);
         i.value = ff.dataset.v;
         ff.parentNode.querySelectorAll("[data-ffill]").forEach((b) => b.classList.toggle("on", b === ff));
+        if (kind === "order" && ff.dataset.ffill === "fQuality") fillSpecs();
         return;
       }
       if (e.target.closest("[data-addcol]")) {
@@ -4475,7 +4512,7 @@ ${url}`;
       if (kind === "order") {
         if (!v("fWeaver")) return er("Enter the weaver's name.");
         if (!fnum(v("fMtr")) && !fnum(v("fTaka"))) return er("Enter order meters or taka.");
-        d = { date, weaver: v("fWeaver"), quality: v("fQuality"), mill: v("fMill"), taka: fnum(v("fTaka")), mtr: fnum(v("fMtr")), note: v("fNote") };
+        d = { date, weaver: v("fWeaver"), quality: v("fQuality"), mill: v("fMill"), reed: fnum(v("fReed")), pick: fnum(v("fPick")), width: fnum(v("fWidth")), gsm: fnum(v("fGsm")), taka: fnum(v("fTaka")), mtr: fnum(v("fMtr")), note: v("fNote") };
       } else if (kind === "inv") {
         if (!v("fNo")) return er("Enter the invoice number.");
         d = { no: v("fNo"), idate: v("fIDate"), date, pl: v("fPl"), ord: v("fOrd"), sort: v("fSort"), lr: v("fLr"), ewb: v("fEwb"), transport: v("fTr"), vehicle: v("fVeh").toUpperCase(), note: v("fNote") };
