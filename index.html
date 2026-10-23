@@ -490,6 +490,51 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
     }
     return { cells: o, total: t };
   }
+  function stitchFixes(lot) {
+    const ent = Object.entries((lot.prog || {}).stitching || {}).filter(([, v]) => v && v.w && v.st !== "withdrawn");
+    const ev = {};
+    const push = (w, k, x) => (ev[w + "#" + k] = ev[w + "#" + k] || []).push(x);
+    for (const [eid, v] of ent) {
+      const t = String(v.at || v.date || "");
+      const cnt = v.st === "approved" ? null : v.sz || {};
+      for (const k of /* @__PURE__ */ new Set([...Object.keys(v.sz || {}), ...Object.keys(v.altSz || {}), ...Object.keys(v.rejSz || {})])) {
+        const n = cnt ? +cnt[k] || 0 : (+(v.sz || {})[k] || 0) + (+(v.altSz || {})[k] || 0) + (+(v.rejSz || {})[k] || 0);
+        if (n > 0) push(v.w, k, { t, o: 0, eid, n });
+        const a = v.st === "approved" ? +(v.altSz || {})[k] || 0 : v.st === "rejected" ? +(v.sz || {})[k] || 0 : 0;
+        if (a > 0) push(v.w, k, { t: String(v.at2 || t), o: 1, it: { src: "ck", n: a, fixed: 0 } });
+      }
+    }
+    for (const v of Object.values(lot.irAlt || {})) {
+      if (!v || !v.w) continue;
+      for (const [k, n] of Object.entries(nz(v.sz))) push(v.w, k, { t: String(v.at || ""), o: 1, it: { src: "ir", n: +n, fixed: 0 } });
+    }
+    const fix = {}, pools = {};
+    for (const [wk, list] of Object.entries(ev)) {
+      const k = wk.slice(wk.indexOf("#") + 1);
+      list.sort((p, q) => p.t.localeCompare(q.t) || p.o - q.o);
+      const pool = pools[wk] = [];
+      for (const x of list) {
+        if (x.it) { pool.push(x.it); continue; }
+        let need = x.n;
+        for (const it of pool) {
+          if (!need) break;
+          const q = Math.min(it.n - it.fixed, need);
+          if (q > 0) {
+            it.fixed += q;
+            need -= q;
+            const fe = fix[x.eid] = fix[x.eid] || {};
+            const f = fe[k] = fe[k] || { q: 0, ir: 0 };
+            f.q += q;
+            if (it.src === "ir") f.ir += q;
+          }
+        }
+      }
+    }
+    return { fix, pools };
+  }
+  function fixQtyOf(fx, eid) {
+    return Object.values(fx.fix[eid] || {}).reduce((a, f) => a + f.q, 0);
+  }
   function irAltCells(lot, wid, st) {
     const o = {};
     let t = 0;
@@ -4823,7 +4868,8 @@ ${url}`;
     const cut = +lotCells(l)[k] || 0;
     const nm = (id) => (W(id) || { name: id === "owner" ? "Owner" : "Unknown" }).name;
     const by = {};
-    const row = (w) => by[w] = by[w] || { w, alloc: 0, allocAt: [], pend: 0, recv: 0, pass: 0, alt: 0, rej: 0, sub: [] };
+    const row = (w) => by[w] = by[w] || { w, alloc: 0, allocAt: [], pend: 0, recv: 0, pass: 0, alt: 0, rej: 0, sub: [], ckFix: 0, irFix: 0, irOut: 0 };
+    const fxs = stitchFixes(l);
     for (const v of recvList(l, "stitching")) {
       if (v.st === "cancelled") continue;
       const n = +(v.sz || {})[k] || 0;
@@ -4832,7 +4878,7 @@ ${url}`;
       r.alloc += n;
       r.allocAt.push([v.at || v.date, n, v.by]);
     }
-    for (const v of Object.values((l.prog || {}).stitching || {})) {
+    for (const [eid, v] of Object.entries((l.prog || {}).stitching || {})) {
       if (!v || !v.w || v.st === "withdrawn") continue;
       const n = +(v.sz || {})[k] || 0, a = +(v.altSz || {})[k] || 0, j = +(v.rejSz || {})[k] || 0;
       if (!n && !a && !j) continue;
@@ -4841,7 +4887,16 @@ ${url}`;
       else if (v.st === "received") r.recv += n;
       else if (v.st === "approved") { r.pass += n; r.alt += a; r.rej += j; }
       else if (v.st === "rejected") r.alt += n || a;
-      r.sub.push({ at: v.at || v.date, n: n + (v.st === "approved" ? a + j : 0), st: v.st, at2: v.at2, by2: v.by2 });
+      const f = (fxs.fix[eid] || {})[k] || { q: 0, ir: 0 };
+      r.ckFix += f.q - f.ir;
+      r.irFix += f.ir;
+      r.sub.push({ at: v.at || v.date, n: n + (v.st === "approved" ? a + j : 0), fx: f.q, st: v.st, at2: v.at2, by2: v.by2 });
+    }
+    for (const r of Object.values(by)) {
+      for (const it of fxs.pools[r.w + "#" + k] || []) if (it.src === "ir") r.irOut += it.n - it.fixed;
+      r.altAll = r.alt;
+      r.alt = Math.max(0, r.alt - r.ckFix) + r.irOut;
+      r.pass = Math.max(0, r.pass - r.irFix - r.irOut);
     }
     const stg = {};
     const addStg = (w, label, cls, n) => {
@@ -4871,9 +4926,9 @@ ${url}`;
     const cards = ws.map((r) => {
       const made = r.pend + r.recv + r.pass + r.alt + r.rej;
       const open = Math.max(0, r.alloc - made);
-      const bits = [r.pass ? `<span class="chip approved">Passed ${r.pass}</span>` : "", r.recv ? `<span class="chip pending">Counted, to check ${r.recv}</span>` : "", r.pend ? `<span class="chip pending">Submitted ${r.pend}</span>` : "", r.alt ? `<span class="chip pending">Alter ${r.alt}</span>` : "", r.rej ? `<span class="chip rejected">Rejected ${r.rej}</span>` : "", open ? `<span class="chip line">Still stitching ${open}</span>` : ""].filter(Boolean).join("");
+      const bits = [r.pass ? `<span class="chip approved">Passed ${r.pass}</span>` : "", r.recv ? `<span class="chip pending">Counted, to check ${r.recv}</span>` : "", r.pend ? `<span class="chip pending">Submitted ${r.pend}</span>` : "", r.alt ? `<span class="chip pending">Alter ${r.alt}</span>` : "", r.ckFix + r.irFix ? `<span class="chip line">Alter fixed ${r.ckFix + r.irFix}</span>` : "", r.rej ? `<span class="chip rejected">Rejected ${r.rej}</span>` : "", open ? `<span class="chip line">Still stitching ${open}</span>` : ""].filter(Boolean).join("");
       const allocs = r.allocAt.sort((a, b) => String(a[0] || "").localeCompare(String(b[0] || ""))).map(([at, n, b]) => `<li>Allocated <b>${n}</b> \xB7 ${fmtDT(at)}${b ? " by " + esc(nm(b)) : ""}</li>`).join("");
-      const subs = r.sub.sort((a, b) => String(a.at || "").localeCompare(String(b.at || ""))).map((x) => `<li>Submitted <b>${x.n}</b> \xB7 ${fmtDT(x.at)} \xB7 ${stLbl[x.st] || x.st}${x.at2 ? " " + fmtDT(x.at2) + (x.by2 ? " by " + esc(nm(x.by2)) : "") : ""}</li>`).join("");
+      const subs = r.sub.sort((a, b) => String(a.at || "").localeCompare(String(b.at || ""))).map((x) => `<li>Submitted <b>${x.n}</b>${x.fx ? ` <span class="muted">(${x.fx >= x.n ? "alter fixed" : x.fx + " alter fixed"})</span>` : ""} \xB7 ${fmtDT(x.at)} \xB7 ${stLbl[x.st] || x.st}${x.at2 ? " " + fmtDT(x.at2) + (x.by2 ? " by " + esc(nm(x.by2)) : "") : ""}</li>`).join("");
       const st = (stg[r.w] || []).slice();
       if (open) st.unshift(["Still with stitcher", "ph-st", open]);
       if (r.alt) st.push(["Alter, back to stitcher", "ph-st", r.alt]);
@@ -5448,11 +5503,13 @@ ${url}`;
       if (inP(l.date)) cut += +l.total || 0;
       for (const v of recvList(l, "stitching")) if (v.w && inP(v.at || v.date)) alloc += +v.q || Object.values(nz(v.sz)).reduce((x, y) => x + (+y || 0), 0);
       const pays = {};
+      const lfx = stitchFixes(l);
       for (const [eid, v] of Object.entries((l.prog || {}).stitching || {})) {
         if (!v || v.st === "withdrawn" || !v.w) continue;
         if (!inP(v.date)) continue;
         const r = row(v.w);
-        const q = subQty(v);
+        const fq = fixQtyOf(lfx, eid);
+        const q = Math.max(0, subQty(v) - fq);
         sub += q;
         r.sub += q;
         if (v.rid) r.bundles.add(l.id + v.rid);
@@ -5473,7 +5530,7 @@ ${url}`;
           it.rej += +v.rej || 0;
         }
         if (v.st === "received" || v.st === "approved") {
-          const g = (+v.q || 0) + (v.st === "approved" ? (+v.alt || 0) + (+v.rej || 0) : 0);
+          const g = Math.max(0, (+v.q || 0) + (v.st === "approved" ? (+v.alt || 0) + (+v.rej || 0) : 0) - fq);
           got += g;
           r.got += g;
           const pm = pays[v.w] || (pays[v.w] = stitchPay(l, v.w));
@@ -5519,7 +5576,7 @@ ${url}`;
       })()}</span><span class="cksum"><span>Submitted <b>${it.sub}</b></span><span class="ok">Received <b>${it.got}</b></span>${it.alt ? `<span class="warn">Alter <b>${it.alt}</b></span>` : ""}${it.rej ? `<span style="color:var(--bad)">Reject <b>${it.rej}</b></span>` : ""}<span>Pay <b>${inr(it.pay)}</b></span></span></div>${stt}</div>`;
     }).join("")}</td></tr>` : ""}`).join("")}
     <tr class="dtot"><td><b>Total</b></td><td><b>${tot.sub}</b></td><td><b>${tot.got}</b></td><td><b>${inr(tot.pay)}</b></td></tr></tbody></table></div>
-    <p class="small muted" style="margin:0">Submitted counts every piece a stitcher handed in on that date (alter pieces handed in again are counted again). Pay counts received pieces once, minus alter and rejected, at the design's stitching rate${per === "h1" || per === "h2" ? " \u2013 this is the pay cycle total" : ""}.</p>`;
+    <p class="small muted" style="margin:0">Submitted counts every new piece a stitcher handed in on that date (alter pieces handed in again after fixing are not counted again). Pay counts received pieces once, minus alter and rejected, at the design's stitching rate${per === "h1" || per === "h2" ? " \u2013 this is the pay cycle total" : ""}.</p>`;
     return h;
   }
   function doneView() {
