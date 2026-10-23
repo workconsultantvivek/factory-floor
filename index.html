@@ -501,7 +501,7 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
         const n = cnt ? +cnt[k] || 0 : (+(v.sz || {})[k] || 0) + (+(v.altSz || {})[k] || 0) + (+(v.rejSz || {})[k] || 0);
         if (n > 0) push(v.w, k, { t, o: 0, eid, n });
         const a = v.st === "approved" ? +(v.altSz || {})[k] || 0 : v.st === "rejected" ? +(v.sz || {})[k] || 0 : 0;
-        if (a > 0) push(v.w, k, { t: String(v.at2 || t), o: 1, it: { src: "ck", n: a, fixed: 0 } });
+        if (a > 0) push(v.w, k, { t: String(v.at2 || t), o: 1, it: { src: v.st === "rejected" ? "rj" : "ck", n: a, fixed: 0 } });
       }
     }
     for (const v of Object.values(lot.irAlt || {})) {
@@ -523,17 +523,18 @@ if (!Object.fromEntries) Object.fromEntries = function(it) {
             it.fixed += q;
             need -= q;
             const fe = fix[x.eid] = fix[x.eid] || {};
-            const f = fe[k] = fe[k] || { q: 0, ir: 0 };
+            const f = fe[k] = fe[k] || { q: 0, ir: 0, rj: 0 };
             f.q += q;
             if (it.src === "ir") f.ir += q;
+            if (it.src === "rj") f.rj += q;
           }
         }
       }
     }
     return { fix, pools };
   }
-  function fixQtyOf(fx, eid) {
-    return Object.values(fx.fix[eid] || {}).reduce((a, f) => a + f.q, 0);
+  function fixQtyOf(fx, eid, gotOnly) {
+    return Object.values(fx.fix[eid] || {}).reduce((a, f) => a + f.q - (gotOnly ? f.rj : 0), 0);
   }
   function irAltCells(lot, wid, st) {
     const o = {};
@@ -5530,7 +5531,7 @@ ${url}`;
           it.rej += +v.rej || 0;
         }
         if (v.st === "received" || v.st === "approved") {
-          const g = Math.max(0, (+v.q || 0) + (v.st === "approved" ? (+v.alt || 0) + (+v.rej || 0) : 0) - fq);
+          const g = Math.max(0, (+v.q || 0) + (v.st === "approved" ? (+v.alt || 0) + (+v.rej || 0) : 0) - fixQtyOf(lfx, eid, true));
           got += g;
           r.got += g;
           const pm = pays[v.w] || (pays[v.w] = stitchPay(l, v.w));
