@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="1610-1720";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="2410-1900";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -5668,7 +5668,14 @@ ${url}`;
     if (!gl.length) return h + `<div class="empty">No received work on ${range} ${monthLabel(S.month)} yet.</div>`;
     const ALLST = stagesAll();
     const stChip = (e) => `<span class="chip ${e.status === "pending" ? "pending" : "approved"}">${e.status === "pending" ? "Pending \xB7 with receiver" : e.status === "received" ? "Received" : "Received \xB7 checked"}</span>`;
-    const altHtml = (alters) => {
+    const fixPay = (it, k) => it.fixes.reduce((a, f) => {
+      if (f.e.status !== "received" && f.e.status !== "approved") return a;
+      const pf = payOf(f.e);
+      if (pf.rate == null) return a;
+      const q = f.e.stage === "stitching" && S.lots[f.e.lotId] ? Math.min(f.q, pf.sz[k] || 0) : f.q;
+      return a + q * pf.rate;
+    }, 0);
+    const altHtml = (alters, k) => {
       if (!alters.length) return "";
       return `<div class="list" style="gap:6px;border-top:1px dashed var(--line);padding-top:8px"><b class="small warn">Alter pieces</b>${alters.map((it) => {
         const fixed = it.fixes.reduce((a, f) => a + f.q, 0);
@@ -5680,6 +5687,8 @@ ${url}`;
         if (by.pending) chips.push(`<span class="chip pending">${by.pending} submitted again \xB7 with receiver</span>`);
         if (by.received) chips.push(`<span class="chip approved">${by.received} received again \xB7 with checker</span>`);
         if (by.approved) chips.push(`<span class="chip approved">${by.approved} fixed \xB7 checked ✓</span>`);
+        const fp = fixPay(it, k);
+        if (fp) chips.push(`<span class="chip approved">+ ${inr(Math.round(fp))} added to pay</span>`);
         const und = it.fixes.filter((f) => f.e.status === "pending").map((f) => `<button class="btn alt sm" data-withdraw="${f.e.docId}|${f.e.eid}">Undo</button>`).join("");
         return `<div class="list" style="gap:4px"><span class="small"><b>${it.n} alter</b> <span class="muted">by ${it.src.toLowerCase()}${it.at ? " \xB7 " + fmtDT(it.at) : ""}</span></span><span class="row" style="gap:6px">${chips.join("")}${und}</span></div>`;
       }).join("")}</div>`;
@@ -5691,7 +5700,9 @@ ${url}`;
       const al = allocFor(lot, e, m.id) || null;
       const pcs = x.n - x.fix;
       const p = payOf(e);
-      const amt = p.rate != null ? Math.round((e.stage === "stitching" && S.lots[e.lotId] ? p.sz[g.k] || 0 : e.qty * x.share) * p.rate) : null;
+      const amt0 = p.rate != null ? Math.round((e.stage === "stitching" && S.lots[e.lotId] ? Math.max(0, (p.sz[g.k] || 0) - x.fix) : e.qty * x.share) * p.rate) : null;
+      const fixAmt = Math.round(alters.reduce((a, it) => a + fixPay(it, g.k), 0));
+      const amt = amt0 != null ? amt0 + fixAmt : fixAmt || null;
       const first = e.at || e.date;
       const rcv = p0.rat || null;
       const alt = +((e.altSz || {})[g.k] || 0), rej = +((e.rejSz || {})[g.k] || 0);
@@ -5702,8 +5713,8 @@ ${url}`;
       <div class="row spread" style="flex-wrap:nowrap;gap:8px;align-items:flex-start"><div style="min-width:0"><div class="small muted lotno">${esc(lot.lotNo)}</div><div class="sku">${esc(skuOf(lot.design || "", c, z))}</div></div><div style="text-align:right;flex:none"><div class="left" style="font-size:1.35rem">${pcs + alt + rej}</div><div class="small muted">pcs</div></div></div>
       <ul class="tl small"><li>Allocated: <b>${al ? fmtDT(al) : "—"}</b></li><li>Submitted: <b>${fmtDT(first)}</b></li><li>Received: <b>${rcv ? fmtDT(rcv) : "not yet"}</b></li><li>Time taken: <b>${al && rcv ? dur(al, rcv) : "—"}</b></li></ul>
       ${nowAtFor(ALLST, g.lotId, m.id, g.k, p0.st === "approved" ? +((p0.sz || {})[g.k] || 0) : 0, e.eid)}
-      <div class="row spread" style="gap:6px"><span class="row" style="gap:6px">${stChip(e)}${rej ? `<span class="small" style="color:var(--bad)">${rej} rej</span>` : ""}</span><span class="row" style="gap:6px">${amt != null ? `<b style="font-size:1.05rem">${inr(amt)}</b>` : ""}</span></div>
-      ${altHtml(alters)}
+      <div class="row spread" style="gap:6px"><span class="row" style="gap:6px">${stChip(e)}${rej ? `<span class="small" style="color:var(--bad)">${rej} rej</span>` : ""}</span><span class="row" style="gap:6px">${amt != null ? `${fixAmt && amt0 != null ? `<span class="small muted">${inr(amt0)} + ${inr(fixAmt)} alter</span>` : ""}<b style="font-size:1.05rem">${inr(amt)}</b>` : ""}</span></div>
+      ${altHtml(alters, g.k)}
       </div>
     </div>`;
     }).join("")}</div>`;
