@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut"><meta name="robots" content="noindex,nofollow,noarchive,nosnippet,noimageindex"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#16213a">
-<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="2410-1915";
+<script>window.FFR_API={url:"https://n8n.clothinco.in/webhook/factory-api"};window.__ffrBuild="2910-1545";
 function __ffrMsg(t,d){var a=document.getElementById('app');if(a)a.innerHTML='<div style="padding:40px 20px;text-align:center;font-family:sans-serif"><h3>'+t+'</h3><p>'+d+'</p><p style="color:#888;font-size:11px;word-break:break-all">'+String(navigator.userAgent).replace(/</g,'&lt;')+'<br>build '+window.__ffrBuild+' · '+String(window.__ffrErr||window.__ffrNet||'').replace(/</g,'&lt;').slice(0,200)+'</p></div>'}
 window.onerror=function(m){window.__ffrErr=m;if(!window.__ffrOk)__ffrMsg('This phone could not open the app','Please update Google Chrome from the Play Store, then open the link again in Chrome.')};
 setTimeout(function(){if(!window.__ffrOk)__ffrMsg('This phone could not start the app','Please update Google Chrome from the Play Store, then open the link again in Chrome. Send a photo of this screen to the owner.');else if(!window.__ffrReady)__ffrMsg('Still connecting to the factory server','Check the internet. Try switching between Wi-Fi and mobile data, then reload. Send a photo of this screen to the owner.')},20000);</script>
@@ -4972,7 +4972,7 @@ ${url}`;
     const sh = sheet("Edit cut lot " + l.lotNo, `<form id="ecForm" class="list" novalidate>
     <div class="hint">Correct the pieces cut per size. A size can't go below what is already given to stitchers (shown as <b>given</b>).</div>
     <div class="card list" style="gap:12px"><div class="row spread" style="gap:8px"><span class="row" style="gap:8px"><b>${esc(l.design)}</b><button type="button" class="btn alt sm" id="ecDesign">Change design</button></span><b id="ecTotal" style="font-family:var(--display);font-size:1.3rem">${l.total} pcs</b></div>
-    ${cols.map((c) => `<div class="cblock"><div class="row spread"><b>${esc(c || "Pieces")}</b><span class="small muted" id="ect_${safeId(c)}"></span></div><div class="sizes">${sizes.map((z) => {
+    ${cols.map((c) => `<div class="cblock"><div class="row spread"><span class="row" style="gap:8px"><b>${esc(c || "Pieces")}</b>${c ? `<button type="button" class="btn alt sm" data-eccol="${esc(c)}">Change colour</button>` : ""}</span><span class="small muted" id="ect_${safeId(c)}"></span></div><div class="sizes">${sizes.map((z) => {
       const k = CK(c, z), id = "ec_" + safeId(k), g = given[k] || 0;
       return `<label class="sizebox" for="${id}"><span class="top"><b>${esc(z)}</b>${g ? `<span class="muted small">given ${g}</span>` : ""}</span><input type="number" inputmode="numeric" min="${g}" id="${id}" data-ecsize="${esc(k)}" data-min="${g}" placeholder="0" value="${+cells[k] || ""}"></label>`;
     }).join("")}</div></div>`).join("")}
@@ -5010,6 +5010,12 @@ ${url}`;
       closeSheet();
       setTimeout(() => designPicker((code) => changeLotDesign(lid, code)), 60);
     };
+    sh.querySelectorAll("[data-eccol]").forEach((b) => b.onclick = () => {
+      const c = b.dataset.eccol, lot = S.lots[lid];
+      if (Object.entries(sumCells(recvList(lot, "stitching"))).some(([k, n]) => n > 0 && splitCK(k)[0] === c)) return $("#ecErr", sh).textContent = c + " pieces are already given to stitchers, so the colour can't be changed now.";
+      closeSheet();
+      setTimeout(() => colourChangeSheet(lid, c), 60);
+    });
     sh.addEventListener("input", (e) => {
       if (e.target.dataset.ecsize != null) upd();
     });
@@ -5062,6 +5068,57 @@ ${url}`;
     try {
       await S.db.doc("lots/" + lid).update({ design: code, designName: d.n || "", rates: designRates(d), fixes: { [uid("x")]: { type: "design", before: l.design, after: code, by: me().id, at: (/* @__PURE__ */ new Date()).toISOString() } } });
       toast("Lot " + l.lotNo + " is now " + code);
+      render();
+    } catch (x) {
+      writeErr(x);
+    }
+  }
+  function colourChangeSheet(lid, from) {
+    const l = S.lots[lid];
+    if (!l) return;
+    const d = allDesigns()[l.design] || {};
+    const have = lotColours(l);
+    const opts = (d.c || []).filter((c) => !have.includes(c));
+    const sh = sheet("Change colour \xB7 " + l.lotNo, `<form id="ccForm" class="list" novalidate>
+    <div class="hint">Replace <b>${esc(from)}</b> with another colour of <b>${esc(l.design)}</b>. Sizes and pieces stay the same.</div>
+    ${opts.length ? `<label class="f">New colour<select id="ccSel"><option value="">Select colour</option>${opts.map((c) => `<option>${esc(c)}</option>`).join("")}</select></label>` : ""}
+    <label class="f">${opts.length ? "Or type a colour" : "New colour"}<input id="ccTxt" type="text" autocomplete="off" placeholder="e.g. Brown"></label>
+    <div id="ccErr" class="err"></div>
+    <button class="btn accent big" type="submit">Change colour</button></form>`);
+    $("#ccForm", sh).addEventListener("submit", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const to = (($("#ccTxt", sh).value || "").trim()) || ($("#ccSel", sh) ? $("#ccSel", sh).value : "");
+      if (!to) return $("#ccErr", sh).textContent = "Pick or type the new colour.";
+      changeLotColour(lid, from, to);
+    });
+  }
+  async function changeLotColour(lid, from, to) {
+    const l = S.lots[lid];
+    if (!l || !from || !to || from === to) return;
+    if (Object.entries(sumCells(recvList(l, "stitching"))).some(([k, n]) => n > 0 && splitCK(k)[0] === from)) return toast(from + " pieces are already given to stitchers \u2013 colour not changed.");
+    if (lotColours(l).includes(to)) return toast(to + " is already in this lot.");
+    const d = allDesigns()[l.design] || {};
+    if (!confirm("Change " + from + " to " + to + " in lot " + l.lotNo + "?" + ((d.c || []).length && !(d.c || []).includes(to) ? "\n\nNote: " + to + " is not a colour of " + l.design + " in Uniware." : ""))) return;
+    const ren = (v) => {
+      if (Array.isArray(v)) return v.map((x) => x === from ? to : ren(x));
+      if (v && typeof v === "object") {
+        const o = {};
+        for (const [k, x] of Object.entries(v)) {
+          const [c, z] = splitCK(k);
+          o[k.indexOf("|") >= 0 && c === from ? CK(to, z) : k] = ren(x);
+        }
+        return o;
+      }
+      return v;
+    };
+    const nd = ren(JSON.parse(JSON.stringify(l)));
+    if (nd.colour === from) nd.colour = to;
+    nd.fixes = Object.assign({}, nd.fixes || {}, { [uid("x")]: { type: "colour", before: from, after: to, by: me().id, at: (/* @__PURE__ */ new Date()).toISOString() } });
+    try {
+      await S.db.doc("lots/" + lid).set(nd);
+      closeSheet();
+      toast("Lot " + l.lotNo + ": " + from + " is now " + to);
       render();
     } catch (x) {
       writeErr(x);
